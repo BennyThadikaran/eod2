@@ -1,0 +1,110 @@
+[
+   {
+      "tradingDate": "26-Jan-2022",
+      "weekDay": "Wednesday",
+      "description": "Republic Day",
+      "Sr_no": 1
+   },
+   {
+      "tradingDate": "01-Mar-2022",
+      "weekDay": "Tuesday",
+      "description": "Mahashivratri",
+      "Sr_no": 2
+   },
+   {
+      "tradingDate": "18-Mar-2022",
+      "weekDay": "Friday",
+      "description": "Holi",
+      "Sr_no": 3
+   },
+   {
+      "tradingDate": "10-Apr-2022",
+      "weekDay": "Sunday",
+      "description": "Ram Navami",
+      "Sr_no": 4
+   },
+   {
+      "tradingDate": "14-Apr-2022",
+      "weekDay": "Thursday",
+      "description": "Dr.Baba Saheb Ambedkar Jayanti/Mahavir Jayanti",
+      "Sr_no": 5
+   },
+   {
+      "tradingDate": "15-Apr-2022",
+      "weekDay": "Friday",
+      "description": "Good Friday",
+      "Sr_no": 6
+   },
+   {
+      "tradingDate": "01-May-2022",
+      "weekDay": "Sunday",
+      "description": "Maharashtra Day",
+      "Sr_no": 7
+   },
+   {
+      "tradingDate": "03-May-2022",
+      "weekDay": "Tuesday",
+      "description": "Id-Ul-Fitr (Ramzan ID)",
+      "Sr_no": 8
+   },
+   {
+      "tradingDate": "10-Jul-2022",
+      "weekDay": "Sunday",
+      "description": "Bakri Id",
+      "Sr_no": 9
+   },
+   {
+      "tradingDate": "09-Aug-2022",
+      "weekDay": "Tuesday",
+      "description": "Moharram",
+      "Sr_no": 10
+   },
+   {
+      "tradingDate": "15-Aug-2022",
+      "weekDay": "Monday",
+      "description": "Independence Day",
+      "Sr_no": 11
+   },
+   {
+      "tradingDate": "31-Aug-2022",
+      "weekDay": "Wednesday",
+      "description": "Ganesh Chaturthi",
+      "Sr_no": 12
+   },
+   {
+      "tradingDate": "02-Oct-2022",
+      "weekDay": "Sunday",
+      "description": "Mahatma Gandhi Jayanti",
+      "Sr_no": 13
+   },
+   {
+      "tradingDate": "05-Oct-2022",
+      "weekDay": "Wednesday",
+      "description": "Dussehra",
+      "Sr_no": 14
+   },
+   {
+      "tradingDate": "24-Oct-2022",
+      "weekDay": "Monday",
+      "description": "Diwali * Laxmi Pujan",
+      "Sr_no": 15
+   },
+   {
+      "tradingDate": "26-Oct-2022",
+      "weekDay": "Wednesday",
+      "description": "Diwali-Balipratipada",
+      "Sr_no": 16
+   },
+   {
+      "tradingDate": "08-Nov-2022",
+      "weekDay": "Tuesday",
+      "description": "Gurunanak Jayanti",
+      "Sr_no": 17
+   },
+   {
+      "tradingDate": "25-Dec-2022",
+      "weekDay": "Sunday",
+      "description": "Christmas",
+      "Sr_no": 18
+   }
+]
