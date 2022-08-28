@@ -6,6 +6,9 @@ from os.path import dirname, realpath
 basepath = dirname(realpath(__file__))
 arg_length = len(argv)
 
+if arg_length == 1:
+    exit('Usage:\npython3 plot.py <symbol> [<int avg_days> <int plot_period>]')
+
 avg_days = int(argv[2]) if arg_length == 3 else 60
 plot_period = int(argv[3]) if arg_length == 4 else 180
 
@@ -128,7 +131,6 @@ df = df.rename(columns={
 })
 
 mpf.plot(df,
-         volume=True,
          type='candle',
          alines={
              'alines': alines,
