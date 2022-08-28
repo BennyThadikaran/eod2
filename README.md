@@ -62,7 +62,7 @@ By default:
 - 180 trading days are plotted.
 
 To change this, plot.py takes additional integer arguments:
-> plot.py <symbolcode> <Average Days> <plot period>
+> plot.py \<symbolcode\> \<Average Days\> \<plot period\>
 
 `python3 plot.py tcs 30 60`
 
@@ -71,10 +71,13 @@ See [Analysing delivery data](delivery-analysis.md) for explanation.
 > dget.py [<symbol1> <symbol2> ...]
 
 `python3 dget.py hdfcbank marksans idfcfirstb`
+
 ![screenshot](/images/dget-args.png)
 
 `python3 dget.py`
+
 ![screenshot](/images/dget.png)
+
 If no symbols are specified, a default list of symbols are displayed. 
 To edit this list, open dget.py in a text editor and edit the symbols in the watch variable.
 ```
