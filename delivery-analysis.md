@@ -29,5 +29,6 @@ The average delivery Qty of the last 60 days is 39,14,991. We notice the deliver
 
 To make it easier to analyze, we divide the delivery Qty and Average delivery Qty
 > 46,89,197 / 39,14,991 = ~1.2
-> Value > 1: Above average
-> Value < 1: Below average
+
+Value > 1: Above average
+Value < 1: Below average

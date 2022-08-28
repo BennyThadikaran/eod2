@@ -1,5 +1,4 @@
 # EOD2
----
 An automated python script to download and update NSE stocks, indices, and delivery data.
 
 ## Features
@@ -16,6 +15,7 @@ An automated python script to download and update NSE stocks, indices, and deliv
 `$ git clone https://github.com/BennyThadikaran`
 
 Mplfinance is optional. Only required for plotting data using plot.py
+
 `$ pip install requests pandas mplfinance`
 
 ## Usage
@@ -36,13 +36,18 @@ Cleaning up files
 ```
 
 ### To run the script daily in Linux:
-Open your terminal and type the below, 
+Open your terminal and type the below,
+
 `$ crontab -e`
+
 This opens crontab in your preferred editor.
 
 Add the below line to your crontab
+
 `30 19 * * 1-5 /usr/bin/python3 <path to init.py> >> ~/Desktop/cron.log 2>&1`
-This runs init.py Monday to Fri at 7:30 pm and stores the output to ~/Desktop/cron.log. Replace <path to init.py> with the actual location of 'init.py'
+
+This runs init.py Monday to Fri at 7:30 pm and stores the output to ~/Desktop/cron.log.
+Replace \<path to init.py\> with the actual location of 'init.py'
 
 Save the file and exit.
 
@@ -53,9 +58,10 @@ NSE Daily reports are updated after 7 pm, so ideally schedule script execution p
 `python3 plot.py tcs`
 ![plot screenshot](/images/plot.png)
 
-Dark Blue bars represent above-average delivery and traded volume. 
+Dark Blue bars represent above-average delivery and traded volume.
 [See Analysing Delivery data](delivery-analysis.md).
-Horizontal lines marking support and resistance.
+
+Horizontal lines mark support and resistance.
 
 By default:
 - plot.py uses 60 days average to compare delivery and traded volume.
@@ -68,7 +74,7 @@ To change this, plot.py takes additional integer arguments:
 
 ### Delivery analysis
 See [Analysing delivery data](delivery-analysis.md) for explanation.
-> dget.py [<symbol1> <symbol2> ...]
+> dget.py [\<symbol1\> \<symbol2\> ...]
 
 `python3 dget.py hdfcbank marksans idfcfirstb`
 
@@ -78,7 +84,7 @@ See [Analysing delivery data](delivery-analysis.md) for explanation.
 
 ![screenshot](/images/dget.png)
 
-If no symbols are specified, a default list of symbols are displayed. 
+If no symbols are specified, a default list of symbols are displayed.
 To edit this list, open dget.py in a text editor and edit the symbols in the watch variable.
 ```
 if len(argv) == 1:
