@@ -543,11 +543,19 @@ def cleanup(files_lst):
         for entry in it:
 
             lastUpdated = datetime.strptime(getLastDate(entry.path), fmt)
+            dlvry_file = f'{basePath}/delivery/{entry.name}'
+
+            if '-re' in entry.name:
+                # Remove scripts related to rights issue
+                os.remove(entry.path)
+
+                if os.path.isfile(dlvry_file):
+                    os.remove(dlvry_file)
+
+                continue
 
             if lastUpdated < deadline:
                 os.remove(entry.path)
-
-                dlvry_file = f'{basePath}/delivery/{entry.name}'
 
                 if os.path.isfile(dlvry_file):
                     os.remove(dlvry_file)
