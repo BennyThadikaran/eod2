@@ -16,17 +16,18 @@ if 'win' in platform:
 
 today = datetime.combine(datetime.today(), datetime.min.time())
 
-basePath = os.path.dirname(os.path.realpath(__file__))
+DIR = os.path.dirname(os.path.realpath(__file__))
 
 nseBaseUrl = 'https://archives.nseindia.com/content'
-nseActionsFile = basePath + '/nse_actions.json'
+nseActionsFile = DIR + '/nse_actions.json'
 
 # delivery headings
 header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY,DELIV_PER\n'
 
 userAgent = 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0'
 
-isin = read_csv(f'{basePath}/isin.csv', index_col='ISIN')
+isin = read_csv(f'{DIR}/isin.csv', index_col='ISIN')
+etf_index = read_csv(f'{DIR}/etf.csv', index_col='SYMBOL').index
 
 headers = {
     'User-Agent': userAgent,
@@ -54,14 +55,14 @@ def setCookies():
 
     cookies = r.cookies
 
-    with open(f'{basePath}/cookies', 'wb') as f:
+    with open(f'{DIR}/cookies', 'wb') as f:
         pickle.dump(cookies, f)
 
     return cookies
 
 
 def getCookies():
-    file = f'{basePath}/cookies'
+    file = f'{DIR}/cookies'
 
     if os.path.isfile(file):
         with open(file, 'rb') as f:
@@ -84,7 +85,7 @@ def hasCookiesExpired(cookies):
 
 
 def getLastUpdated(file):
-    file = basePath + file
+    file = DIR + file
 
     if not os.path.isfile(file):
         return today - timedelta(1)
@@ -96,7 +97,7 @@ def getLastUpdated(file):
 
 
 def setLastUpdated(dt, file):
-    with open(basePath + file, 'w') as f:
+    with open(DIR + file, 'w') as f:
         f.write(dt.isoformat())
 
 
@@ -114,7 +115,7 @@ def getNextDate(dt):
 
 
 def checkForHolidays(dt):
-    file = basePath + '/holiday.json'
+    file = DIR + '/holiday.json'
 
     fileModifiedDate = datetime.fromtimestamp(os.path.getmtime(file))
 
@@ -174,12 +175,12 @@ def getActions(from_dt, to_dt):
                        headers=headers,
                        cookies=cookies)
 
-    with open(f'{basePath}/nse_actions.json', 'w') as f:
+    with open(f'{DIR}/nse_actions.json', 'w') as f:
         dump(data, f, indent=3)
 
 
 def download(url):
-    fname = f'{basePath}/{url.split("/")[-1]}'
+    fname = f'{DIR}/{url.split("/")[-1]}'
 
     r = get(url, stream=True, headers=headers, timeout=15)
 
@@ -199,7 +200,7 @@ def downloadNseDelivery():
         print('Delivery file corrupted.', e.reason)
         return None
 
-    folder = f'{basePath}/nseDelivery/{dt.year}'
+    folder = f'{DIR}/nseDelivery/{dt.year}'
 
     if not os.path.isdir(folder):
         os.mkdir(folder)
@@ -227,13 +228,14 @@ def downloadNseBhav():
 
 
 def updateNseEOD(bhavFile):
+
     with ZipFile(bhavFile) as zip:
         csvFile = bhavFile.split('/')[-1].replace('.zip', '')
 
         with zip.open(csvFile) as f:
             df = read_csv(f, index_col='ISIN')
 
-            folder = f'{basePath}/nseBhav/{dt.year}'
+            folder = f'{DIR}/nseBhav/{dt.year}'
 
             if not os.path.isdir(folder):
                 os.mkdir(folder)
@@ -253,36 +255,38 @@ def updateNseEOD(bhavFile):
             pandas_dt = dt.strftime('%Y-%m-%d')
 
             for idx in df.index:
-                if '-re' in idx:
+                sym = df.loc[idx, 'SYMBOL']
+
+                if '-RE' in sym or sym in etf_index:
                     continue
 
-                sym_file = f'{basePath}/daily/{df.loc[idx, "SYMBOL"].lower()}.csv'
+                sym_file = f'{DIR}/daily/{sym.lower()}.csv'
 
                 if not idx in isin.index:
-                    isin.loc[idx, 'SYMBOL'] = df.loc[idx, 'SYMBOL']
+                    isin.loc[idx, 'SYMBOL'] = sym
 
-                if df.loc[idx, 'SYMBOL'] != isin.loc[idx, 'SYMBOL']:
+                if sym != isin.loc[idx, 'SYMBOL']:
                     old = isin.loc[idx, 'SYMBOL']
 
-                    new = df.loc[idx, 'SYMBOL']
+                    new = sym
 
                     isin.loc[idx, 'SYMBOL'] = new
 
                     try:
-                        os.rename(f'{basePath}/daily/{old.lower()}.csv',
-                                  f'{basePath}/daily/{new.lower()}.csv')
+                        os.rename(f'{DIR}/daily/{old.lower()}.csv',
+                                  f'{DIR}/daily/{new.lower()}.csv')
                     except FileNotFoundError:
                         print(
                             f'ERROR: Renaming daily/{old.lower()}.csv to {new.lower()}.csv. No such file.')
 
                     try:
-                        os.rename(f'{basePath}/delivery/{old.lower()}.csv',
-                                  f'{basePath}/delivery/{new.lower()}.csv')
+                        os.rename(f'{DIR}/delivery/{old.lower()}.csv',
+                                  f'{DIR}/delivery/{new.lower()}.csv')
                     except FileNotFoundError:
                         print(
                             f'ERROR: Renaming delivery/{old.lower()}.csv to {new.lower()}.csv. No such file.')
 
-                    sym_file = f'{basePath}/daily/{new.lower()}.csv'
+                    sym_file = f'{DIR}/daily/{new.lower()}.csv'
 
                     print(f'Name Changed: {old} to {new}')
 
@@ -295,7 +299,7 @@ def updateNseEOD(bhavFile):
 
                 updateNseSymbol(sym_file, O, H, L, C, V)
 
-    isin.to_csv(f'{basePath}/isin.csv')
+    isin.to_csv(f'{DIR}/isin.csv')
 
 
 def updateDelivery(df):
@@ -303,6 +307,9 @@ def updateDelivery(df):
         return None
 
     for sym in df.index:
+        if '-RE' in sym or sym in etf_index:
+            continue
+
         series, v, trd_count, dq = df.loc[sym, [
             ' SERIES', ' TTL_TRD_QNTY', ' NO_OF_TRADES', ' DELIV_QTY']]
 
@@ -324,7 +331,7 @@ def updateNseSymbol(sym_file, o, h, l, c, v):
 
 
 def updateDeliveryData(sym, series, v, trd_count, dq):
-    file = f'{basePath}/delivery/{sym.lower()}.csv'
+    file = f'{DIR}/delivery/{sym.lower()}.csv'
     text = ''
 
     if not os.path.isfile(file):
@@ -353,7 +360,7 @@ def downloadIndexFile():
 
     df = read_csv(url, index_col='Index Name')
 
-    folder = f'{basePath}/nseIndices/{dt.year}'
+    folder = f'{DIR}/nseIndices/{dt.year}'
 
     if not os.path.isdir(folder):
         os.mkdir(folder)
@@ -400,7 +407,7 @@ def getBonus(sym, string):
 
 
 def makeAdjustment(symbol, split):
-    file = basePath + f'/daily/{symbol.lower()}.csv'
+    file = DIR + f'/daily/{symbol.lower()}.csv'
 
     if not os.path.isfile(file):
         print(f'{symbol}: File not found')
@@ -430,7 +437,7 @@ def makeAdjustment(symbol, split):
 
 
 def updateIndice(sym, O, H, L, C, V):
-    file = f'{basePath}/daily/{sym.lower()}.csv'
+    file = f'{DIR}/daily/{sym.lower()}.csv'
 
     text = ''
 
@@ -442,7 +449,7 @@ def updateIndice(sym, O, H, L, C, V):
 
 
 def updateIndexEOD(df):
-    watch = read_csv(f'{basePath}/sector_watchlist.csv', index_col='index')
+    watch = read_csv(f'{DIR}/sector_watchlist.csv', index_col='index')
 
     pe = float(df.loc['Nifty 50', 'P/E'])
 
@@ -539,20 +546,11 @@ def cleanup(files_lst):
     count = 0
     fmt = '%Y-%m-%d'
 
-    with os.scandir(f'{basePath}/daily') as it:
+    with os.scandir(f'{DIR}/daily') as it:
         for entry in it:
 
             lastUpdated = datetime.strptime(getLastDate(entry.path), fmt)
-            dlvry_file = f'{basePath}/delivery/{entry.name}'
-
-            if '-re' in entry.name:
-                # Remove scripts related to rights issue
-                os.remove(entry.path)
-
-                if os.path.isfile(dlvry_file):
-                    os.remove(dlvry_file)
-
-                continue
+            dlvry_file = f'{DIR}/delivery/{entry.name}'
 
             if lastUpdated < deadline:
                 os.remove(entry.path)
