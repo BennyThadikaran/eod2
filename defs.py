@@ -1,6 +1,6 @@
 from requests import get
 from requests.exceptions import ReadTimeout
-from os import mkdir, rename, remove, scandir, SEEK_END, SEEK_CUR
+from os import system, mkdir, rename, remove, scandir, SEEK_END, SEEK_CUR
 from os.path import dirname, realpath, isfile, getmtime, isdir, getsize
 from datetime import datetime, timedelta
 from json import load, dump
