@@ -1,110 +1,116 @@
 [
    {
-      "tradingDate": "26-Jan-2022",
-      "weekDay": "Wednesday",
+      "tradingDate": "26-Jan-2023",
+      "weekDay": "Thursday",
       "description": "Republic Day",
       "Sr_no": 1
    },
    {
-      "tradingDate": "01-Mar-2022",
-      "weekDay": "Tuesday",
+      "tradingDate": "18-Feb-2023",
+      "weekDay": "Saturday",
       "description": "Mahashivratri",
       "Sr_no": 2
    },
    {
-      "tradingDate": "18-Mar-2022",
-      "weekDay": "Friday",
+      "tradingDate": "07-Mar-2023",
+      "weekDay": "Tuesday",
       "description": "Holi",
       "Sr_no": 3
    },
    {
-      "tradingDate": "10-Apr-2022",
-      "weekDay": "Sunday",
+      "tradingDate": "30-Mar-2023",
+      "weekDay": "Thursday",
       "description": "Ram Navami",
       "Sr_no": 4
    },
    {
-      "tradingDate": "14-Apr-2022",
-      "weekDay": "Thursday",
-      "description": "Dr.Baba Saheb Ambedkar Jayanti/Mahavir Jayanti",
+      "tradingDate": "04-Apr-2023",
+      "weekDay": "Tuesday",
+      "description": "Mahavir Jayanti",
       "Sr_no": 5
    },
    {
-      "tradingDate": "15-Apr-2022",
+      "tradingDate": "07-Apr-2023",
       "weekDay": "Friday",
       "description": "Good Friday",
       "Sr_no": 6
    },
    {
-      "tradingDate": "01-May-2022",
-      "weekDay": "Sunday",
-      "description": "Maharashtra Day",
+      "tradingDate": "14-Apr-2023",
+      "weekDay": "Friday",
+      "description": "Dr. Baba Saheb Ambedkar Jayanti",
       "Sr_no": 7
    },
    {
-      "tradingDate": "03-May-2022",
-      "weekDay": "Tuesday",
+      "tradingDate": "22-Apr-2023",
+      "weekDay": "Saturday",
       "description": "Id-Ul-Fitr (Ramzan ID)",
       "Sr_no": 8
    },
    {
-      "tradingDate": "10-Jul-2022",
-      "weekDay": "Sunday",
-      "description": "Bakri Id",
+      "tradingDate": "01-May-2023",
+      "weekDay": "Monday",
+      "description": "Maharashtra Day",
       "Sr_no": 9
    },
    {
-      "tradingDate": "09-Aug-2022",
-      "weekDay": "Tuesday",
-      "description": "Moharram",
+      "tradingDate": "28-Jun-2023",
+      "weekDay": "Wednesday",
+      "description": "Bakri Id",
       "Sr_no": 10
    },
    {
-      "tradingDate": "15-Aug-2022",
-      "weekDay": "Monday",
-      "description": "Independence Day",
+      "tradingDate": "29-Jul-2023",
+      "weekDay": "Saturday",
+      "description": "Moharram",
       "Sr_no": 11
    },
    {
-      "tradingDate": "31-Aug-2022",
-      "weekDay": "Wednesday",
-      "description": "Ganesh Chaturthi",
+      "tradingDate": "15-Aug-2023",
+      "weekDay": "Tuesday",
+      "description": "Independence Day",
       "Sr_no": 12
    },
    {
-      "tradingDate": "02-Oct-2022",
-      "weekDay": "Sunday",
-      "description": "Mahatma Gandhi Jayanti",
+      "tradingDate": "19-Sep-2023",
+      "weekDay": "Tuesday",
+      "description": "Ganesh Chaturthi",
       "Sr_no": 13
    },
    {
-      "tradingDate": "05-Oct-2022",
-      "weekDay": "Wednesday",
-      "description": "Dussehra",
+      "tradingDate": "02-Oct-2023",
+      "weekDay": "Monday",
+      "description": "Mahatma Gandhi Jayanti",
       "Sr_no": 14
    },
    {
-      "tradingDate": "24-Oct-2022",
-      "weekDay": "Monday",
-      "description": "Diwali * Laxmi Pujan",
+      "tradingDate": "24-Oct-2023",
+      "weekDay": "Tuesday",
+      "description": "Dussehra",
       "Sr_no": 15
    },
    {
-      "tradingDate": "26-Oct-2022",
-      "weekDay": "Wednesday",
-      "description": "Diwali-Balipratipada",
+      "tradingDate": "12-Nov-2023",
+      "weekDay": "Sunday",
+      "description": "Diwali-Laxmi Pujan*",
       "Sr_no": 16
    },
    {
-      "tradingDate": "08-Nov-2022",
+      "tradingDate": "14-Nov-2023",
       "weekDay": "Tuesday",
-      "description": "Gurunanak Jayanti",
+      "description": "Diwali-Balipratipada",
       "Sr_no": 17
    },
    {
-      "tradingDate": "25-Dec-2022",
-      "weekDay": "Sunday",
-      "description": "Christmas",
+      "tradingDate": "27-Nov-2023",
+      "weekDay": "Monday",
+      "description": "Gurunanak Jayanti",
       "Sr_no": 18
+   },
+   {
+      "tradingDate": "25-Dec-2023",
+      "weekDay": "Monday",
+      "description": "Christmas",
+      "Sr_no": 19
    }
 ]

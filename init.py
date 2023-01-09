@@ -6,6 +6,7 @@ defs.dt = defs.getLastUpdated(lastUpdatedFile)
 while True:
     defs.dt = defs.getNextDate(defs.dt)
     defs.pandas_dt = defs.dt.strftime('%Y-%m-%d')
+
     if defs.checkForHolidays(defs.dt):
         continue
 
@@ -15,29 +16,28 @@ while True:
     # Download all files and validate for errors
     print('Downloading Files')
 
-    # NSE
-    bhavFile = defs.downloadNseBhav()
+    # NSE bhav copy
+    bhav_file = defs.downloadNseBhav()
 
     # NSE delivery
-    dq_df = defs.downloadNseDelivery()
+    delivery_file = defs.downloadNseDelivery()
 
     # Index file
-    index_df = defs.downloadIndexFile()
+    index_file = defs.downloadIndexFile()
 
-    # Begin sync
     # NSE sync
     print('Starting Data Sync')
 
-    defs.updateNseEOD(bhavFile)
+    defs.updateNseEOD(bhav_file)
 
     print('EOD sync complete')
 
-    defs.updateDelivery(dq_df)
+    defs.updateDelivery(delivery_file)
 
     print('Delivery sync complete')
 
     # INDEX sync
-    defs.updateIndexEOD(index_df)
+    defs.updateIndexEOD(index_file)
 
     print('Index sync complete.')
 
@@ -48,7 +48,7 @@ while True:
 
     print('Cleaning up files')
 
-    defs.cleanup([bhavFile])
+    defs.cleanup([bhav_file, delivery_file, index_file])
 
     defs.setLastUpdated(defs.dt, lastUpdatedFile)
 

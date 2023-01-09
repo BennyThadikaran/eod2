@@ -55,18 +55,18 @@ def isFarFromLevel(level):
 def getLevels():
     # get support and resistance levels
 
-    local_max = df['H'][
-        (df['H'].shift(1) < df['H']) &
-        (df['H'].shift(2) < df['H'].shift(1)) &
-        (df['H'].shift(-1) < df['H']) &
-        (df['H'].shift(-2) < df['H'].shift(-1))
+    local_max = df['High'][
+        (df['High'].shift(1) < df['High']) &
+        (df['High'].shift(2) < df['High'].shift(1)) &
+        (df['High'].shift(-1) < df['High']) &
+        (df['High'].shift(-2) < df['High'].shift(-1))
     ].dropna()
 
-    local_min = df['L'][
-        (df['L'].shift(1) > df['L']) &
-        (df['L'].shift(2) > df['L'].shift(1)) &
-        (df['L'].shift(-1) > df['L']) &
-        (df['L'].shift(-2) > df['L'].shift(-1))
+    local_min = df['Low'][
+        (df['Low'].shift(1) > df['Low']) &
+        (df['Low'].shift(2) > df['Low'].shift(1)) &
+        (df['Low'].shift(-1) > df['Low']) &
+        (df['Low'].shift(-2) > df['Low'].shift(-1))
     ].dropna()
 
     for idx in local_max.index:
@@ -114,21 +114,13 @@ except FileNotFoundError as e:
 
 
 levels = []
-mean_candle_size = (df['H'] - df['L']).mean()
+mean_candle_size = (df['High'] - df['Low']).mean()
 
 # Coloring Individual Candlesticks
 # https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
 mco = getDeliveryLevels(dq)
 
 alines = getLevels()
-
-df = df.rename(columns={
-    'O': 'Open',
-    'H': 'High',
-    'L': 'Low',
-    'C': 'Close',
-    'V': 'Volume'
-})
 
 mpf.plot(df,
          type='candle',
