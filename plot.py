@@ -1,16 +1,7 @@
 from pandas import read_csv
 from sys import argv
 import mplfinance as mpf
-from os.path import dirname, realpath
-
-basepath = dirname(realpath(__file__))
-arg_length = len(argv)
-
-if arg_length == 1:
-    exit('Usage:\npython3 plot.py <symbol> [<int avg_days> <int plot_period>]')
-
-avg_days = int(argv[2]) if arg_length == 3 else 60
-plot_period = int(argv[3]) if arg_length == 4 else 180
+from pathlib import Path
 
 
 def getDeliveryLevels(dq):
@@ -91,8 +82,19 @@ def getLevels():
     return alines
 
 
+DIR = Path(__file__).parent
+arg_length = len(argv)
+
+if arg_length == 1:
+    exit('Usage:\npython3 plot.py <symbol> [<int avg_days> <int plot_period>]')
+
+avg_days = int(argv[2]) if arg_length == 3 else 60
+plot_period = int(argv[3]) if arg_length == 4 else 180
+
+fpath = DIR / 'delivery' / f'{argv[1]}.csv'
+
 try:
-    dq = read_csv(f'{basepath}/delivery/{argv[1]}.csv',
+    dq = read_csv(fpath,
                   index_col='Date',
                   parse_dates=True,
                   infer_datetime_format=True,
@@ -104,7 +106,7 @@ except FileNotFoundError:
 
 try:
     df = read_csv(
-        f'{basepath}/daily/{argv[1]}.csv',
+        f'{DIR}/daily/{argv[1]}.csv',
         index_col='Date',
         parse_dates=True,
         na_filter=False,

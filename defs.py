@@ -1,14 +1,15 @@
 from requests import get
 from requests.exceptions import ReadTimeout
-from os import system, mkdir, rename, remove, scandir, SEEK_END, SEEK_CUR
-from os.path import dirname, realpath, isfile, getmtime, isdir, getsize
+from pathlib import Path
+from os import system, scandir, SEEK_END, SEEK_CUR
+from os.path import getmtime, getsize
 from datetime import datetime, timedelta
-from json import load, dump
+from json import load as json_load, dump as json_dump
 from re import compile, search
 from pandas import read_csv, concat
 from zipfile import ZipFile
 from sys import platform
-import pickle
+from pickle import dump as pickle_dump, load as pickle_load
 
 # Check if system is windows or linux
 if 'win' in platform:
@@ -17,19 +18,20 @@ if 'win' in platform:
 
 today = datetime.combine(datetime.today(), datetime.min.time())
 
-DIR = dirname(realpath(__file__))
+DIR = Path(__file__).parent
 
-nseActionsFile = DIR + '/nse_actions.json'
+daily_folder = DIR / 'daily'
+delivery_folder = DIR / 'delivery'
+nseActionsFile = DIR / 'nse_actions.json'
 
 # delivery headings
 header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY,DELIV_PER\n'
 
 userAgent = 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0'
 
-isin = read_csv(f'{DIR}/isin.csv', index_col='ISIN')
+isin = read_csv(DIR / 'isin.csv', index_col='ISIN')
 
-with open(f'{DIR}/etf.csv') as f:
-    etfs = f.read().strip().split('\n')
+etfs = (DIR / 'etf.csv').read_text().strip().split('\n')
 
 headers = {
     'User-Agent': userAgent,
@@ -57,18 +59,18 @@ def setCookies():
 
     cookies = r.cookies
 
-    with open(f'{DIR}/cookies', 'wb') as f:
-        pickle.dump(cookies, f)
+    with (DIR / 'cookies').open('wb') as f:
+        pickle_dump(cookies, f)
 
     return cookies
 
 
 def getCookies():
-    file = f'{DIR}/cookies'
+    file = DIR / 'cookies'
 
-    if isfile(file):
-        with open(file, 'rb') as f:
-            cookies = pickle.load(f)
+    if file.is_file():
+        with file.open('rb') as f:
+            cookies = pickle_load(f)
 
         if hasCookiesExpired(cookies):
             cookies = setCookies()
@@ -86,29 +88,28 @@ def hasCookiesExpired(cookies):
     return False
 
 
-def getLastUpdated(file):
-    file = DIR + file
+def getLastUpdated():
+    file = DIR / 'lastupdate.txt'
 
-    if not isfile(file):
+    if not file.is_file():
         return today - timedelta(1)
 
-    with open(file) as f:
-        dt = datetime.fromisoformat(f.read().strip())
-
-    return dt
+    return datetime.fromisoformat(file.read_text().strip())
 
 
-def setLastUpdated(dt, file):
-    with open(DIR + file, 'w') as f:
-        f.write(dt.isoformat())
+def setLastUpdated(dt):
+    (DIR / 'lastupdate.txt').write_text(dt.isoformat())
 
 
 def getNextDate(dt):
     curTime = datetime.today()
     nxtDt = dt + timedelta(1)
 
-    if nxtDt > curTime or (nxtDt.day == curTime.day and curTime.hour < 19):
+    if nxtDt > curTime:
         exit('All Up To Date')
+
+    if nxtDt.day == curTime.day and curTime.hour < 19:
+        exit("All Up To Date. Check again after 7pm for today's EOD data")
 
     week_day = nxtDt.weekday()
 
@@ -119,21 +120,22 @@ def getNextDate(dt):
 
 
 def checkForHolidays(dt):
-    file = DIR + '/holiday.json'
+    file = DIR / 'holiday.json'
 
     fileModifiedDate = datetime.fromtimestamp(getmtime(file))
 
-    if isfile(file) and fileModifiedDate.year == dt.year:
+    if file.is_file() and fileModifiedDate.year == dt.year:
         # holidays are updated for current year
-        with open(file) as f:
-            holidays = load(f)
+        with file.open() as f:
+            holidays = json_load(f)
     else:
         # new year get new holiday list
         holidays = getHolidayList()
 
-        with open(file, 'w') as f:
-            dump(holidays, f, indent=3)
-            print('NSE Holiday list updated')
+        with file.open('w') as f:
+            json_dump(holidays, f, indent=3)
+
+        print('NSE Holiday list updated')
 
     curDt = dt.strftime('%d-%b-%Y')
     isToday = curDt == today.strftime('%d-%b-%Y')
@@ -151,20 +153,21 @@ def checkForHolidays(dt):
 
 def validateNseActionsFile():
 
-    if not isfile(nseActionsFile):
+    if not nseActionsFile.is_file():
         getActions(dt, dt + timedelta(8))
     else:
         lastModifiedTS = getmtime(nseActionsFile)
 
+        # Update every 7 days from last download
         if dt.timestamp() - lastModifiedTS > 7 * 24 * 60 * 60:
             fmt = '%d %b %Y'
             frm_dt = datetime.fromtimestamp(lastModifiedTS) + timedelta(7)
-            print('Updating NSE actions file')
             getActions(frm_dt, dt + timedelta(8))
 
 
 def getActions(from_dt, to_dt):
 
+    print('Updating NSE corporate actions file')
     cookies = getCookies()
     fmt = '%d-%m-%Y'
 
@@ -179,12 +182,12 @@ def getActions(from_dt, to_dt):
                        headers=headers,
                        cookies=cookies)
 
-    with open(f'{DIR}/nse_actions.json', 'w') as f:
-        dump(data, f, indent=3)
+    with nseActionsFile.open('w') as f:
+        json_dump(data, f, indent=3)
 
 
 def download(url):
-    fname = f'{DIR}/{url.split("/")[-1]}'
+    fname = DIR / url.split("/")[-1]
 
     r = get(url, stream=True, headers=headers, timeout=15)
 
@@ -199,8 +202,8 @@ def downloadNseDelivery():
 
     delivery_file = download(url)
 
-    if not isfile(delivery_file) or getsize(delivery_file) < 50000:
-        exit('Download Failed: ' + bhavFile)
+    if not delivery_file.is_file() or getsize(delivery_file) < 50000:
+        exit('Download Failed: ' + bhavFile.name)
 
     return delivery_file
 
@@ -213,8 +216,8 @@ def downloadNseBhav():
 
     bhavFile = download(url)
 
-    if not isfile(bhavFile) or getsize(bhavFile) < 50000:
-        exit('Download Failed: ' + bhavFile)
+    if not bhavFile.is_file() or getsize(bhavFile) < 50000:
+        exit('Download Failed: ' + bhavFile.name)
 
     return bhavFile
 
@@ -223,17 +226,17 @@ def updateNseEOD(bhavFile):
     isin_updated = False
 
     with ZipFile(bhavFile) as zip:
-        csvFile = bhavFile.split('/')[-1].replace('.zip', '')
+        csvFile = bhavFile.name.replace('.zip', '')
 
         with zip.open(csvFile) as f:
             df = read_csv(f, index_col='ISIN')
 
-    folder = f'{DIR}/nseBhav/{dt.year}'
+    folder = DIR / 'nseBhav' / str(dt.year)
 
-    if not isdir(folder):
-        mkdir(folder)
+    if not folder.is_dir():
+        folder.mkdir(parents=True)
 
-    df.to_csv(f'{folder}/{csvFile}')
+    df.to_csv(folder / csvFile)
 
     df = df[(df['SERIES'] == 'EQ') | (
         df['SERIES'] == 'BE') | (df['SERIES'] == 'BZ')]
@@ -246,7 +249,7 @@ def updateNseEOD(bhavFile):
         if '-RE' in sym or sym in etfs:
             continue
 
-        sym_file = f'{DIR}/daily/{sym.lower()}.csv'
+        sym_file = daily_folder / f'{sym.lower()}.csv'
 
         if not idx in isin.index:
             isin_updated = True
@@ -260,39 +263,39 @@ def updateNseEOD(bhavFile):
 
             isin.at[idx, 'SYMBOL'] = sym
 
+            sym_file = daily_folder / f'{new}.csv'
+            old_file = daily_folder / f'{old}.csv'
+            old_delivery_file = delivery_folder / f'{old}.csv'
+
             try:
-                rename(f'{DIR}/daily/{old}.csv',
-                          f'{DIR}/daily/{new}.csv')
+                old_file.rename(sym_file)
             except FileNotFoundError:
                 print(
                     f'ERROR: Renaming daily/{old}.csv to {new}.csv. No such file.')
 
             try:
-                rename(f'{DIR}/delivery/{old}.csv',
-                          f'{DIR}/delivery/{new}.csv')
+                old_delivery_file.rename(delivery_folder / f'{new}.csv')
             except FileNotFoundError:
                 print(
                     f'ERROR: Renaming delivery/{old}.csv to {new}.csv. No such file.')
-
-            sym_file = f'{DIR}/daily/{new}.csv'
 
             print(f'Name Changed: {old} to {new}')
 
         updateNseSymbol(sym_file, O, H, L, C, V)
 
     if isin_updated:
-        isin.to_csv(f'{DIR}/isin.csv')
+        isin.to_csv(DIR / 'isin.csv')
 
 
 def updateDelivery(file):
     df = read_csv(file, index_col='SYMBOL')
 
-    folder = f'{DIR}/nseDelivery/{dt.year}'
+    folder = DIR / 'nseDelivery' / str(dt.year)
 
-    if not isdir(folder):
-        mkdir(folder)
+    if not folder.is_dir():
+        folder.mkdir(parents=True)
 
-    df.to_csv(f'{folder}/{file.split("/")[-1]}')
+    df.to_csv(folder / file.name)
 
     df = df[(df[' SERIES'] == ' EQ') | (
         df[' SERIES'] == ' BE') | (df[' SERIES'] == ' BZ')]
@@ -311,20 +314,20 @@ def updateDelivery(file):
 def updateNseSymbol(sym_file, o, h, l, c, v):
     text = ''
 
-    if not isfile(sym_file):
+    if not sym_file.is_file():
         text += 'Date,Open,High,Low,Close,Volume\n'
 
     text += f'{pandas_dt},{o},{h},{l},{c},{v}\n'
 
-    with open(sym_file, 'a') as f:
+    with sym_file.open('a') as f:
         f.write(text)
 
 
 def updateDeliveryData(sym, series, v, trd_count, dq):
-    file = f'{DIR}/delivery/{sym.lower()}.csv'
+    file = delivery_folder / f'{sym.lower()}.csv'
     text = ''
 
-    if not isfile(file):
+    if not file.is_file():
         text += header_text
 
     if series == ' BE' or series == ' BZ':
@@ -335,7 +338,7 @@ def updateDeliveryData(sym, series, v, trd_count, dq):
     avg_trd_count = round(v / trd_count, 2)
     text += f'{pandas_dt},{v},{trd_count},{avg_trd_count},{dq}\n'
 
-    with open(file, 'a') as f:
+    with file.open('a') as f:
         f.write(text)
 
 
@@ -345,8 +348,8 @@ def downloadIndexFile():
 
     index_file = download(url)
 
-    if not isfile(index_file) or getsize(index_file) < 5000:
-        exit('Download Failed: ' + index_file)
+    if not index_file.is_file() or getsize(index_file) < 5000:
+        exit('Download Failed: ' + index_file.name)
 
     return index_file
 
@@ -388,9 +391,9 @@ def getBonus(sym, string):
 
 
 def makeAdjustment(symbol, split):
-    file = DIR + f'/daily/{symbol.lower()}.csv'
+    file = daily_folder / f'{symbol.lower()}.csv'
 
-    if not isfile(file):
+    if not file.is_file():
         print(f'{symbol}: File not found')
         return
 
@@ -418,28 +421,28 @@ def makeAdjustment(symbol, split):
 
 
 def updateIndice(sym, O, H, L, C, V):
-    file = f'{DIR}/daily/{sym.lower()}.csv'
+    file = daily_folder / f'{sym.lower()}.csv'
 
     text = ''
 
-    if not isfile(file):
+    if not file.is_file():
         text += 'Date,Open,High,Low,Close,Volume\n'
 
-    with open(file, 'a') as f:
+    with file.open('a') as f:
         f.write(f"{pandas_dt},{O},{H},{L},{C},{V}\n")
 
 
 def updateIndexEOD(file):
-    folder = f'{DIR}/nseIndices/{dt.year}'
+    folder = DIR / 'nseIndices' / str(dt.year)
 
-    if not isdir(folder):
-        mkdir(folder)
+    if not folder.is_dir():
+        folder.mkdir(parents=True)
 
     df = read_csv(file, index_col='Index Name')
 
-    df.to_csv(f'{folder}/{file.split("/")[-1]}')
+    df.to_csv(folder / file.name)
 
-    with open(f'{DIR}/sector_watchlist.csv') as f:
+    with (DIR / 'sector_watchlist.csv').open() as f:
         while sym := f.readline().strip():
             O, H, L, C, V = df.loc[sym, [
                 'Open Index Value', 'High Index Value',
@@ -457,8 +460,8 @@ def updateIndexEOD(file):
 def adjustNseStocks():
     dt_str = dt.strftime('%d-%b-%Y')
 
-    with open(nseActionsFile) as f:
-        actions = load(f)
+    with nseActionsFile.open() as f:
+        actions = json_load(f)
 
     for act in actions:
         sym = act['symbol']
@@ -528,24 +531,25 @@ def getLastDate(file):
 
 def cleanup(files_lst):
     for file in files_lst:
-        remove(file)
+        file.unlink()
 
     # remove outdated files
     deadline = today - timedelta(365)
     count = 0
     fmt = '%Y-%m-%d'
 
-    with scandir(f'{DIR}/daily') as it:
+    with scandir(daily_folder) as it:
         for entry in it:
 
             lastUpdated = datetime.strptime(getLastDate(entry.path), fmt)
-            dlvry_file = f'{DIR}/delivery/{entry.name}'
+
+            dlvry_file = delivery_folder / entry.name
 
             if lastUpdated < deadline:
-                remove(entry.path)
+                Path(entry.path).unlink()
 
-                if isfile(dlvry_file):
-                    remove(dlvry_file)
+                if dlvry_file.is_file():
+                    dlvry_file.unlink()
 
                 count += 1
 

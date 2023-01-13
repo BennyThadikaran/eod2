@@ -1,6 +1,6 @@
 from pandas import read_csv
 from os import system
-from os.path import dirname, realpath
+from pathlib import Path
 from sys import argv, platform
 
 if len(argv) == 1:
@@ -41,16 +41,16 @@ class c:
 
 
 # get the folder location
-basePath = dirname(realpath(__file__))
+DIR = Path(__file__).parent
 
 # Helper text
 txt = f'{c.WHITE}>= 1.5{c.ENDC}  {c.WARNING}>= 1.2{c.ENDC}  {c.FAIL}>= 1{c.ENDC}\n\n'
 
 # Heading text
-txt += f'{c.CYAN}SCRIP        QTY/TRD    DLV{c.ENDC}\n'
+txt += f'{c.CYAN}SCRIP        QTY/TRD    DLV        Volume{c.ENDC}\n'
 
 for i in watch:
-    fpath = f'{basePath}/delivery/{i.lower()}.csv'
+    fpath = DIR / 'delivery' / f'{i.lower()}.csv'
 
     # Create Dataframe of last 30 days
     try:
@@ -60,26 +60,28 @@ for i in watch:
 
     try:
         # generate average of last 30 days
-        avgQty, avgDlvQty = df[
-            ['QTY_PER_TRADE', 'DELIV_QTY']
+        avgQty, avgDlvQty, avgVol = df[
+            ['QTY_PER_TRADE', 'DELIV_QTY', 'TTL_TRD_QNTY']
         ].mean(numeric_only=True).round(2)
     except ValueError:
         # New stocks may not have enough data to generate averages
         continue
 
     # Get the last value for each column
-    tradeQty, dlvQty = df.loc[
+    tradeQty, dlvQty, volume = df.loc[
         df.index[-1],
-        ['QTY_PER_TRADE', 'DELIV_QTY']
+        ['QTY_PER_TRADE', 'DELIV_QTY', 'TTL_TRD_QNTY']
     ]
 
     qty_per_trade = round(tradeQty / avgQty, 2)
     dlv_qty = round(dlvQty / avgDlvQty, 2)
+    vol = round(volume / avgVol, 2)
 
-    txt += '{} {} {}\n'.format(
-        c.CYAN + i[:8].upper().ljust(12),
+    txt += '{} {} {} {}\n'.format(
+        c.CYAN + i[:15].upper().ljust(12),
         c.num(qty_per_trade).ljust(21),
         c.num(dlv_qty).ljust(21),
+        c.num(vol).ljust(21)
     )
 
 print(txt)

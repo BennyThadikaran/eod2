@@ -1,17 +1,19 @@
 from pandas import read_csv
-from os.path import dirname, realpath
+from pathlib import Path
 from sys import argv
 
 if len(argv) == 1:
     exit('Pass a scrip name')
 
-basePath = dirname(realpath(__file__))
+DIR = Path(__file__).parent
 
 avg_days = 60
 lookup_days = int(argv[2]) if len(argv) == 3 else 15
 
+fpath = DIR / 'delivery' / f'{argv[1]}.csv'
+
 try:
-    df = read_csv(f'{basePath}/delivery/{argv[1]}.csv', index_col='Date')
+    df = read_csv(fpath, index_col='Date')
 except FileNotFoundError as e:
     exit(f'{argv[1]}: {e!r}')
 

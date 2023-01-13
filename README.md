@@ -1,6 +1,9 @@
 # EOD2
 An automated python script to download and update NSE stocks, indices, and delivery data.
 
+**Update**
+- 13th Jan 2022: EOD2 now uses pathlib module for handling file paths. This resolves file path errors on Windows platform.
+
 ## Features
 - Daily EOD data for over 2000 NSE stocks since 1995.
 - Stores OHLCV and delivery data of individual stocks and indices in csv files.
@@ -51,7 +54,7 @@ Replace \<path to init.py\> with the actual location of 'init.py'
 
 Save the file and exit.
 
-NSE Daily reports are updated after 7 pm, so ideally schedule script execution post 7 pm only.
+**NSE Daily reports are updated after 7 pm, so ideally schedule script execution post 7 pm only.**
 
 
 ### Plotting candlesticks, delivery, and support & Resistance

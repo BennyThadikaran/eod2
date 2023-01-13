@@ -1,7 +1,6 @@
 import defs
 
-lastUpdatedFile = '/lastupdate.txt'
-defs.dt = defs.getLastUpdated(lastUpdatedFile)
+defs.dt = defs.getLastUpdated()
 
 while True:
     defs.dt = defs.getNextDate(defs.dt)
@@ -48,9 +47,9 @@ while True:
 
     print('Cleaning up files')
 
-    defs.cleanup([bhav_file, delivery_file, index_file])
+    defs.cleanup((bhav_file, delivery_file, index_file))
 
-    defs.setLastUpdated(defs.dt, lastUpdatedFile)
+    defs.setLastUpdated(defs.dt)
 
     print(f'{defs.dt:%d %b %Y}: Done\n{"-" * 52}')
 
