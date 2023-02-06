@@ -5,7 +5,7 @@ from os import system, scandir, SEEK_END, SEEK_CUR
 from os.path import getmtime, getsize
 from datetime import datetime, timedelta
 from json import load as json_load, dump as json_dump
-from re import compile, search
+from re import compile
 from pandas import read_csv, concat
 from zipfile import ZipFile
 from sys import platform
@@ -203,7 +203,7 @@ def downloadNseDelivery():
     delivery_file = download(url)
 
     if not delivery_file.is_file() or getsize(delivery_file) < 50000:
-        exit('Download Failed: ' + bhavFile.name)
+        exit('Download Failed: ' + delivery_file.name)
 
     return delivery_file
 
@@ -240,8 +240,6 @@ def updateNseEOD(bhavFile):
 
     df = df[(df['SERIES'] == 'EQ') | (
         df['SERIES'] == 'BE') | (df['SERIES'] == 'BZ')]
-
-    pandas_dt = dt.strftime('%Y-%m-%d')
 
     for t in df.itertuples(name=None):
         idx, sym, _, O, H, L, C, _, _, V, *_ = t
