@@ -389,6 +389,7 @@ def getBonus(sym, string):
 
 
 def makeAdjustment(symbol, split):
+    print(symbol)
     file = daily_folder / f'{symbol.lower()}.csv'
 
     if not file.is_file():
@@ -398,7 +399,6 @@ def makeAdjustment(symbol, split):
     df = read_csv(file,
                   index_col='Date',
                   parse_dates=True,
-                  infer_datetime_format=True,
                   na_filter=False)
 
     idx = df.index.get_loc(dt)
