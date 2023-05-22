@@ -20,18 +20,19 @@ today = datetime.combine(datetime.today(), datetime.min.time())
 
 DIR = Path(__file__).parent
 
-daily_folder = DIR / 'daily'
-delivery_folder = DIR / 'delivery'
-nseActionsFile = DIR / 'nse_actions.json'
+daily_folder = DIR / 'eod2_data' / 'daily'
+delivery_folder = DIR / 'eod2_data' / 'delivery'
+nseActionsFile = DIR / 'eod2_data' / 'nse_actions.json'
+isin_file = DIR / 'eod2_data' / 'isin.csv'
 
 # delivery headings
 header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY,DELIV_PER\n'
 
 userAgent = 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0'
 
-isin = read_csv(DIR / 'isin.csv', index_col='ISIN')
+isin = read_csv(isin_file, index_col='ISIN')
 
-etfs = (DIR / 'etf.csv').read_text().strip().split('\n')
+etfs = (DIR / 'eod2_data' / 'etf.csv').read_text().strip().split('\n')
 
 headers = {
     'User-Agent': userAgent,
@@ -41,7 +42,6 @@ headers = {
     'Referer': 'https://www1.nseindia.com'
 }
 
-# split_regex = compile('fro?m rs[\. ](\d+).+to.+(\d+)')
 split_regex = compile('(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
 bonus_regex = compile('(\d+) ?: ?(\d+)')
@@ -89,7 +89,7 @@ def hasCookiesExpired(cookies):
 
 
 def getLastUpdated():
-    file = DIR / 'lastupdate.txt'
+    file = DIR / 'eod2_data' / 'lastupdate.txt'
 
     if not file.is_file():
         return today - timedelta(1)
@@ -98,7 +98,7 @@ def getLastUpdated():
 
 
 def setLastUpdated(dt):
-    (DIR / 'lastupdate.txt').write_text(dt.isoformat())
+    (DIR / 'eod2_data' / 'lastupdate.txt').write_text(dt.isoformat())
 
 
 def getNextDate(dt):
@@ -120,7 +120,7 @@ def getNextDate(dt):
 
 
 def checkForHolidays(dt):
-    file = DIR / 'holiday.json'
+    file = DIR / 'eod2_data' / 'holiday.json'
 
     fileModifiedDate = datetime.fromtimestamp(getmtime(file))
 
@@ -160,7 +160,6 @@ def validateNseActionsFile():
 
         # Update every 7 days from last download
         if dt.timestamp() - lastModifiedTS > 7 * 24 * 60 * 60:
-            fmt = '%d %b %Y'
             frm_dt = datetime.fromtimestamp(lastModifiedTS) + timedelta(7)
             getActions(frm_dt, dt + timedelta(8))
 
@@ -282,7 +281,7 @@ def updateNseEOD(bhavFile):
         updateNseSymbol(sym_file, O, H, L, C, V)
 
     if isin_updated:
-        isin.to_csv(DIR / 'isin.csv')
+        isin.to_csv(isin_file)
 
 
 def updateDelivery(file):
@@ -440,7 +439,7 @@ def updateIndexEOD(file):
 
     df.to_csv(folder / file.name)
 
-    with (DIR / 'sector_watchlist.csv').open() as f:
+    with (DIR / 'eod2_data' / 'sector_watchlist.csv').open() as f:
         while sym := f.readline().strip():
             O, H, L, C, V = df.loc[sym, [
                 'Open Index Value', 'High Index Value',
