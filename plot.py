@@ -91,13 +91,12 @@ if arg_length == 1:
 avg_days = int(argv[2]) if arg_length == 3 else 60
 plot_period = int(argv[3]) if arg_length == 4 else 180
 
-fpath = DIR / 'delivery' / f'{argv[1]}.csv'
+fpath = DIR / 'eod2_data' / 'delivery' / f'{argv[1]}.csv'
 
 try:
     dq = read_csv(fpath,
                   index_col='Date',
                   parse_dates=True,
-                  infer_datetime_format=True,
                   na_filter=True)[-plot_period:]
 
 except FileNotFoundError:
@@ -106,11 +105,11 @@ except FileNotFoundError:
 
 try:
     df = read_csv(
-        f'{DIR}/daily/{argv[1]}.csv',
+        DIR / 'eod2_data' / 'daily' / f'{argv[1]}.csv',
         index_col='Date',
         parse_dates=True,
         na_filter=False,
-        infer_datetime_format=True)[-plot_period:]
+    )[-plot_period:]
 except FileNotFoundError as e:
     exit(f'No such file in daily folder: {argv[1]}.csv')
 
