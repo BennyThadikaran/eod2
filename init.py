@@ -1,55 +1,69 @@
 import defs
 
-defs.dt = defs.getLastUpdated()
+defs.dates.getLastUpdated()
 
-while True:
-    defs.dt = defs.getNextDate(defs.dt)
-    defs.pandas_dt = defs.dt.strftime('%Y-%m-%d')
+with defs.NSE() as nse:
+    while True:
+        defs.dates.getNextDate()
 
-    if defs.checkForHolidays(defs.dt):
-        continue
+        if defs.checkForHolidays(nse):
+            continue
 
-    # Validate NSE actions file
-    defs.validateNseActionsFile()
+        # Validate NSE actions file
+        defs.validateNseActionsFile(nse)
 
-    # Download all files and validate for errors
-    print('Downloading Files')
+        # Download all files and validate for errors
+        print('Downloading Files')
 
-    # NSE bhav copy
-    bhav_file = defs.downloadNseBhav()
+        # NSE bhav copy
+        bhav_file = defs.downloadNseBhav(nse)
 
-    # NSE delivery
-    delivery_file = defs.downloadNseDelivery()
+        # NSE delivery
+        delivery_file = defs.downloadNseDelivery(nse)
 
-    # Index file
-    index_file = defs.downloadIndexFile()
+        # Index file
+        index_file = defs.downloadIndexFile(nse)
 
-    # NSE sync
-    print('Starting Data Sync')
+        try:
+            print('Starting Data Sync')
 
-    defs.updateNseEOD(bhav_file)
+            defs.updateNseEOD(bhav_file)
 
-    print('EOD sync complete')
+            print('EOD sync complete')
 
-    defs.updateDelivery(delivery_file)
+            defs.updateDelivery(delivery_file)
 
-    print('Delivery sync complete')
+            print('Delivery sync complete')
 
-    # INDEX sync
-    defs.updateIndexEOD(index_file)
+            # INDEX sync
+            defs.updateIndexEOD(index_file)
 
-    print('Index sync complete.')
+            print('Index sync complete.')
+        except Exception as e:
+            # rollback
+            print(f"Error during data sync. {e!r}")
+            defs.rollback(defs.daily_folder)
+            defs.rollback(defs.delivery_folder)
+            exit()
 
-    # Adjust Splits and bonus
-    print('Makings adjustments for splits and bonus')
+        # No errors continue
 
-    defs.adjustNseStocks()
+        # Adjust Splits and bonus
+        print('Makings adjustments for splits and bonus')
 
-    print('Cleaning up files')
+        try:
+            defs.adjustNseStocks()
+        except Exception as e:
+            print(
+                f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
+            defs.rollback(defs.daily_folder)
+            defs.rollback(defs.delivery_folder)
+            exit()
 
-    defs.cleanup((bhav_file, delivery_file, index_file))
+        print('Cleaning up files')
 
-    defs.setLastUpdated(defs.dt)
+        defs.cleanup((bhav_file, delivery_file, index_file))
 
-    print(f'{defs.dt:%d %b %Y}: Done\n{"-" * 52}')
+        defs.dates.setLastUpdated()
 
+        print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')

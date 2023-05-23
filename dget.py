@@ -5,7 +5,8 @@ from sys import argv, platform
 
 if len(argv) == 1:
     #### EDIT YOUR WATCHLIST HERE ####
-    watch = ["AMARAJABAT", "APLLTD", "AUROPHARMA", "DIXON", "GODREJCP", "GODREJIND", "HCLTECH", "INFY", "LATENTVIEW", "M&M", "MARKSANS", "MOL", "TATAPOWER", "TCS"]
+    watch = ["AMARAJABAT", "APLLTD", "AUROPHARMA", "DIXON", "GODREJCP", "GODREJIND",
+             "HCLTECH", "INFY", "LATENTVIEW", "M&M", "MARKSANS", "MOL", "TATAPOWER", "TCS"]
     # DO NOT EDIT BELOW THIS LINE
 else:
     watch = argv[1:]
@@ -50,7 +51,7 @@ txt = f'{c.WHITE}>= 1.5{c.ENDC}  {c.WARNING}>= 1.2{c.ENDC}  {c.FAIL}>= 1{c.ENDC}
 txt += f'{c.CYAN}SCRIP        QTY/TRD    DLV        Volume{c.ENDC}\n'
 
 for i in watch:
-    fpath = DIR / 'delivery' / f'{i.lower()}.csv'
+    fpath = DIR / 'eod2_data' / 'delivery' / f'{i.lower()}.csv'
 
     # Create Dataframe of last 30 days
     try:

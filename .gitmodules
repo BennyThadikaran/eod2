@@ -1,0 +1,3 @@
+[submodule "eod2_data"]
+	path = eod2_data
+	url = https://github.com/BennyThadikaran/eod2_data.git
