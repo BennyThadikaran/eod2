@@ -1,22 +1,18 @@
-from requests import get
-from requests.exceptions import ReadTimeout
 from pathlib import Path
-from os import system, scandir, SEEK_END, SEEK_CUR
-from os.path import getmtime, getsize
 from datetime import datetime, timedelta
-from json import load as json_load, dump as json_dump
-from re import compile
-from pandas import read_csv, concat
+from json import load, dump
+from os.path import getmtime, getsize
+from utils import Dates, NSE
 from zipfile import ZipFile
+from pandas import read_csv, concat
 from sys import platform
-from pickle import dump as pickle_dump, load as pickle_load
+from os import system, scandir, SEEK_END, SEEK_CUR
+from re import compile
 
 # Check if system is windows or linux
 if 'win' in platform:
     # enable color support in Windows
     system('color')
-
-today = datetime.combine(datetime.today(), datetime.min.time())
 
 DIR = Path(__file__).parent
 
@@ -25,123 +21,64 @@ delivery_folder = DIR / 'eod2_data' / 'delivery'
 nseActionsFile = DIR / 'eod2_data' / 'nse_actions.json'
 isin_file = DIR / 'eod2_data' / 'isin.csv'
 
-# delivery headings
-header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY,DELIV_PER\n'
-
-userAgent = 'Mozilla/5.0 (Windows NT 10.0; rv:91.0) Gecko/20100101 Firefox/91.0'
-
 isin = read_csv(isin_file, index_col='ISIN')
-
 etfs = (DIR / 'eod2_data' / 'etf.csv').read_text().strip().split('\n')
 
-headers = {
-    'User-Agent': userAgent,
-    'Accept': '*/*',
-    'Accept-Language': 'en-US,en;q=0.5',
-    'Accept-Encoding': 'gzip, deflate, br',
-    'Referer': 'https://www1.nseindia.com'
-}
+header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY,DELIV_PER\n'
 
 split_regex = compile('(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
 bonus_regex = compile('(\d+) ?: ?(\d+)')
 
-
-def setCookies():
-    r = makeRequest('https://www.nseindia.com/option-chain',
-                    params=None,
-                    headers=headers,
-                    timeout=10,
-                    expectJson=False)
-
-    if not r.ok:
-        exit(f'Error: set cookie. {r.status_code}: {r.reason}')
-
-    cookies = r.cookies
-
-    with (DIR / 'cookies').open('wb') as f:
-        pickle_dump(cookies, f)
-
-    return cookies
+# initiate the dates class from utils.py
+dates = Dates()
 
 
-def getCookies():
-    file = DIR / 'cookies'
+def getHolidayList(nse: NSE, file: Path):
+    """Makes a request for NSE holiday list for the year. Saves and returns the holiday Object"""
 
-    if file.is_file():
-        with file.open('rb') as f:
-            cookies = pickle_load(f)
+    url = 'https://www.nseindia.com/api/holiday-master'
 
-        if hasCookiesExpired(cookies):
-            cookies = setCookies()
+    params = {'type': 'trading'}
 
-        return cookies
+    data = nse.makeRequest(url, params)
 
-    return setCookies()
-
-
-def hasCookiesExpired(cookies):
-    for cookie in cookies:
-        if cookie.is_expired():
-            return True
-
-    return False
-
-
-def getLastUpdated():
-    file = DIR / 'eod2_data' / 'lastupdate.txt'
-
-    if not file.is_file():
-        return today - timedelta(1)
-
-    return datetime.fromisoformat(file.read_text().strip())
-
-
-def setLastUpdated(dt):
-    (DIR / 'eod2_data' / 'lastupdate.txt').write_text(dt.isoformat())
-
-
-def getNextDate(dt):
-    curTime = datetime.today()
-    nxtDt = dt + timedelta(1)
-
-    if nxtDt > curTime:
-        exit('All Up To Date')
-
-    if nxtDt.day == curTime.day and curTime.hour < 19:
-        exit("All Up To Date. Check again after 7pm for today's EOD data")
-
-    week_day = nxtDt.weekday()
-
-    if week_day > 4:
-        return nxtDt + timedelta(7 - week_day)
-
-    return nxtDt
-
-
-def checkForHolidays(dt):
-    file = DIR / 'eod2_data' / 'holiday.json'
-
-    fileModifiedDate = datetime.fromtimestamp(getmtime(file))
-
-    if file.is_file() and fileModifiedDate.year == dt.year:
-        # holidays are updated for current year
-        with file.open() as f:
-            holidays = json_load(f)
-    else:
-        # new year get new holiday list
-        holidays = getHolidayList()
-
-        with file.open('w') as f:
-            json_dump(holidays, f, indent=3)
+    with file.open('w') as f:
+        # CM pertains to capital market or equity holdays
+        dump(data['CM'], f, indent=3)
 
         print('NSE Holiday list updated')
 
-    curDt = dt.strftime('%d-%b-%Y')
-    isToday = curDt == today.strftime('%d-%b-%Y')
+    return data['CM']
+
+
+def isHolidaysFileUpdated(file: Path):
+    """Returns True if the holiday.json files exists and year of download matches the current year"""
+
+    return file.is_file() and datetime.fromtimestamp(getmtime(file)).year == dates.dt.year
+
+
+def checkForHolidays(nse: NSE):
+    """Returns True if current date is a holiday. Exits the script if today is a holiday"""
+
+    file = DIR / 'eod2_data' / 'holiday.json'
+
+    if isHolidaysFileUpdated(file):
+        # holidays are updated for current year
+        with file.open() as f:
+            holidays = load(f)
+    else:
+        # new year get new holiday list
+        holidays = getHolidayList(nse, file)
+
+    # the current date for which data is being synced
+    curDt = dates.dt.strftime('%d-%b-%Y')
+    isToday = curDt == dates.today.strftime('%d-%b-%Y')
 
     for day in holidays:
         if day['tradingDate'] == curDt:
+            # if the current date is today we need to stop
+            # else print the holiday and return
             if not isToday:
                 print(f'{curDt} Market Holiday: {day["description"]}')
                 return True
@@ -151,23 +88,24 @@ def checkForHolidays(dt):
     return False
 
 
-def validateNseActionsFile():
+def validateNseActionsFile(nse: NSE):
+    """Check if the NSE Corporate actions() file exists. If exists, check if the file is older than 7 days. Else request actions for the next 8 days from current date. The nse_actions.json pertains to Bonus, Splits, dividends etc."""
 
     if not nseActionsFile.is_file():
-        getActions(dt, dt + timedelta(8))
+        getActions(nse, dates.dt, dates.dt + timedelta(8))
     else:
         lastModifiedTS = getmtime(nseActionsFile)
 
         # Update every 7 days from last download
-        if dt.timestamp() - lastModifiedTS > 7 * 24 * 60 * 60:
+        if dates.dt.timestamp() - lastModifiedTS > 7 * 24 * 60 * 60:
             frm_dt = datetime.fromtimestamp(lastModifiedTS) + timedelta(7)
-            getActions(frm_dt, dt + timedelta(8))
+            getActions(nse, frm_dt, dates.dt + timedelta(8))
 
 
-def getActions(from_dt, to_dt):
+def getActions(nse: NSE, from_dt: datetime, to_dt: datetime):
+    """Make a request for corporate actions specifing the date range"""
 
     print('Updating NSE corporate actions file')
-    cookies = getCookies()
     fmt = '%d-%m-%Y'
 
     params = {
@@ -176,30 +114,20 @@ def getActions(from_dt, to_dt):
         'to_date': to_dt.strftime(fmt),
     }
 
-    data = makeRequest('https://www.nseindia.com/api/corporates-corporateActions',
-                       params=params,
-                       headers=headers,
-                       cookies=cookies)
+    data = nse.makeRequest(
+        'https://www.nseindia.com/api/corporates-corporateActions', params=params)
 
     with nseActionsFile.open('w') as f:
-        json_dump(data, f, indent=3)
+        dump(data, f, indent=3)
 
 
-def download(url):
-    fname = DIR / url.split("/")[-1]
+def downloadNseDelivery(nse: NSE):
+    """Download the daily report for Equity delivery data and return the saved file path.
+    Exit if the download fails"""
 
-    r = get(url, stream=True, headers=headers, timeout=15)
+    url = f'https://archives.nseindia.com/products/content/sec_bhavdata_full_{dates.dt:%d%m%Y}.csv'
 
-    with open(fname, 'wb') as f:
-        for chunk in r.iter_content(chunk_size=128):
-            f.write(chunk)
-    return fname
-
-
-def downloadNseDelivery():
-    url = f'https://archives.nseindia.com/products/content/sec_bhavdata_full_{dt:%d%m%Y}.csv'
-
-    delivery_file = download(url)
+    delivery_file = nse.download(url)
 
     if not delivery_file.is_file() or getsize(delivery_file) < 50000:
         exit('Download Failed: ' + delivery_file.name)
@@ -207,13 +135,16 @@ def downloadNseDelivery():
     return delivery_file
 
 
-def downloadNseBhav():
-    dt_str = dt.strftime('%d%b%Y').upper()
+def downloadNseBhav(nse: NSE):
+    """Download the daily report for Equity bhav copy and return the saved file path.
+    Exit if the download fails"""
+
+    dt_str = dates.dt.strftime('%d%b%Y').upper()
     month = dt_str[2:5].upper()
 
-    url = f'https://archives.nseindia.com/content/historical/EQUITIES/{dt.year}/{month}/cm{dt_str}bhav.csv.zip'
+    url = f'https://archives.nseindia.com/content/historical/EQUITIES/{dates.dt.year}/{month}/cm{dt_str}bhav.csv.zip'
 
-    bhavFile = download(url)
+    bhavFile = nse.download(url)
 
     if not bhavFile.is_file() or getsize(bhavFile) < 50000:
         exit('Download Failed: ' + bhavFile.name)
@@ -221,37 +152,67 @@ def downloadNseBhav():
     return bhavFile
 
 
-def updateNseEOD(bhavFile):
+def downloadIndexFile(nse: NSE):
+    """Download the daily report for Equity Index and return the saved file path.
+    Exit if the download fails"""
+
+    base_url = 'https://archives.nseindia.com/content'
+    url = f'{base_url}/indices/ind_close_all_{dates.dt:%d%m%Y}.csv'
+
+    index_file = nse.download(url)
+
+    if not index_file.is_file() or getsize(index_file) < 5000:
+        exit('Download Failed: ' + index_file.name)
+
+    return index_file
+
+
+def updateNseEOD(bhavFile: Path):
+    """Update all stocks with latest price data from bhav copy"""
+
     isin_updated = False
 
+    # cm01FEB2023bhav.csv.zip
     with ZipFile(bhavFile) as zip:
         csvFile = bhavFile.name.replace('.zip', '')
 
         with zip.open(csvFile) as f:
             df = read_csv(f, index_col='ISIN')
 
-    folder = DIR / 'nseBhav' / str(dt.year)
+    # save the csv file to the below folder.
+    folder = DIR / 'nseBhav' / str(dates.dt.year)
 
+    # Create it if not exists
     if not folder.is_dir():
         folder.mkdir(parents=True)
 
     df.to_csv(folder / csvFile)
 
+    # filter the dataframe for stocks series EQ, BE and BZ
+    # https://www.nseindia.com/market-data/legend-of-series
     df = df[(df['SERIES'] == 'EQ') | (
         df['SERIES'] == 'BE') | (df['SERIES'] == 'BZ')]
 
+    # iterate over each row as a tuple
     for t in df.itertuples(name=None):
         idx, sym, _, O, H, L, C, _, _, V, *_ = t
 
+        # ignore rights issue and etfs
         if '-RE' in sym or sym in etfs:
             continue
 
         sym_file = daily_folder / f'{sym.lower()}.csv'
 
+        # ISIN is a unique identifier for each stock symbol.
+        # When a symbol name changes its ISIN remains the same
+        # This allows for tracking changes in symbol names and
+        # updating file names accordingly
         if not idx in isin.index:
             isin_updated = True
             isin.at[idx, 'SYMBOL'] = sym
 
+        # if symbol name does not match the symbol name under its ISIN
+        # we rename the files in daily and delivery folder
         if sym != isin.at[idx, 'SYMBOL']:
             isin_updated = True
             old = isin.at[idx, 'SYMBOL'].lower()
@@ -284,22 +245,30 @@ def updateNseEOD(bhavFile):
         isin.to_csv(isin_file)
 
 
-def updateDelivery(file):
+def updateDelivery(file: Path):
+    """Update all stocks with latest delivery data"""
+
     df = read_csv(file, index_col='SYMBOL')
 
-    folder = DIR / 'nseDelivery' / str(dt.year)
+    # save the csv file to the below folder.
+    folder = DIR / 'nseDelivery' / str(dates.dt.year)
 
+    # Create it if not exists
     if not folder.is_dir():
         folder.mkdir(parents=True)
 
     df.to_csv(folder / file.name)
 
+    # filter the dataframe for stocks series EQ, BE and BZ
+    # https://www.nseindia.com/market-data/legend-of-series
     df = df[(df[' SERIES'] == ' EQ') | (
         df[' SERIES'] == ' BE') | (df[' SERIES'] == ' BZ')]
 
+    # iterate over each row as a tuple
     for t in df.itertuples(name=None):
         sym, series, *_, v, _, trd_count, dq, _ = t
 
+        # ignore rights issue and etfs
         if '-RE' in sym or sym in etfs:
             continue
 
@@ -314,57 +283,35 @@ def updateNseSymbol(sym_file, o, h, l, c, v):
     if not sym_file.is_file():
         text += 'Date,Open,High,Low,Close,Volume\n'
 
-    text += f'{pandas_dt},{o},{h},{l},{c},{v}\n'
+    text += f'{dates.pandas_dt},{o},{h},{l},{c},{v}\n'
 
     with sym_file.open('a') as f:
         f.write(text)
 
 
-def updateDeliveryData(sym, series, v, trd_count, dq):
+def updateDeliveryData(sym: str, series: str, v: int, trd_count: int, dq: int):
+    """Update the delivery data for each file"""
+
     file = delivery_folder / f'{sym.lower()}.csv'
     text = ''
 
     if not file.is_file():
         text += header_text
 
+    # BE and BZ series stocks are all delivery trades, so we use the volume
     if series == ' BE' or series == ' BZ':
         dq = v
     else:
         dq = int(dq)
 
+    # average volume per trade.
     avg_trd_count = round(v / trd_count, 2)
-    text += f'{pandas_dt},{v},{trd_count},{avg_trd_count},{dq}\n'
+
+    # append the line into the csv file and save it
+    text += f'{dates.pandas_dt},{v},{trd_count},{avg_trd_count},{dq}\n'
 
     with file.open('a') as f:
         f.write(text)
-
-
-def downloadIndexFile():
-    base_url = 'https://archives.nseindia.com/content'
-    url = f'{base_url}/indices/ind_close_all_{dt:%d%m%Y}.csv'
-
-    index_file = download(url)
-
-    if not index_file.is_file() or getsize(index_file) < 5000:
-        exit('Download Failed: ' + index_file.name)
-
-    return index_file
-
-
-def makeRequest(url, params, headers, cookies=None, expectJson=True, timeout=15):
-    try:
-        r = get(url, params=params, headers=headers,
-                cookies=cookies, timeout=timeout)
-    except ReadTimeout:
-        raise TimeoutError('Request timed out')
-
-    if not r.ok:
-        raise ConnectionError(f'{r.status_code}: {r.reason}')
-
-    if expectJson:
-        return r.json()
-
-    return r
 
 
 def getSplit(sym, string):
@@ -388,7 +335,6 @@ def getBonus(sym, string):
 
 
 def makeAdjustment(symbol, split):
-    print(symbol)
     file = daily_folder / f'{symbol.lower()}.csv'
 
     if not file.is_file():
@@ -400,7 +346,7 @@ def makeAdjustment(symbol, split):
                   parse_dates=True,
                   na_filter=False)
 
-    idx = df.index.get_loc(dt)
+    idx = df.index.get_loc(dates.dt)
 
     last = df.iloc[idx:]
 
@@ -414,7 +360,7 @@ def makeAdjustment(symbol, split):
         df[col] = ((df[col] / split / 0.05).round() * 0.05).round(2)
 
     df = concat([df, last])
-    df.to_csv(file)
+    return (df, file)
 
 
 def updateIndice(sym, O, H, L, C, V):
@@ -426,11 +372,11 @@ def updateIndice(sym, O, H, L, C, V):
         text += 'Date,Open,High,Low,Close,Volume\n'
 
     with file.open('a') as f:
-        f.write(f"{pandas_dt},{O},{H},{L},{C},{V}\n")
+        f.write(f"{dates.pandas_dt},{O},{H},{L},{C},{V}\n")
 
 
 def updateIndexEOD(file):
-    folder = DIR / 'nseIndices' / str(dt.year)
+    folder = DIR / 'nseIndices' / str(dates.dt.year)
 
     if not folder.is_dir():
         folder.mkdir(parents=True)
@@ -455,53 +401,52 @@ def updateIndexEOD(file):
 
 
 def adjustNseStocks():
-    dt_str = dt.strftime('%d-%b-%Y')
+    dt_str = dates.dt.strftime('%d-%b-%Y')
 
     with nseActionsFile.open() as f:
-        actions = json_load(f)
+        actions = load(f)
 
-    for act in actions:
-        sym = act['symbol']
-        purpose = act['subject'].lower()
-        ex = act['exDate']
-        series = act['series']
+    # Store all Dataframes with associated files names to be saved to file
+    # if no error occurs
+    df_commits = []
 
-        if not series in ('EQ', 'BE', 'BZ'):
-            continue
+    try:
+        for act in actions:
+            sym = act['symbol']
+            purpose = act['subject'].lower()
+            ex = act['exDate']
+            series = act['series']
 
-        if ('split' in purpose or 'splt' in purpose) and ex == dt_str:
-            split = getSplit(sym, purpose)
-
-            if split is None:
+            if not series in ('EQ', 'BE', 'BZ'):
                 continue
 
-            makeAdjustment(sym, split)
+            if ('split' in purpose or 'splt' in purpose) and ex == dt_str:
+                split = getSplit(sym, purpose)
 
-            print(f'{sym}: {purpose}')
+                if split is None:
+                    continue
 
-        if 'bonus' in purpose and ex == dt_str:
-            bonus = getBonus(sym, purpose)
+                df_commits.append(makeAdjustment(sym, split))
 
-            if bonus is None:
-                continue
+                print(f'{sym}: {purpose}')
 
-            makeAdjustment(sym, bonus)
+            if 'bonus' in purpose and ex == dt_str:
+                bonus = getBonus(sym, purpose)
 
-            print(f'{sym}: {purpose}')
+                if bonus is None:
+                    continue
 
+                df_commits.append(makeAdjustment(sym, bonus))
 
-def getHolidayList():
-    url = 'https://www.nseindia.com/api/holiday-master'
+                print(f'{sym}: {purpose}')
+    except Exception as e:
+        # discard all Dataframes and raise error so changes can be rolled back
+        df_commits = []
+        raise e
 
-    params = {
-        'type': 'trading',
-    }
-
-    headers['Referer'] = 'https://www1.nseindia.com'
-
-    data = makeRequest(url, params, headers)
-
-    return data['CM']
+    # commit changes
+    for df, file in df_commits:
+        df.to_csv(file)
 
 
 def getLastDate(file):
@@ -526,12 +471,28 @@ def getLastDate(file):
     return lastLine.split(',')[0]
 
 
+def rollback(folder):
+    dt = dates.pandas_dt
+    print(f"Rolling back changes from {dt}: {folder}")
+
+    with scandir(folder) as it:
+        for entry in it:
+            df = read_csv(entry.path, index_col='Date',
+                          parse_dates=True, na_filter=False)
+
+            if dt in df.index:
+                df = df.drop(dt)
+                df.to_csv(entry.path)
+
+    print(f'{folder}: Rollback successful')
+
+
 def cleanup(files_lst):
     for file in files_lst:
         file.unlink()
 
     # remove outdated files
-    deadline = today - timedelta(365)
+    deadline = dates.today - timedelta(365)
     count = 0
     fmt = '%Y-%m-%d'
 
