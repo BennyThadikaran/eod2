@@ -2,6 +2,10 @@
 An automated python script to download and update NSE stocks, indices, and delivery data.
 
 **Update**
+- 23rd May 2023: Major rework on the code and new added features
+    - **New Rollback feature**: Any errors during the data sync process can result in partially updated files and can be mess to resolve. With the updated code, any changes to the files can be rolled back to the last updated date without any manual intervention. See [Installation for details](#installation)
+    - All the data files are now placed in a submodule, separated from the actual code. ([see eod2_data](https://github.com/BennyThadikaran/eod2_data)). Commit logs will now be much cleaner.
+    - File downloads are much faster.
 - 13th Jan 2022: EOD2 now uses pathlib module for handling file paths. This resolves file path errors on Windows platform.
 
 ## Features
@@ -15,11 +19,17 @@ An automated python script to download and update NSE stocks, indices, and deliv
 - Works in both Linux and Windows.
 
 ## Installation
-`$ git clone https://github.com/BennyThadikaran`
+To clone the repo and the `eod2_data` submodule
+
+```
+git clone --recurse-submodules https://github.com/BennyThadikaran
+
+pip install requests pandas mplfinance
+```
 
 Mplfinance is optional. Only required for plotting data using plot.py
 
-`$ pip install requests pandas mplfinance`
+`eod2_data` folder contains all the csv data files.
 
 ## Usage
 `$ python3 init.py`
