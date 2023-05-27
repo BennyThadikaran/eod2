@@ -69,7 +69,7 @@ Cleaning up files
 26 Aug 2022: Done
 ```
 
-For Linux users: **[Automate eod2](/automate.md)**
+For Linux users: **[Automate eod2](automate.md)**
 
 For Windows users: **[Automating Python Scripts Using Windows Task Scheduler ](https://www.shortautomaton.com/automating-python-scripts-using-windows-task-scheduler/)**
 
