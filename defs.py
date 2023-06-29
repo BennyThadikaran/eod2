@@ -33,9 +33,13 @@ bonus_regex = compile('(\d+) ?: ?(\d+)')
 # initiate the dates class from utils.py
 dates = Dates()
 
+has_latest_holidays = False
+
 
 def getHolidayList(nse: NSE, file: Path):
     """Makes a request for NSE holiday list for the year. Saves and returns the holiday Object"""
+
+    global has_latest_holidays
 
     url = 'https://www.nseindia.com/api/holiday-master'
 
@@ -43,13 +47,16 @@ def getHolidayList(nse: NSE, file: Path):
 
     data = nse.makeRequest(url, params)
 
+    data = {k['tradingDate']: k['description'] for k in data['CM']}
+
     with file.open('w') as f:
         # CM pertains to capital market or equity holdays
-        dump(data['CM'], f, indent=3)
+        dump(data, f, indent=3)
 
         print('NSE Holiday list updated')
 
-    return data['CM']
+    has_latest_holidays = True
+    return data
 
 
 def isHolidaysFileUpdated(file: Path):
@@ -75,15 +82,15 @@ def checkForHolidays(nse: NSE):
     curDt = dates.dt.strftime('%d-%b-%Y')
     isToday = curDt == dates.today.strftime('%d-%b-%Y')
 
-    for day in holidays:
-        if day['tradingDate'] == curDt:
-            # if the current date is today we need to stop
-            # else print the holiday and return
-            if not isToday:
-                print(f'{curDt} Market Holiday: {day["description"]}')
-                return True
+    if curDt in holidays:
+        if not has_latest_holidays:
+            holidays = getHolidayList(nse, file)
 
-            exit(f'Market Holiday: {day["description"]}')
+        if not isToday:
+            print(f'{curDt} Market Holiday: {holidays["description"]}')
+            return True
+
+        exit(f'Market Holiday: {holidays["description"]}')
 
     return False
 
