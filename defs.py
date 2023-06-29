@@ -87,10 +87,10 @@ def checkForHolidays(nse: NSE):
             holidays = getHolidayList(nse, file)
 
         if not isToday:
-            print(f'{curDt} Market Holiday: {holidays["description"]}')
+            print(f'{curDt} Market Holiday: {holidays[curDt]}')
             return True
 
-        exit(f'Market Holiday: {holidays["description"]}')
+        exit(f'Market Holiday: {holidays[curDt]}')
 
     return False
 
