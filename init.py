@@ -1,8 +1,12 @@
 import defs
 
 defs.dates.getLastUpdated()
+amibroker_update = defs.isAmiBrokerFolderUpdated()
 
 with defs.NSE() as nse:
+    if defs.Config.AMIBROKER and not amibroker_update:
+        defs.updateAmiBrokerRecords(nse)
+
     while True:
         defs.dates.getNextDate()
 

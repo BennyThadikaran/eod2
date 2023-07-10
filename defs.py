@@ -8,18 +8,26 @@ from pandas import read_csv, concat
 from sys import platform
 from os import system, scandir, SEEK_END, SEEK_CUR
 from re import compile
+from Config import Config
 
-# Check if system is windows or linux
+if __name__ == '__main__':
+    print(Config())
+    exit()
+
 if 'win' in platform:
     # enable color support in Windows
     system('color')
 
-DIR = Path(__file__).parent
 
+DIR = Path(__file__).parent
 daily_folder = DIR / 'eod2_data' / 'daily'
 delivery_folder = DIR / 'eod2_data' / 'delivery'
 nseActionsFile = DIR / 'eod2_data' / 'nse_actions.json'
 isin_file = DIR / 'eod2_data' / 'isin.csv'
+amibroker_folder = DIR / 'eod2_data' / 'amibroker'
+
+if Config.AMIBROKER and not amibroker_folder.exists():
+    amibroker_folder.mkdir()
 
 isin = read_csv(isin_file, index_col='ISIN')
 etfs = (DIR / 'eod2_data' / 'etf.csv').read_text().strip().split('\n')
@@ -128,6 +136,35 @@ def getActions(nse: NSE, from_dt: datetime, to_dt: datetime):
         dump(data, f, indent=3)
 
 
+def isAmiBrokerFolderUpdated():
+    'Returns true if the folder has files'
+    return any(amibroker_folder.iterdir())
+
+
+def updateAmiBrokerRecords(nse):
+    today = dates.dt
+    dates.dt -= timedelta(Config.UPDATE_DAYS)
+
+    while dates.dt <= today:
+        if dates.dt.weekday() == 5:
+            dates.dt += timedelta(2)
+
+        try:
+            bhavFile = downloadNseBhav(nse, exitOnError=False)
+        except FileNotFoundError:
+            dates.dt += timedelta(1)
+            continue
+
+        with ZipFile(bhavFile) as zip:
+            csvFile = bhavFile.name.replace('.zip', '')
+
+            with zip.open(csvFile) as f:
+                toAmiBrokerFormat(f, csvFile)
+
+        bhavFile.unlink()
+        dates.dt += timedelta(1)
+
+
 def downloadNseDelivery(nse: NSE):
     """Download the daily report for Equity delivery data and return the saved file path.
     Exit if the download fails"""
@@ -142,7 +179,7 @@ def downloadNseDelivery(nse: NSE):
     return delivery_file
 
 
-def downloadNseBhav(nse: NSE):
+def downloadNseBhav(nse: NSE, exitOnError=True):
     """Download the daily report for Equity bhav copy and return the saved file path.
     Exit if the download fails"""
 
@@ -153,8 +190,12 @@ def downloadNseBhav(nse: NSE):
 
     bhavFile = nse.download(url)
 
-    if not bhavFile.is_file() or getsize(bhavFile) < 50000:
-        exit('Download Failed: ' + bhavFile.name)
+    if not bhavFile.is_file() or getsize(bhavFile) < 500:
+        bhavFile.unlink()
+        if exitOnError:
+            exit('Download Failed: ' + bhavFile.name)
+        else:
+            raise FileNotFoundError()
 
     return bhavFile
 
@@ -185,6 +226,10 @@ def updateNseEOD(bhavFile: Path):
 
         with zip.open(csvFile) as f:
             df = read_csv(f, index_col='ISIN')
+
+            print("Converting to AmiBroker format")
+            f.seek(0)
+            toAmiBrokerFormat(f, csvFile)
 
     # save the csv file to the below folder.
     folder = DIR / 'nseBhav' / str(dates.dt.year)
@@ -250,6 +295,23 @@ def updateNseEOD(bhavFile: Path):
 
     if isin_updated:
         isin.to_csv(isin_file)
+
+
+def toAmiBrokerFormat(bhav_file_handle, fileName):
+    cols = ['SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH',
+            'LOW', 'CLOSE', 'TOTTRDVAL', 'ISIN']
+
+    rcols = list(cols)
+    rcols[1] = 'DATE'
+    rcols[-2] = 'VOLUME'
+
+    df = read_csv(bhav_file_handle, parse_dates=['TIMESTAMP'])
+    df = df[(df['SERIES'] == 'EQ') | (
+        df['SERIES'] == 'BE') | (df['SERIES'] == 'BZ')]
+    df = df[cols]
+    df.columns = rcols
+    df['DATE'] = df['DATE'].dt.strftime("%Y%m%d")
+    df.to_csv(amibroker_folder / fileName, index=False)
 
 
 def updateDelivery(file: Path):
