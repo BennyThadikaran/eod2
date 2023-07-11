@@ -2,8 +2,15 @@
 
 An automated python script to download and update NSE stocks, indices, and delivery data.
 
-**Update**
+Stock Data is stored as CSV files and adjusted for splits and bonus. Ideal for use in backtesting.
 
+## Installation, Usage and other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
+
+## Updates
+- 10th Jul 2023: Added an optional feature to format bhavcopy in Amibroker format.
+   - To enable this feature, edit `Config.py` and set `AMIBROKER = True`.
+   - On first run, the `eod2_data/amibroker` folder will be created and 365 days of bhavcopy data is downloaded and formatted.
+   - Executing `py defs.py` will now print the script version and configuration info.
 - 23rd May 2023: Major rework on the code and new added features
   - **New Rollback feature**: Any errors during the data sync process can result in partially updated files and can be mess to resolve. With the updated code, any changes to the files can be rolled back to the last updated date without any manual intervention. See [Installation for details](#installation)
   - All the data files are now placed in a submodule, separated from the actual code. ([see eod2_data](https://github.com/BennyThadikaran/eod2_data)). Commit logs will now be much cleaner.
@@ -21,106 +28,13 @@ An automated python script to download and update NSE stocks, indices, and deliv
 - Plot OHLC data with marked support and resistance levels and colored bars for high delivery days.
 - Works in both Linux and Windows.
 
-## Installation
-
-To clone the repo and the `eod2_data` submodule
-
-```
-git clone --recurse-submodules https://github.com/BennyThadikaran
-
-pip install requests pandas mplfinance
-```
-
-Mplfinance is optional. Only required for plotting data using plot.py
-
-`eod2_data` folder contains all the csv data files.
-
-Run `$ py init.py` to get the latest data.
-
-**For Non Git Users**
-
-Download the zip file for this repository and extract the contents.
-
-Install the dependencies.
-`$ pip install requests pandas mplfinance`
-
-Run `$ py setup.py` from the project directory to download and extract the eod2_data.
-
-Run `$ py init.py` to get the latest data.
-
-Ideally run `init.py` daily or atleast weekly after 7pm India Time to keep your data in sync.
-
-## Usage
-
-`$ py init.py`
-
-Output
-
-```
-Updating NSE actions file
-Downloading Files
-Starting Data Sync
-EOD sync complete
-Index sync complete.
-Makings adjustments for splits and bonus
-PDSL: face value split (sub-division) - from rs 10/- per share to rs 2/- per share
-Cleaning up files
-0 files deleted
-26 Aug 2022: Done
-```
-
-For Linux users: **[Automate eod2](automate.md)**
-
-For Windows users: **[Automating Python Scripts Using Windows Task Scheduler ](https://www.shortautomaton.com/automating-python-scripts-using-windows-task-scheduler/)**
-
-### Plotting candlesticks, delivery, and support & Resistance
-
-`py plot.py tcs`
+### Plot with plot.py
 ![plot screenshot](/images/plot.png)
 
-Dark Blue bars represent above-average delivery and traded volume.
-[See Analysing Delivery data](delivery-analysis.md).
-
-Horizontal lines mark support and resistance.
-
-By default:
-
-- plot.py uses 60 days average to compare delivery and traded volume.
-- 180 trading days are plotted.
-
-To change this, plot.py takes additional integer arguments:
-
-> plot.py \<symbolcode\> \<Average Days\> \<plot period\>
-
-`py plot.py tcs 30 60`
-
-### Delivery analysis
-
-See [Analysing delivery data](delivery-analysis.md) for explanation.
-
-> dget.py [\<symbol1\> \<symbol2\> ...]
-
-`py dget.py hdfcbank marksans idfcfirstb`
-
-![screenshot](/images/dget-args.png)
-
-`py dget.py`
-
+### Delivery analysis with dget.py
 ![screenshot](/images/dget.png)
 
-If no symbols are specified, a default list of symbols are displayed.
-To edit this list, open dget.py in a text editor and edit the symbols in the watch variable.
-
-```
-if len(argv) == 1:
-    #### EDIT YOUR WATCHLIST HERE ####
-    watch = ["AMARAJABAT", "APLLTD", "AUROPHARMA", "DIXON", "GODREJCP", "GODREJIND", "HCLTECH", "INFY", "LATENTVIEW", "M&M", "MARKSANS", "MOL", "TATAPOWER", "TCS"]
-    # DO NOT EDIT BELOW THIS LINE
-else:
-    watch = argv[1:]
-```
-
-## Notes
+### Notes
 
 - 'Daily' and 'Delivery' folders contain OHLC and delivery data for individual stocks.
 - All available indices are listed in 'sector_watchlist.csv'. Additional indices can be added by editing this file.
