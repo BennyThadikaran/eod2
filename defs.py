@@ -227,9 +227,10 @@ def updateNseEOD(bhavFile: Path):
         with zip.open(csvFile) as f:
             df = read_csv(f, index_col='ISIN')
 
-            print("Converting to AmiBroker format")
-            f.seek(0)
-            toAmiBrokerFormat(f, csvFile)
+            if Config.AMIBROKER:
+                print("Converting to AmiBroker format")
+                f.seek(0)
+                toAmiBrokerFormat(f, csvFile)
 
     # save the csv file to the below folder.
     folder = DIR / 'nseBhav' / str(dates.dt.year)
