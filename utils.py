@@ -8,6 +8,8 @@ DIR = Path(__file__).parent
 
 
 class Dates:
+    'A class for date related functions in EOD2'
+
     def __init__(self):
         self.today = datetime.combine(datetime.today(), datetime.min.time())
         self.file = DIR / 'eod2_data' / 'lastupdate.txt'
@@ -15,15 +17,21 @@ class Dates:
         self.pandas_dt = self.dt.strftime('%Y-%m-%d')
 
     def getLastUpdated(self):
+        'Get the last updated Date from lastupdate.txt'
+
         if not self.file.is_file():
             return self.today - timedelta(1)
 
         return datetime.fromisoformat(self.file.read_text().strip())
 
     def setLastUpdated(self):
+        'Set the Date in lastupdate.txt'
+
         self.file.write_text(self.dt.isoformat())
 
     def getNextDate(self):
+        'Gets the next trading date or exit if its a future date'
+
         curTime = datetime.today()
         nxtDt = self.dt + timedelta(1)
 
@@ -45,6 +53,7 @@ class Dates:
 
 
 class NSE:
+    'A class for managing downloads from NSE Website'
 
     def __init__(self):
 
@@ -112,6 +121,10 @@ class NSE:
         self.session.close()
 
     def download(self, url):
+        '''Download a file in chunks from the given url.
+        Useful for downloading larger files.
+        Returns the path of the downloaded file'''
+
         fname = DIR / url.split("/")[-1]
 
         with self.session.get(url,
@@ -125,6 +138,12 @@ class NSE:
         return fname
 
     def makeRequest(self, url, params, expectJson=True, timeout=15):
+        '''Make a GET request to given url with params
+        with timeout that defaults to 15 seconds.
+        By default returns a JSON parsed object.
+        Set expectJson = False to return the response object
+        '''
+
         cookies = self.cookies if hasattr(self, 'cookies') else None
         try:
             r = self.session.get(url, params=params, headers=self.headers,
