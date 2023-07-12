@@ -29,10 +29,12 @@ Stock Data is stored as CSV files and adjusted for splits and bonus. Ideal for u
 - Works in both Linux and Windows.
 
 ### Plot with plot.py
-![plot screenshot](/images/plot.png)
+
+![plot screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/e_improve,f_auto/v1689126755/EOD2/plot_tb7oq2.png)
 
 ### Delivery analysis with dget.py
-![screenshot](/images/dget.png)
+
+![screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/f_auto/v1689126755/EOD2/dget-args_xy0suw.png)
 
 ### Notes
 
