@@ -2,17 +2,19 @@ from pandas import read_csv
 from sys import argv
 import mplfinance as mpf
 from pathlib import Path
+from defs.Config import Config
 
 
 def getDeliveryLevels(dq):
     if dq is None:
-        return (None,) * plot_period
+        return (None,) * config.PLOT_DAYS
 
     # Average of traded volume
-    avgTrdQty = dq['QTY_PER_TRADE'].rolling(avg_days).mean().round(2)
+    avgTrdQty = dq['QTY_PER_TRADE'].rolling(
+        config.PLOT_AVG_DAYS).mean().round(2)
 
     # Average of delivery
-    avgDlvQty = dq['DELIV_QTY'].rolling(avg_days).mean().round(2)
+    avgDlvQty = dq['DELIV_QTY'].rolling(config.PLOT_AVG_DAYS).mean().round(2)
 
     # above average delivery days
     dq['DQ'] = dq['DELIV_QTY'] > avgDlvQty
@@ -82,52 +84,58 @@ def getLevels():
     return alines
 
 
+config = Config()
 DIR = Path(__file__).parent
-arg_length = len(argv)
+argv_len = len(argv)
 
-if arg_length == 1:
-    exit('Usage:\npython3 plot.py <symbol> [<int avg_days> <int plot_period>]')
+if argv_len == 1:
+    exit('Usage:\npython3 plot.py <symbol>')
 
-avg_days = int(argv[2]) if arg_length == 3 else 60
-plot_period = int(argv[3]) if arg_length == 4 else 180
+if hasattr(config, argv[1].upper()):
+    fileName = getattr(config, argv[1].upper())
+    watch = config.toList(fileName)
+else:
+    watch = argv[1:]
 
-fpath = DIR / 'eod2_data' / 'delivery' / f'{argv[1]}.csv'
+for symbol in watch:
+    symbol = symbol.lower()
+    delivery_path = DIR / 'eod2_data' / 'delivery' / f'{symbol}.csv'
+    daily_path = DIR / 'eod2_data' / 'daily' / f'{symbol}.csv'
 
-try:
-    dq = read_csv(fpath,
-                  index_col='Date',
-                  parse_dates=True,
-                  na_filter=True)[-plot_period:]
+    if not daily_path.exists():
+        exit(f'No such file in daily folder: {symbol}.csv')
 
-except FileNotFoundError:
-    print('No delivery data found')
-    dq = None
+    if delivery_path.exists():
+        dq = read_csv(delivery_path,
+                      index_col='Date',
+                      parse_dates=True,
+                      na_filter=True)[-config.PLOT_DAYS:]
+    else:
+        print('No delivery data found')
+        dq = None
 
-try:
     df = read_csv(
-        DIR / 'eod2_data' / 'daily' / f'{argv[1]}.csv',
+        daily_path,
         index_col='Date',
         parse_dates=True,
         na_filter=False,
-    )[-plot_period:]
-except FileNotFoundError as e:
-    exit(f'No such file in daily folder: {argv[1]}.csv')
+    )[-config.PLOT_DAYS:]
 
+    levels = []
+    mean_candle_size = (df['High'] - df['Low']).mean()
 
-levels = []
-mean_candle_size = (df['High'] - df['Low']).mean()
+    # Coloring Individual Candlesticks
+    # https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
+    mco = getDeliveryLevels(dq)
 
-# Coloring Individual Candlesticks
-# https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
-mco = getDeliveryLevels(dq)
+    alines = getLevels()
 
-alines = getLevels()
-
-mpf.plot(df,
-         type='candle',
-         alines={
-             'alines': alines,
-             'linewidths': 0.6
-         },
-         style='yahoo',
-         marketcolor_overrides=mco)
+    mpf.plot(df,
+             type='candle',
+             title=symbol.upper(),
+             alines={
+                 'alines': alines,
+                 'linewidths': 0.7
+             },
+             style='yahoo',
+             marketcolor_overrides=mco)

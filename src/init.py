@@ -1,9 +1,14 @@
-import defs
+from defs import defs
+from sys import argv
 
-defs.dates.getLastUpdated()
+if len(argv) > 1 and argv[1] == 'c':
+    print(defs.config)
+    exit()
+
+lastUpdateDate = defs.dates.getLastUpdated()
 
 with defs.NSE() as nse:
-    if defs.Config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
+    if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
         defs.updateAmiBrokerRecords(nse)
 
     while True:
@@ -47,6 +52,9 @@ with defs.NSE() as nse:
             print(f"Error during data sync. {e!r}")
             defs.rollback(defs.daily_folder)
             defs.rollback(defs.delivery_folder)
+
+            defs.dates.dt = lastUpdateDate
+            defs.dates.setLastUpdated()
             exit()
 
         # No errors continue
@@ -61,6 +69,9 @@ with defs.NSE() as nse:
                 f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
             defs.rollback(defs.daily_folder)
             defs.rollback(defs.delivery_folder)
+
+            defs.dates.dt = lastUpdateDate
+            defs.dates.setLastUpdated()
             exit()
 
         print('Cleaning up files')
@@ -68,5 +79,6 @@ with defs.NSE() as nse:
         defs.cleanup((bhav_file, delivery_file, index_file))
 
         defs.dates.setLastUpdated()
+        lastUpdateDate = defs.dates.dt
 
         print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')

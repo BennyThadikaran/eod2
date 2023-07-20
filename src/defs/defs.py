@@ -2,31 +2,30 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from json import load, dump
 from os.path import getmtime, getsize
-from utils import Dates, NSE
+from defs.NSE import NSE
+from defs.Dates import Dates
 from zipfile import ZipFile
 from pandas import read_csv, concat
 from sys import platform
 from os import system, scandir, SEEK_END, SEEK_CUR
 from re import compile
-from Config import Config
-
-if __name__ == '__main__':
-    print(Config())
-    exit()
+from defs.Config import Config
 
 if 'win' in platform:
     # enable color support in Windows
     system('color')
 
 
-DIR = Path(__file__).parent
+DIR = Path(__file__).parent.parent
 daily_folder = DIR / 'eod2_data' / 'daily'
 delivery_folder = DIR / 'eod2_data' / 'delivery'
 nseActionsFile = DIR / 'eod2_data' / 'nse_actions.json'
 isin_file = DIR / 'eod2_data' / 'isin.csv'
 amibroker_folder = DIR / 'eod2_data' / 'amibroker'
 
-if Config.AMIBROKER and not amibroker_folder.exists():
+config = Config()
+
+if config.AMIBROKER and not amibroker_folder.exists():
     amibroker_folder.mkdir()
 
 isin = read_csv(isin_file, index_col='ISIN')
@@ -150,10 +149,10 @@ def isAmiBrokerFolderUpdated():
 
 def updateAmiBrokerRecords(nse):
     '''Downloads and updates the amibroker files upto the number of days
-    set in Config.UPDATE_DAYS'''
+    set in Config.AMI_UPDATE_DAYS'''
 
     today = dates.dt
-    dates.dt -= timedelta(Config.UPDATE_DAYS)
+    dates.dt -= timedelta(config.AMI_UPDATE_DAYS)
 
     while dates.dt <= today:
         if dates.dt.weekday() == 5:
@@ -237,7 +236,7 @@ def updateNseEOD(bhavFile: Path):
         with zip.open(csvFile) as f:
             df = read_csv(f, index_col='ISIN')
 
-            if Config.AMIBROKER:
+            if config.AMIBROKER:
                 print("Converting to AmiBroker format")
                 f.seek(0)
                 toAmiBrokerFormat(f, csvFile)
