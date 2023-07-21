@@ -1,6 +1,6 @@
 from pathlib import Path
 from requests import Session
-from pickle import dump, load
+from pickle import dumps, loads
 from requests.exceptions import ReadTimeout
 
 DIR = Path(__file__).parent.parent
@@ -38,8 +38,7 @@ class NSE:
 
         cookies = r.cookies
 
-        with (DIR / 'cookies').open('wb') as f:
-            dump(cookies, f)
+        (DIR / 'cookies').write_bytes(dumps(cookies))
 
         return cookies
 
@@ -47,8 +46,7 @@ class NSE:
         file = DIR / 'cookies'
 
         if file.is_file():
-            with file.open('rb') as f:
-                cookies = load(f)
+            cookies = loads(file.read_bytes())
 
             if self.__hasCookiesExpired(cookies):
                 cookies = self.__setCookies()

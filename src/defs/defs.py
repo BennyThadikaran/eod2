@@ -1,13 +1,13 @@
 from pathlib import Path
 from datetime import datetime, timedelta
-from json import load, dump
+from json import loads, dumps
 from os.path import getmtime, getsize
 from defs.NSE import NSE
 from defs.Dates import Dates
 from zipfile import ZipFile
 from pandas import read_csv, concat
 from sys import platform
-from os import system, scandir, SEEK_END, SEEK_CUR
+from os import system, SEEK_END, SEEK_CUR
 from re import compile
 from defs.Config import Config
 
@@ -55,13 +55,12 @@ def getHolidayList(nse: NSE, file: Path):
 
     data = nse.makeRequest(url, params)
 
+    # CM pertains to capital market or equity holdays
     data = {k['tradingDate']: k['description'] for k in data['CM']}
 
-    with file.open('w') as f:
-        # CM pertains to capital market or equity holdays
-        dump(data, f, indent=3)
+    file.write_text(dumps(data, indent=3))
 
-        print('NSE Holiday list updated')
+    print('NSE Holiday list updated')
 
     has_latest_holidays = True
     return data
@@ -82,8 +81,7 @@ def checkForHolidays(nse: NSE):
 
     if isHolidaysFileUpdated(file):
         # holidays are updated for current year
-        with file.open() as f:
-            holidays = load(f)
+        holidays = loads(file.read_bytes())
     else:
         # new year get new holiday list
         holidays = getHolidayList(nse, file)
@@ -137,8 +135,7 @@ def getActions(nse: NSE, from_dt: datetime, to_dt: datetime):
     data = nse.makeRequest(
         'https://www.nseindia.com/api/corporates-corporateActions', params=params)
 
-    with nseActionsFile.open('w') as f:
-        dump(data, f, indent=3)
+    nseActionsFile.write_text(dumps(data, indent=3))
 
 
 def isAmiBrokerFolderUpdated():
@@ -503,8 +500,7 @@ def adjustNseStocks():
 
     dt_str = dates.dt.strftime('%d-%b-%Y')
 
-    with nseActionsFile.open() as f:
-        actions = load(f)
+    actions = loads(nseActionsFile.read_bytes())
 
     # Store all Dataframes with associated files names to be saved to file
     # if no error occurs
@@ -580,14 +576,13 @@ def rollback(folder: Path):
     dt = dates.pandas_dt
     print(f"Rolling back changes from {dt}: {folder}")
 
-    with scandir(folder) as it:
-        for entry in it:
-            df = read_csv(entry.path, index_col='Date',
-                          parse_dates=True, na_filter=False)
+    for file in folder.iterdir():
+        df = read_csv(file, index_col='Date',
+                      parse_dates=True, na_filter=False)
 
-            if dt in df.index:
-                df = df.drop(dt)
-                df.to_csv(entry.path)
+        if dt in df.index:
+            df = df.drop(dt)
+            df.to_csv(file)
 
     print('Rollback successful')
 
@@ -604,19 +599,17 @@ def cleanup(files_lst):
     count = 0
     fmt = '%Y-%m-%d'
 
-    with scandir(daily_folder) as it:
-        for entry in it:
+    for file in daily_folder.iterdir():
+        lastUpdated = datetime.strptime(getLastDate(file), fmt)
 
-            lastUpdated = datetime.strptime(getLastDate(entry.path), fmt)
+        dlvry_file = delivery_folder / file.name
 
-            dlvry_file = delivery_folder / entry.name
+        if lastUpdated < deadline:
+            file.unlink()
 
-            if lastUpdated < deadline:
-                Path(entry.path).unlink()
+            if dlvry_file.is_file():
+                dlvry_file.unlink()
 
-                if dlvry_file.is_file():
-                    dlvry_file.unlink()
-
-                count += 1
+            count += 1
 
     print(f'{count} files deleted')
