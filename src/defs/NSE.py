@@ -1,55 +1,9 @@
-from datetime import datetime, timedelta
-from pickle import dump, load
-from requests import Session
-from requests.exceptions import ReadTimeout
 from pathlib import Path
+from requests import Session
+from pickle import dumps, loads
+from requests.exceptions import ReadTimeout
 
-DIR = Path(__file__).parent
-
-
-class Dates:
-    'A class for date related functions in EOD2'
-
-    def __init__(self):
-        self.today = datetime.combine(datetime.today(), datetime.min.time())
-        self.file = DIR / 'eod2_data' / 'lastupdate.txt'
-        self.dt = self.getLastUpdated()
-        self.pandas_dt = self.dt.strftime('%Y-%m-%d')
-
-    def getLastUpdated(self):
-        'Get the last updated Date from lastupdate.txt'
-
-        if not self.file.is_file():
-            return self.today - timedelta(1)
-
-        return datetime.fromisoformat(self.file.read_text().strip())
-
-    def setLastUpdated(self):
-        'Set the Date in lastupdate.txt'
-
-        self.file.write_text(self.dt.isoformat())
-
-    def getNextDate(self):
-        'Gets the next trading date or exit if its a future date'
-
-        curTime = datetime.today()
-        nxtDt = self.dt + timedelta(1)
-
-        if nxtDt > curTime:
-            exit('All Up To Date')
-
-        if nxtDt.day == curTime.day and curTime.hour < 19:
-            exit("All Up To Date. Check again after 7pm for today's EOD data")
-
-        week_day = nxtDt.weekday()
-
-        if week_day > 4:
-            self.dt = nxtDt + timedelta(7 - week_day)
-        else:
-            self.dt = nxtDt
-
-        self.pandas_dt = self.dt.strftime('%Y-%m-%d')
-        return
+DIR = Path(__file__).parent.parent
 
 
 class NSE:
@@ -84,8 +38,7 @@ class NSE:
 
         cookies = r.cookies
 
-        with (DIR / 'cookies').open('wb') as f:
-            dump(cookies, f)
+        (DIR / 'cookies').write_bytes(dumps(cookies))
 
         return cookies
 
@@ -93,8 +46,7 @@ class NSE:
         file = DIR / 'cookies'
 
         if file.is_file():
-            with file.open('rb') as f:
-                cookies = load(f)
+            cookies = loads(file.read_bytes())
 
             if self.__hasCookiesExpired(cookies):
                 cookies = self.__setCookies()

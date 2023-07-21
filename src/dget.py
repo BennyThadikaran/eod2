@@ -2,15 +2,22 @@ from pandas import read_csv
 from os import system
 from pathlib import Path
 from sys import argv, platform
+from defs.Config import Config
 
-if len(argv) == 1:
-    #### EDIT YOUR WATCHLIST HERE ####
-    watch = ["AMARAJABAT", "APLLTD", "AUROPHARMA", "DIXON", "GODREJCP", "GODREJIND",
-             "HCLTECH", "INFY", "LATENTVIEW", "M&M", "MARKSANS", "MOL", "TATAPOWER", "TCS"]
-    # DO NOT EDIT BELOW THIS LINE
+argv_len = len(argv)
+watchlist_name = 'DEFAULT'
+
+config = Config()
+
+if argv_len > 1:
+    if hasattr(config, sym := argv[1].upper()):
+        watch = config.toList(getattr(config, sym))
+        watchlist_name = sym
+    else:
+        watch = argv[1:]
+        watchlist_name = 'CUSTOM'
 else:
-    watch = argv[1:]
-
+    watch = config.toList(config.WATCH)
 
 # Check if system is windows or linux
 if 'win' in platform:
@@ -33,6 +40,7 @@ class c:
     BOLD = '\033[1m'
     UNDERLINE = '\033[1;4m'
 
+    @staticmethod
     def num(nu):
         if nu >= 1.5:
             return f'{c.WHITE}{nu}{c.ENDC}'
@@ -45,19 +53,24 @@ class c:
 DIR = Path(__file__).parent
 
 # Helper text
-txt = f'{c.WHITE}>= 1.5{c.ENDC}  {c.WARNING}>= 1.2{c.ENDC}  {c.FAIL}>= 1{c.ENDC}\n\n'
+heading = f'{c.WHITE}>= 1.5{c.ENDC}  {c.WARNING}>= 1.2{c.ENDC}  {c.FAIL}>= 1{c.ENDC}\n\n'
+
+heading += f'{c.WHITE}{watchlist_name}{c.ENDC}\n'
 
 # Heading text
-txt += f'{c.CYAN}SCRIP        QTY/TRD    DLV        Volume{c.ENDC}\n'
+heading += f'{c.CYAN}SCRIP        QTY/TRD    DLV        Volume{c.ENDC}\n'
+
+txt = ''
 
 for i in watch:
     fpath = DIR / 'eod2_data' / 'delivery' / f'{i.lower()}.csv'
 
+    if not fpath.exists():
+        print(f'{i}: File not found')
+        continue
+
     # Create Dataframe of last 30 days
-    try:
-        df = read_csv(fpath, index_col='Date')[-90:]
-    except FileNotFoundError as e:
-        print(f'{i}: {e!r}')
+    df = read_csv(fpath, index_col='Date')[-90:]
 
     try:
         # generate average of last 30 days
@@ -85,4 +98,5 @@ for i in watch:
         c.num(vol).ljust(21)
     )
 
-print(txt)
+if txt:
+    print(heading + txt)

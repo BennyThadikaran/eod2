@@ -15,9 +15,16 @@ from shutil import copyfileobj
 DIR = Path(__file__).parent
 url = "https://github.com/BennyThadikaran/eod2_data/archive/main.zip"
 ZIP_FILE = DIR / "eod2_data.zip"
-FOLDER = DIR / "eod2_data"
+FOLDER = DIR / "src" / "eod2_data"
 DAILY_FOLDER = FOLDER / "daily"
 DELIVERY_FOLDER = FOLDER / "delivery"
+
+# check if the folder has any files in it
+if any(FOLDER.iterdir()):
+    print("eod2_data folder has data. Renaming folder to eod2_data_backup.")
+
+    # Rename the folder to protect files from being overwritten.
+    FOLDER.rename("eod2_data_backup")
 
 with session() as s:
     with s.get(url, stream=True, timeout=30) as r:
@@ -47,7 +54,7 @@ with ZipFile(ZIP_FILE) as zip:
     for filePath in zip.namelist():
         # zip file comes in eod2_data-main,
         # we dont need the folder so remove it from filepath
-        outPath = DIR / "eod2_data" / filePath.replace("eod2_data-main/", "")
+        outPath = FOLDER / filePath.replace("eod2_data-main/", "")
 
         if outPath.is_dir():
             continue
