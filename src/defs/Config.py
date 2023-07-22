@@ -20,7 +20,7 @@ class Config:
         self.BANK = "bank.csv"
 
         if (user_config := DIR / "defs" / "user.json").exists():
-            self.__dict__ = self.__dict__ | loads(user_config.read_bytes())
+            self.__dict__.update(loads(user_config.read_bytes()))
 
     # DO NOT EDIT BELOW
     VERSION = '3.0'
