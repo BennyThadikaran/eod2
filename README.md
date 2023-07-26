@@ -7,15 +7,11 @@ Stock Data is stored as CSV files and adjusted for splits and bonus. Ideal for u
 ## Installation, Usage and other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 
 ## Updates
-- 10th Jul 2023: Added an optional feature to format bhavcopy in Amibroker format.
-   - To enable this feature, edit `Config.py` and set `AMIBROKER = True`.
-   - On first run, the `eod2_data/amibroker` folder will be created and 365 days of bhavcopy data is downloaded and formatted.
-   - Executing `py defs.py` will now print the script version and configuration info.
-- 23rd May 2023: Major rework on the code and new added features
-  - **New Rollback feature**: Any errors during the data sync process can result in partially updated files and can be mess to resolve. With the updated code, any changes to the files can be rolled back to the last updated date without any manual intervention. See [Installation for details](#installation)
-  - All the data files are now placed in a submodule, separated from the actual code. ([see eod2_data](https://github.com/BennyThadikaran/eod2_data)). Commit logs will now be much cleaner.
-  - File downloads are much faster.
-- 13th Jan 2022: EOD2 now uses pathlib module for handling file paths. This resolves file path errors on Windows platform.
+
+- 22nd Jul 2023: Major changes to folder structure, centralized configuration, code improvements.
+  - All EOD2 python code is now moved into `src` folder providing separation of core python code from other files. Also useful for those using python venv within the project root.
+  - All EOD2 configuration is now centralized into `defs/Config.py`. To override the config, create a `user.json` in defs folder. See [wiki on configuration](https://github.com/BennyThadikaran/eod2/wiki/Usage#configuration)
+- Other recent updates see [Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 
 ## Features
 
