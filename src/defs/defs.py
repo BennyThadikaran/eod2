@@ -10,6 +10,7 @@ from sys import platform
 from os import system, SEEK_END, SEEK_CUR
 from re import compile
 from defs.Config import Config
+from time import sleep
 
 if 'win' in platform:
     # enable color support in Windows
@@ -150,8 +151,16 @@ def updateAmiBrokerRecords(nse):
 
     today = dates.dt
     dates.dt -= timedelta(config.AMI_UPDATE_DAYS)
+    total_days = config.AMI_UPDATE_DAYS
+
+    print(f'Fetching bhavcopy for last {total_days} days',
+          'and converting to AmiBroker format.\n'
+          'This is a one time process. It will take a few minutes.')
 
     while dates.dt <= today:
+        # A small pause to not overload requests on NSE server.
+        sleep(0.5)
+
         if dates.dt.weekday() == 5:
             dates.dt += timedelta(2)
 
@@ -168,7 +177,13 @@ def updateAmiBrokerRecords(nse):
                 toAmiBrokerFormat(f, csvFile)
 
         bhavFile.unlink()
+
+        days_complete = total_days - (today - dates.dt).days
+        pct_complete = int(days_complete / total_days * 100)
+        print(f'{pct_complete} %', end="\r" * 5, flush=True)
         dates.dt += timedelta(1)
+
+    print("\nDone")
 
 
 def downloadNseDelivery(nse: NSE):
