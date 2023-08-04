@@ -477,8 +477,10 @@ def updateIndice(sym, O, H, L, C, V):
     if not file.is_file():
         text += 'Date,Open,High,Low,Close,Volume\n'
 
+    text += f"{dates.pandas_dt},{O},{H},{L},{C},{V}\n"
+
     with file.open('a') as f:
-        f.write(f"{dates.pandas_dt},{O},{H},{L},{C},{V}\n")
+        f.write(text)
 
 
 def updateIndexEOD(file: Path):
@@ -494,14 +496,21 @@ def updateIndexEOD(file: Path):
 
     df.to_csv(folder / file.name)
 
-    with (DIR / 'eod2_data' / 'sector_watchlist.csv').open() as f:
-        while sym := f.readline().strip():
-            O, H, L, C, V = df.loc[sym, [
-                'Open Index Value', 'High Index Value',
-                'Low Index Value', 'Closing Index Value', 'Volume'
-            ]]
+    indices = (DIR / 'eod2_data' /
+               'sector_watchlist.csv').read_text().strip().split("\n")
 
-            updateIndice(sym, O, H, L, C, V)
+    if any(config.ADDITIONAL_INDICES):
+        indices.extend([
+            sym for sym in config.ADDITIONAL_INDICES if sym not in indices
+        ])
+
+    for sym in indices:
+        O, H, L, C, V = df.loc[sym, [
+            'Open Index Value', 'High Index Value',
+            'Low Index Value', 'Closing Index Value', 'Volume'
+        ]]
+
+        updateIndice(sym, O, H, L, C, V)
 
     pe = float(df.at['Nifty 50', 'P/E'])
 

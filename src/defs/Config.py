@@ -58,6 +58,7 @@ class Config:
         self.WATCH = "watchlist.csv"
         self.IT = "it.csv"
         self.BANK = "bank.csv"
+        self.ADDITIONAL_INDICES = []
 
         if (user_config := DIR / "defs" / "user.json").exists():
             self.__dict__.update(loads(user_config.read_bytes()))
