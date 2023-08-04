@@ -64,7 +64,7 @@ class Config:
             self.__dict__.update(loads(user_config.read_bytes()))
 
     # DO NOT EDIT BELOW
-    VERSION = '3.0.1'
+    VERSION = '3.0.2'
 
     def toList(self, filename: str):
         return (DIR / 'data' / filename).read_text().strip().split("\n")
