@@ -1,9 +1,28 @@
 from defs import defs
-from sys import argv
+from argparse import ArgumentParser
+# from sys import argv
 
-if len(argv) > 1 and argv[1] == 'c':
-    print(defs.config)
-    exit()
+parser = ArgumentParser(prog='init.py')
+
+group = parser.add_mutually_exclusive_group()
+
+group.add_argument('-v',
+                   '--version',
+                   action='store_true',
+                   help='Print the current version.')
+
+group.add_argument('-c',
+                   '--config',
+                   action='store_true',
+                   help='Print the current config.')
+
+args = parser.parse_args()
+
+if args.version:
+    exit(f'EOD2 init.py: version {defs.config.VERSION}')
+
+if args.config:
+    exit(str(defs.config))
 
 lastUpdateDate = defs.dates.getLastUpdated()
 

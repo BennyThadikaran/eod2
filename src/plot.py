@@ -1,141 +1,193 @@
-from pandas import read_csv
-from sys import argv
-import mplfinance as mpf
-from pathlib import Path
+from defs.Plotter import Plotter, processPlot
+from defs.utils import getChar, loadJson, writeJson
 from defs.Config import Config
-
-
-def getDeliveryLevels(dq):
-    if dq is None:
-        return (None,) * config.PLOT_DAYS
-
-    # Average of traded volume
-    avgTrdQty = dq['QTY_PER_TRADE'].rolling(
-        config.PLOT_AVG_DAYS).mean().round(2)
-
-    # Average of delivery
-    avgDlvQty = dq['DELIV_QTY'].rolling(config.PLOT_AVG_DAYS).mean().round(2)
-
-    # above average delivery days
-    dq['DQ'] = dq['DELIV_QTY'] > avgDlvQty
-
-    # above average Traded volume days
-    dq['TQ'] = dq['QTY_PER_TRADE'] > avgTrdQty
-
-    # get combination of above average traded volume and delivery days
-    dq['JP'] = (dq['QTY_PER_TRADE'] > avgTrdQty) & (
-        dq['DELIV_QTY'] > avgDlvQty)
-
-    dq = dq[dq['JP'] == True][['JP']]
-
-    # see https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
-    df['MCOverrides'] = None
-
-    for idx in dq.index:
-        df.loc[idx, 'MCOverrides'] = 'midnightblue'
-
-    mco = df['MCOverrides'].values
-    return mco
-
-
-# Detection of price support and resistance levels in Python
-# -- Gianluca Malato
-# https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
-def isFarFromLevel(level):
-    return sum([abs(level - x[1]) < mean_candle_size for x in levels]) == 0
-
-
-def getLevels():
-    # get support and resistance levels
-
-    local_max = df['High'][
-        (df['High'].shift(1) < df['High']) &
-        (df['High'].shift(2) < df['High'].shift(1)) &
-        (df['High'].shift(-1) < df['High']) &
-        (df['High'].shift(-2) < df['High'].shift(-1))
-    ].dropna()
-
-    local_min = df['Low'][
-        (df['Low'].shift(1) > df['Low']) &
-        (df['Low'].shift(2) > df['Low'].shift(1)) &
-        (df['Low'].shift(-1) > df['Low']) &
-        (df['Low'].shift(-2) > df['Low'].shift(-1))
-    ].dropna()
-
-    for idx in local_max.index:
-        level = local_max[idx]
-
-        if isFarFromLevel(level):
-            levels.append((idx, level))
-
-    for idx in local_min.index:
-        level = local_min[idx]
-
-        if isFarFromLevel(level):
-            levels.append((idx, level))
-
-    alines = []
-    lastDt = df.index[-1]
-
-    for level in levels:
-        seq = [(level[0], level[1]), (lastDt, level[1])]
-        alines.append(seq)
-
-    return alines
-
+from argparse import ArgumentParser
+from datetime import datetime
+from os import system
+from sys import platform
 
 config = Config()
-DIR = Path(__file__).parent
-argv_len = len(argv)
 
-if argv_len == 1:
-    exit('Usage:\npython3 plot.py <symbol>')
+parser = ArgumentParser(prog='plot.py')
 
-if hasattr(config, argv[1].upper()):
-    fileName = getattr(config, argv[1].upper())
-    watch = config.toList(fileName)
-else:
-    watch = argv[1:]
+group = parser.add_mutually_exclusive_group(required=True)
 
-for symbol in watch:
-    symbol = symbol.lower()
-    delivery_path = DIR / 'eod2_data' / 'delivery' / f'{symbol}.csv'
-    daily_path = DIR / 'eod2_data' / 'daily' / f'{symbol}.csv'
+group.add_argument('--sym',
+                   nargs='+',
+                   metavar='SYM',
+                   help='Space separated list of stock symbols.')
 
-    if not daily_path.exists():
-        exit(f'No such file in daily folder: {symbol}.csv')
+group.add_argument('--watch',
+                   metavar='NAME',
+                   help='load a watchlist file by NAME.')
 
-    if delivery_path.exists():
-        dq = read_csv(delivery_path,
-                      index_col='Date',
-                      parse_dates=True,
-                      na_filter=True)[-config.PLOT_DAYS:]
-    else:
-        print('No delivery data found')
-        dq = None
+group.add_argument('--watch-add',
+                   nargs=2,
+                   metavar=('NAME', 'FILENAME'),
+                   help='Save a watchlist by NAME and FILENAME')
 
-    df = read_csv(
-        daily_path,
-        index_col='Date',
-        parse_dates=True,
-        na_filter=False,
-    )[-config.PLOT_DAYS:]
+group.add_argument('--watch-rm',
+                   metavar='NAME',
+                   help='Remove a watchlist by NAME and FILENAME')
 
-    levels = []
-    mean_candle_size = (df['High'] - df['Low']).mean()
+group.add_argument('--preset',
+                   help='Load command line options saved by NAME.',
+                   metavar='NAME')
 
-    # Coloring Individual Candlesticks
-    # https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
-    mco = getDeliveryLevels(dq)
+parser.add_argument('--preset-save',
+                    action='store',
+                    metavar='str',
+                    help='Save command line options by NAME.')
 
-    alines = getLevels()
+group.add_argument('--preset-rm',
+                   action='store',
+                   metavar='str',
+                   help='Remove preset by NAME.')
 
-    mpf.plot(df,
-             type='candle',
-             title=symbol.upper(),
-             alines={
-                 'alines': alines,
-                 'linewidths': 0.7
-             },
-             style='yahoo',
-             marketcolor_overrides=mco)
+group.add_argument('--ls',
+                   action='store_true',
+                   help='List available presets and watchlists.')
+
+parser.add_argument('-s',
+                    '--save',
+                    action='store_true',
+                    help='Save chart as png.')
+
+
+parser.add_argument('-v',
+                    '--volume',
+                    action='store_true',
+                    help='Add Volume')
+
+parser.add_argument('--rs',
+                    action='store_true',
+                    help='Dorsey Relative strength indicator.')
+
+parser.add_argument('--m-rs',
+                    action='store_true',
+                    help='Mansfield Relative strength indicator.')
+
+parser.add_argument('--tf',
+                    action='store',
+                    choices=('weekly', 'daily'),
+                    default='daily',
+                    help="Timeframe. Default 'daily'")
+
+parser.add_argument('--sma',
+                    type=int,
+                    nargs='+',
+                    metavar='int',
+                    help='Simple Moving average')
+
+parser.add_argument('--ema',
+                    type=int,
+                    nargs='+',
+                    metavar='int',
+                    help='Exponential Moving average')
+
+parser.add_argument('-d',
+                    '--date',
+                    type=datetime.fromisoformat,
+                    metavar='str',
+                    help='ISO format date YYYY-MM-DD.')
+
+parser.add_argument('--period',
+                    action='store',
+                    type=int,
+                    metavar='int',
+                    help=f'Number of Candles to plot. Default {config.PLOT_DAYS}')
+
+parser.add_argument('--snr',
+                    action='store_true',
+                    help='Add Support and Resistance lines on chart')
+
+parser.add_argument('-r',
+                    '--resume',
+                    action='store_true',
+                    help='Resume a watchlist from last viewed chart.')
+
+parser.add_argument('--dlv',
+                    action='store_true',
+                    help='Delivery Mode. Plot delivery data on chart.')
+
+args = parser.parse_args()
+
+plotter = Plotter(args, config, parser)
+
+symList = plotter.symList
+
+if args.preset:
+    args = plotter.args
+
+if len(symList) < 5 or args.save:
+    if args.save:
+        from concurrent.futures import ProcessPoolExecutor
+
+        with ProcessPoolExecutor() as executor:
+            for sym in symList:
+                executor.submit(processPlot,
+                                plotter.plot(sym),
+                                plotter.plot_args)
+        exit('Done')
+
+    for sym in symList:
+        plotter.plot(sym)
+    exit('Done')
+
+# PROMPT BETWEEN EACH CHART
+sym_idx = 0
+sym_len = len(symList)
+answer = 'n'
+
+if args.resume and hasattr(config, 'PLOT_RESUME'):
+    resume = getattr(config, 'PLOT_RESUME')
+
+    if resume['watch'] == args.watch:
+        sym_idx = resume['idx']
+
+WHITE = '\033[1;37m'
+ENDC = '\033[0m'
+
+# Check if system is windows or linux
+if 'win' in platform:
+    # enable color support in Windows
+    system('color')
+
+print(f'{WHITE}n: Next, p: Previous, q: Quit, c: Current Chart{ENDC}')
+
+while True:
+    if answer in ('n', 'p', 'c'):
+        if sym_idx == sym_len:
+            break
+
+        print(f'{sym_idx + 1} of {sym_len}', flush=True, end='\r' * 11)
+
+        plotter.plot(symList[sym_idx])
+
+    answer = getChar()
+
+    if answer == 'n':
+        if sym_idx == sym_len:
+            exit('\nDone')
+        sym_idx += 1
+
+    elif answer == 'p':
+        if sym_idx == 0:
+            print('\nAt first Chart')
+            continue
+        sym_idx -= 1
+    elif answer == 'q':
+        if args.watch:
+            if plotter.configPath.is_file():
+                userObj = loadJson(plotter.configPath)
+            else:
+                userObj = {}
+
+            userObj['PLOT_RESUME'] = {
+                'watch': args.watch,
+                'idx': sym_idx
+            }
+            writeJson(plotter.configPath, userObj)
+        exit('\nquiting')
+
+print("Done")
