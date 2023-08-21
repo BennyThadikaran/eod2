@@ -1,30 +1,30 @@
 # EOD2
 
-An automated python script to download and update NSE stocks, indices, and delivery data.
+An automated Python script to download and update NSE stocks, indices, and delivery data.
 
-Stock Data is stored as CSV files and adjusted for splits and bonus. Ideal for use in backtesting.
+Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for use in backtesting.
 
 ### Notes
 
 - 'Daily' and 'Delivery' folders contain OHLC and delivery data for individual stocks.
-- All available indices are listed in 'sector_watchlist.csv'. Additional indices can be added by editing this file.
+- A list of available indices can be found in 'src/eod2_data/sector_watchlist.csv'.
 - **Stock data before 2005 may not be fully adjusted** as NSE does not provide adjustment data before this year.
 
 If you :heart: my work so far, please :star2: this repo.
 
-## Installation, Usage and other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
+## Installation, Usage, and Other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 
 _**Existing users of EOD2:** Make sure to update `mplfinance` to latest version to ensure `plot.py` runs without errors._
 
 ## Updates
 
 - 19th Aug 2023: _**Major update to `plot.py` and `dget.py`, minor changes in init.py**_
-  - `plot.py` has been rewritten providing improved chart features, indicators and multiple options and is fully configurable.
+  - `plot.py` has been rewritten to provide improved chart features, indicators, and multiple options and configuration.
   - A new delivery mode is available in plot.py to visualize the delivery data.
-  - `dget.py` and `lookup.py` has been merged into a single script with some updated options.
-  - `mplfinance` dependency has been updated to the latest version providing support for labels.
-  - Wiki is being updated with the latest documentation and will be completed in a day or 2.
-- Other recent updates see [Wiki](https://github.com/BennyThadikaran/eod2/wiki)
+  - `dget.py` and `lookup.py` rolled into a single script with updated options.
+  - `mplfinance` dependency is updated to version `0.12.10b0` (support for legend labels).
+  - Wiki updated with the latest documentation.
+- For other recent updates see [Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 
 ## Features
 
@@ -39,9 +39,9 @@ _**Existing users of EOD2:** Make sure to update `mplfinance` to latest version 
 
 ### Plot beautiful charts with plot.py
 
-- Add volume, sma, ema, stock Relative strength analysis.
+- Add volume, sma, ema and stock Relative strength analysis.
 - Perform analysis on weekly or daily charts.
-- Lots of configuration options
+- Detects support and resistance levels and plots them on the chart.
 
 ![plot.py screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/s--8i_eMc1u--/c_scale,f_auto,w_800/v1692094407/EOD2/tcs-weekly-stan_pxs8bv.png)
 
