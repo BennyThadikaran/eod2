@@ -1,13 +1,31 @@
 from pathlib import Path
 from defs.utils import arg_parse_dict, getDataFrame, getScreenSize, getLevels, getDeliveryLevels, writeJson, loadJson
-from mplfinance import plot, make_addplot
+from mplfinance import plot, make_addplot, show
 from datetime import timedelta
 from numpy import NaN
 from pandas import Series
+from defs.DateTickFormatter import DateTickFormatter
+
+df = None
 
 
 def processPlot(df, plot_args):
     plot(df, **plot_args)
+
+
+def format_coords(x, y):
+    s = ' ' * 5
+    if not x or round(x) >= df.shape[0]:
+        return ''
+
+    dt = df.index[round(x)]
+
+    O, H, L, C, V = df.loc[dt, [
+        'Open', 'High', 'Low', 'Close', 'Volume']]
+
+    dt_str = f'{dt:%d %b %Y}'.upper()
+
+    return f'{dt_str}{s}Price: {y:.2f}{s}O: {O}{s}H: {H}{s}L: {L}{s}C: {C}{s}V: {V:,.0f}'
 
 
 class Plotter:
@@ -58,14 +76,15 @@ class Plotter:
             'type': config.PLOT_CHART_TYPE,
             'style': config.PLOT_CHART_STYLE,
             'volume': args.volume,
-            'xrotation': 40,
+            'xrotation': 0,
             'datetime_format': '%d %b %y',
             'figscale': 2,
+            'returnfig': True,
             'scale_padding': {
-                'left': 0.3,
-                'right': 0.6,
-                'top': 0.4,
-                'bottom': 0.6
+                'left': 0.28,
+                'right': 0.65,
+                'top': 0.3,
+                'bottom': 0.38
             }
         }
 
@@ -111,6 +130,7 @@ class Plotter:
                                        fromDate=self.args.date)
 
     def plot(self, sym):
+        global df
         df = self._prepData(sym)
 
         self._prepArguments(sym, df)
@@ -118,11 +138,20 @@ class Plotter:
         if self.args.save:
             return df
 
-        plot(df, **self.plot_args)
+        _, axs = plot(df, **self.plot_args)
+
+        locator, formatter = DateTickFormatter(df.index).getLabels()
+
+        for ax in axs:
+            ax.xaxis.set_major_locator(locator)
+            ax.xaxis.set_major_formatter(formatter)
+            ax.format_coord = format_coords
+
+        show()
 
     def _prepArguments(self, sym, df):
         added_plots = []
-        self.plot_args['title'] = f'{sym.upper()}, {self.tf[0].upper()}'
+        self.plot_args['title'] = f'{sym.upper()} - {self.tf.capitalize()}'
         self.plot_args['xlim'] = (0, df.shape[0] + 14)
 
         if self.args.save:
