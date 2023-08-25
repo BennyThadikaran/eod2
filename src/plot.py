@@ -174,6 +174,7 @@ while True:
     elif answer == 'p':
         if sym_idx == 0:
             print('\nAt first Chart')
+            answer = ''
             continue
         sym_idx -= 1
     elif answer == 'q':
@@ -190,4 +191,4 @@ while True:
             writeJson(plotter.configPath, userObj)
         exit('\nquiting')
 
-print("Done")
+print("\nDone")
