@@ -18,6 +18,7 @@ _**Existing users of EOD2:** Make sure to update `mplfinance` to latest version 
 
 ## Updates
 
+- 25th Aug 2023: Sleeker Datetime ticker. Hovering over bars displays a nicely formatted OHCLV data in top right corner of Chart.
 - 19th Aug 2023: _**Major update to `plot.py` and `dget.py`, minor changes in init.py**_
   - `plot.py` has been rewritten to provide improved chart features, indicators, and multiple options and configuration.
   - A new delivery mode is available in plot.py to visualize the delivery data.
@@ -43,15 +44,15 @@ _**Existing users of EOD2:** Make sure to update `mplfinance` to latest version 
 - Perform analysis on weekly or daily charts.
 - Detects support and resistance levels and plots them on the chart.
 
-![plot.py screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/s--8i_eMc1u--/c_scale,f_auto,w_800/v1692094407/EOD2/tcs-weekly-stan_pxs8bv.png)
+![plot.py screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/s--3hTZGzOB--/c_scale,f_auto,w_800/v1692987992/EOD2/tcs-weekly-stan_unvmgu.png)
 
-### Run Weekly sector analysis
+### Plot daily and weekly charts
 
-![plot.py nifty IT weekly chart](https://res.cloudinary.com/doyu4uovr/image/upload/s--UnD2PZWk--/c_scale,f_auto,w_800/v1692455651/EOD2/plot-nifty-it-weekly_xttawt.png)
+![plot.py nifty IT weekly chart](https://res.cloudinary.com/doyu4uovr/image/upload/s--NHP0l7n2--/c_scale,f_auto,w_800/v1692987992/EOD2/plot-nifty-it-weekly_czt8js.png)
 
 ### Visualise NSE delivery data
 
-![Plot.py delivery mode](https://res.cloudinary.com/doyu4uovr/image/upload/s--knbRWhva--/c_scale,f_auto,w_800/v1692361362/EOD2/glenmark-delivery-mode_n2zd3o.png)
+![Plot.py delivery mode](https://res.cloudinary.com/doyu4uovr/image/upload/s--x7W48Hdi--/c_scale,f_auto,w_800/v1692988193/EOD2/glenmark-delivery-mode_kebcb7.png)
 
 ### Analyse the delivery data with dget.py
 
