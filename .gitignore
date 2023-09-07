@@ -138,3 +138,5 @@ nseDelivery
 nseIndices
 cookies
 src/defs/user.json
+src/data/*
+!src/data/sectors.csv

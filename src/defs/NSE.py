@@ -2,6 +2,7 @@ from pathlib import Path
 from requests import Session
 from pickle import dumps, loads
 from requests.exceptions import ReadTimeout
+from typing import Any
 
 DIR = Path(__file__).parent.parent
 
@@ -79,17 +80,21 @@ class NSE:
 
         fname = DIR / url.split("/")[-1]
 
-        with self.session.get(url,
-                              stream=True,
-                              headers=self.headers,
-                              timeout=15) as r:
+        try:
+            with self.session.get(url,
+                                  stream=True,
+                                  headers=self.headers,
+                                  timeout=15) as r:
 
-            with open(fname, 'wb') as f:
-                for chunk in r.iter_content(chunk_size=1000000):
-                    f.write(chunk)
+                with open(fname, 'wb') as f:
+                    for chunk in r.iter_content(chunk_size=1000000):
+                        f.write(chunk)
+        except Exception as e:
+            exit(f'Download error. Try again later: {e!r}')
+
         return fname
 
-    def makeRequest(self, url, params, expectJson=True, timeout=15):
+    def makeRequest(self, url, params, expectJson=True, timeout=15) -> Any:
         '''Make a GET request to given url with params
         with timeout that defaults to 15 seconds.
         By default returns a JSON parsed object.
