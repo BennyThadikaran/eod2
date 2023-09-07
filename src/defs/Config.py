@@ -27,6 +27,10 @@ class Config:
                                 Default 30
 
     Attributes for plot.py
+        PLOT_PLUGINS:           A dictionary of plugins to load. Dict values
+                                must be a dictionary containing plugin
+                                configuration.
+
         PLOT_DAYS:              Number of days to be plotted with plot.py.
                                 Default 160.
 
@@ -42,6 +46,11 @@ class Config:
         PLOT_RS_INDEX:          Index used to calculate Dorsey Relative strength
                                 and Mansfield relative strength.
                                 Default 'nifty 50'
+
+        MAGNET_MODE:            When True, lines snap to closest High, Low,
+                                Close or Open. If False, mouse click coordinates on
+                                chart are used.
+                                Default True
 
         PLOT_CHART_STYLE:       Chart theme
         PLOT_CHART_TYPE:        Chart type. One of: ohlc, candle, line
@@ -66,53 +75,62 @@ class Config:
     All key attributes in user.json must be uppercase.
     '''
 
+    AMIBROKER = False
+    AMI_UPDATE_DAYS = 365
+
+    # Delivery
+    DLV_L1 = 1
+    DLV_L2 = 1.5
+    DLV_L3 = 2
+    DLV_AVG_LEN = 60
+    VOL_AVG_LEN = 30
+
+    # DGET
+    DGET_AVG_DAYS = 60
+    DGET_DAYS = 15
+
+    # PLOT CONFIG
+    PLOT_PLUGINS = {}
+    PLOT_DAYS = 160
+    PLOT_WEEKS = 140
+    PLOT_M_RS_LEN_D = 60
+    PLOT_M_RS_LEN_W = 52
+    PLOT_RS_INDEX = 'nifty 50'
+    MAGNET_MODE = True
+
+    PLOT_PRESET = {}
+    WATCH = {
+        'SECTORS': 'sectors.csv'
+    }
+
+    # PLOT THEMES AND COLORS
+    # 'binance', 'binancedark', 'blueskies', 'brasil', 'charles',
+    # 'checkers', 'classic', 'default', 'ibd', 'kenan', 'mike',
+    # 'nightclouds', 'sas', 'starsandstripes', 'tradingview', 'yahoo'
+    PLOT_CHART_STYLE = 'tradingview'
+
+    # ohlc, candle, line
+    PLOT_CHART_TYPE = 'candle'
+
+    # https://matplotlib.org/stable/gallery/color/named_colors.html#base-colors
+    PLOT_RS_COLOR = 'darkblue'
+    PLOT_M_RS_COLOR = 'darkgreen'
+    PLOT_DLV_L1_COLOR = 'red'
+    PLOT_DLV_L2_COLOR = 'darkorange'
+    PLOT_DLV_L3_COLOR = 'royalblue'
+    PLOT_DLV_DEFAULT_COLOR = 'darkgrey'
+
+    PLOT_AXHLINE_COLOR = 'crimson'
+    PLOT_TLINE_COLOR = 'darkturquoise'
+    PLOT_ALINE_COLOR = 'mediumseagreen'
+    PLOT_HLINE_COLOR = 'royalblue'
+
+    ADDITIONAL_INDICES = []
+
     def __init__(self) -> None:
-        self.AMIBROKER = False
-        self.AMI_UPDATE_DAYS = 365
-
-        # Delivery
-        self.DLV_L1 = 1
-        self.DLV_L2 = 1.5
-        self.DLV_L3 = 2
-        self.DLV_AVG_LEN = 60
-        self.VOL_AVG_LEN = 30
-
-        # DGET
-        self.DGET_AVG_DAYS = 60
-        self.DGET_DAYS = 15
-
-        # PLOT CONFIG
-        self.PLOT_DAYS = 160
-        self.PLOT_WEEKS = 140
-        self.PLOT_M_RS_LEN_D = 60
-        self.PLOT_M_RS_LEN_W = 52
-        self.PLOT_RS_INDEX = 'nifty 50'
-
-        self.PLOT_PRESET = {}
-        self.WATCH = {
-            'SECTORS': 'sectors.csv'
-        }
-
-        # PLOT THEMES AND COLORS
-        # 'binance', 'binancedark', 'blueskies', 'brasil', 'charles',
-        # 'checkers', 'classic', 'default', 'ibd', 'kenan', 'mike',
-        # 'nightclouds', 'sas', 'starsandstripes', 'tradingview', 'yahoo'
-        self.PLOT_CHART_STYLE = 'tradingview'
-
-        # ohlc, candle, line
-        self.PLOT_CHART_TYPE = 'candle'
-
-        # https://matplotlib.org/stable/gallery/color/named_colors.html#base-colors
-        self.PLOT_RS_COLOR = 'darkblue'
-        self.PLOT_M_RS_COLOR = 'darkgreen'
-        self.PLOT_DLV_L1_COLOR = 'red'
-        self.PLOT_DLV_L2_COLOR = 'darkorange'
-        self.PLOT_DLV_L3_COLOR = 'royalblue'
-        self.PLOT_DLV_DEFAULT_COLOR = 'darkgrey'
-
-        self.ADDITIONAL_INDICES = []
 
         user_config = DIR / "defs" / "user.json"
+
         if user_config.exists():
             dct = loads(user_config.read_bytes())
 

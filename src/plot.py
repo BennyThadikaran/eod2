@@ -1,12 +1,16 @@
 from defs.Plotter import Plotter, processPlot
-from defs.utils import getChar, loadJson, writeJson
+from defs.utils import loadJson, writeJson
 from defs.Config import Config
+from defs.Plugin import Plugin
 from argparse import ArgumentParser
 from datetime import datetime
 from os import system
 from sys import platform
+from pathlib import Path
 
+DIR = Path(__file__).parent
 config = Config()
+plugin = Plugin()
 
 parser = ArgumentParser(prog='plot.py')
 
@@ -85,6 +89,12 @@ parser.add_argument('--ema',
                     metavar='int',
                     help='Exponential Moving average')
 
+parser.add_argument('--vol-sma',
+                    type=int,
+                    nargs='+',
+                    metavar='int',
+                    help='Volume Moving average')
+
 parser.add_argument('-d',
                     '--date',
                     type=datetime.fromisoformat,
@@ -110,40 +120,38 @@ parser.add_argument('--dlv',
                     action='store_true',
                     help='Delivery Mode. Plot delivery data on chart.')
 
+if len(config.PLOT_PLUGINS):
+    plugin.register(config.PLOT_PLUGINS, parser)
+
 args = parser.parse_args()
 
-plotter = Plotter(args, config, parser)
+plotter = Plotter(args, config, plugin, parser, DIR)
 
 symList = plotter.symList
 
 if args.preset:
     args = plotter.args
 
-if len(symList) < 5 or args.save:
-    if args.save:
-        from concurrent.futures import ProcessPoolExecutor
+if args.save:
+    from concurrent.futures import ProcessPoolExecutor
 
-        with ProcessPoolExecutor() as executor:
-            for sym in symList:
-                executor.submit(processPlot,
-                                plotter.plot(sym),
-                                plotter.plot_args)
-        exit('Done')
-
-    for sym in symList:
-        plotter.plot(sym)
+    with ProcessPoolExecutor() as executor:
+        for sym in symList:
+            executor.submit(processPlot,
+                            plotter.plot(sym),
+                            plotter.plot_args)
     exit('Done')
 
 # PROMPT BETWEEN EACH CHART
-sym_idx = 0
-sym_len = len(symList)
+plotter.idx = 0
+plotter.len = len(symList)
 answer = 'n'
 
 if args.resume and hasattr(config, 'PLOT_RESUME'):
     resume = getattr(config, 'PLOT_RESUME')
 
     if resume['watch'] == args.watch:
-        sym_idx = resume['idx']
+        plotter.idx = resume['idx']
 
 WHITE = '\033[1;37m'
 ENDC = '\033[0m'
@@ -153,30 +161,30 @@ if 'win' in platform:
     # enable color support in Windows
     system('color')
 
-print(f'{WHITE}n: Next, p: Previous, q: Quit, c: Current Chart{ENDC}')
+print(f'{WHITE}n: Next, p: Previous, q: Quit{ENDC}')
 
 while True:
-    if answer in ('n', 'p', 'c'):
-        if sym_idx == sym_len:
+    if answer in ('n', 'p'):
+        if plotter.idx == plotter.len:
             break
 
-        print(f'{sym_idx + 1} of {sym_len}', flush=True, end='\r' * 11)
+        print(f'{plotter.idx + 1} of {plotter.len}', flush=True, end='\r' * 11)
 
-        plotter.plot(symList[sym_idx])
+        plotter.plot(symList[plotter.idx])
 
-    answer = getChar()
+    answer = plotter.key
 
     if answer == 'n':
-        if sym_idx == sym_len:
+        if plotter.idx == plotter.len:
             exit('\nDone')
-        sym_idx += 1
+        plotter.idx += 1
 
     elif answer == 'p':
-        if sym_idx == 0:
+        if plotter.idx == 0:
             print('\nAt first Chart')
             answer = ''
             continue
-        sym_idx -= 1
+        plotter.idx -= 1
     elif answer == 'q':
         if args.watch:
             if plotter.configPath.is_file():
@@ -186,7 +194,7 @@ while True:
 
             userObj['PLOT_RESUME'] = {
                 'watch': args.watch,
-                'idx': sym_idx
+                'idx': plotter.idx
             }
             writeJson(plotter.configPath, userObj)
         exit('\nquiting')

@@ -3,6 +3,9 @@ from datetime import datetime
 from pandas import read_csv
 from pathlib import Path
 from tkinter import Tk
+from random import choice
+from string import ascii_lowercase
+from typing import Any
 
 
 DIR = Path(__file__).parent.parent
@@ -27,44 +30,11 @@ def writeJson(fPath, data):
     return fPath.write_text(dumps(data, indent=3, cls=DateEncoder))
 
 
-def getChar():
-    """Return a single character from stdin."""
-
-    # figure out which function to use once, and store it in _func
-    if "_func" not in getChar.__dict__:
-        try:
-            # for Windows-based systems
-            from msvcrt import getch  # If successful, we are on Windows
-            getChar._func = getch
-
-        except ImportError:
-            # for POSIX-based systems (with termios & tty support)
-            from tty import setcbreak
-            from sys import stdin
-
-            # raises ImportError if unsupported
-            from termios import tcgetattr, tcsetattr, TCSADRAIN
-
-            def _ttyRead():
-                fd = stdin.fileno()
-                oldSettings = tcgetattr(fd)
-
-                try:
-                    # disable line buffering and read the first char
-                    setcbreak(fd)
-                    answer = stdin.read(1)
-                finally:
-                    # reset changes
-                    tcsetattr(fd, TCSADRAIN, oldSettings)
-
-                return answer
-
-            getChar._func = _ttyRead
-
-    return getChar._func()
+def randomChar(length):
+    return ''.join(choice(ascii_lowercase) for _ in range(length))
 
 
-def getDataFrame(fpath, tf, period, column=None, customDict=None, fromDate=None):
+def getDataFrame(fpath: Path, tf: str, period: int, column=None, customDict=None, fromDate=None) -> Any:
     df = read_csv(fpath,
                   index_col='Date',
                   parse_dates=True,
@@ -73,13 +43,16 @@ def getDataFrame(fpath, tf, period, column=None, customDict=None, fromDate=None)
     if fromDate:
         df = df[:fromDate]
 
-    dct = customDict if customDict else {
-        'Open': 'first',
-        'High': 'max',
-        'Low': 'min',
-        'Close': 'last',
-        'Volume': 'sum'
-    }
+    if customDict:
+        dct = customDict
+    else:
+        dct = {
+            'Open': 'first',
+            'High': 'max',
+            'Low': 'min',
+            'Close': 'last',
+            'Volume': 'sum'
+        }
 
     if tf == 'weekly':
         if column:
