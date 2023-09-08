@@ -18,13 +18,7 @@ _**Existing users of EOD2:** Make sure to update `mplfinance` to latest version 
 
 ## Updates
 
-- 25th Aug 2023: Sleeker Datetime ticker. Hovering over bars displays a nicely formatted OHCLV data in top right corner of Chart.
-- 19th Aug 2023: _**Major update to `plot.py` and `dget.py`, minor changes in init.py**_
-  - `plot.py` has been rewritten to provide improved chart features, indicators, and multiple options and configuration.
-  - A new delivery mode is available in plot.py to visualize the delivery data.
-  - `dget.py` and `lookup.py` rolled into a single script with updated options.
-  - `mplfinance` dependency is updated to version `0.12.10b0` (support for legend labels).
-  - Wiki updated with the latest documentation.
+- 7th Sep 2023: SME Stocks, interactive chart drawing and custom keybindings, Experimental plugin support with RSI indicator plugin
 - For other recent updates see [Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 
 ## Features
@@ -49,6 +43,10 @@ _**Existing users of EOD2:** Make sure to update `mplfinance` to latest version 
 ### Plot daily and weekly charts
 
 ![plot.py nifty IT weekly chart](https://res.cloudinary.com/doyu4uovr/image/upload/s--NHP0l7n2--/c_scale,f_auto,w_800/v1692987992/EOD2/plot-nifty-it-weekly_czt8js.png)
+
+### Draw Trend and Trading lines
+
+![Natcopharm with trend and trading lines](https://res.cloudinary.com/doyu4uovr/image/upload/s--mIk8G6sO--/c_scale,f_auto,w_800/v1694162379/EOD2/natcopharm_d_lines_fnys25.png)
 
 ### Visualise NSE delivery data
 
