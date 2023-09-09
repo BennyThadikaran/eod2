@@ -191,8 +191,10 @@ class Plotter:
                                        'Close',
                                        fromDate=self.args.date)
 
-    def plot(self, sym, lines=None):
+    def plot(self, sym):
         global df
+
+        self.draw_mode = False
 
         meta = None
 
@@ -627,6 +629,10 @@ class Plotter:
 
             sma_rs = df['RS'].rolling(rs_period).mean()
             df['M_RS'] = (((df['RS'] / sma_rs) - 1) * 100).round(2)
+
+            # prevent crash if plot period is less than RS period
+            if df.shape[0] < rs_period:
+                df['M_RS'] = 0
 
         if self.args.sma:
             for period in self.args.sma:
