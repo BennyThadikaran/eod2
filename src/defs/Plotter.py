@@ -1,5 +1,5 @@
 from pathlib import Path
-from defs.utils import arg_parse_dict, getDataFrame, getScreenSize, getLevels, getDeliveryLevels, writeJson, loadJson, randomChar
+from defs.utils import arg_parse_dict, getDataFrame, getScreenSize, getLevels, getDeliveryLevels, writeJson, loadJson, randomChar, relativeStrength, manfieldRelativeStrength
 from mplfinance import plot, make_addplot, show
 from matplotlib.collections import LineCollection
 from matplotlib.pyplot import close, ion
@@ -9,32 +9,33 @@ from pandas import Series
 from defs.DateTickFormatter import DateTickFormatter
 from pickle import loads, dumps
 
-HELP = '''## Help ##
+HELP = '''                                           ## Help ##
 
-H            Toggle help text
+Shift + H   Toggle help text                 R               Reset to original view
 
-N            Next chart
+N               Next chart                          F                Fullscreen
 
-P            Previous chart
+P               Previous chart                    G               Toggle Major Grids
 
-Q            Quit plot.py
+Q               Quit plot.py                        O               Zoom to Rect
 
-D            Toggle draw mode
+D               Toggle draw mode
 
 ## Draw mode controls ##
 
-Left click on chart to add a horizontal line across X axis.
+Horizontal Line :            Left Mouse click
+(AxHLine)
 
-Hold Shift key and left click two points on chart, to add a trend line.
+Trend Line (TLine) :       Hold Shift key + left mouse click two points on chart
 
-Hold Control key and left click two or more points to add segments,
-that connect at each end.
+Segments (ALine) :        Hold Control key + left mouse click two or more points
 
-Hold Ctrl + Shift key and left click two points to add a horizontal segment.
+Horizontal Segment :     Hold Ctrl + Shift key + left mouse click two points
+(HLine)
 
-Right click on line to delete line.
+Delete Line: Right mouse click on line
 
-Hold Shift key and right click on chart to delete all lines.
+Delete all lines: Hold Shift key + right mouse click
 '''
 
 
@@ -44,6 +45,10 @@ def processPlot(df, plot_args):
 
 def format_coords(x, _):
     s = ' ' * 5
+
+    if df is None:
+        return
+
     if not x or round(x) >= df.shape[0]:
         return ''
 
@@ -199,9 +204,14 @@ class Plotter:
         meta = None
 
         if ',' in sym:
-            sym, *meta = sym.split(',')
+            sym, *meta = sym.lower().split(',')
 
         df = self._prepData(sym)
+
+        if df is None:
+            self.key = 'n'
+            print(f'WARN: Could not find symbol - {sym.upper()}')
+            return
 
         self._prepArguments(sym, df, meta)
 
@@ -262,6 +272,10 @@ class Plotter:
             self.line.clear()
 
     def _on_button_press(self, event):
+
+        if df is None:
+            return
+
         # right mouse click to delete lines
         if event.button == 3:
             return self._deleteLine(event.key)
@@ -371,6 +385,9 @@ class Plotter:
                                                            self._on_pick))
 
     def _loadLines(self, lines):
+        if df is None:
+            return
+
         self.lines = lines
 
         for url in self.lines['lines']:
@@ -412,6 +429,9 @@ class Plotter:
     def _add_tline(self, axes, coords, url=None):
         '''Draw trendlines passing through 2 points'''
 
+        if df is None:
+            return
+
         if url is None:
             # increment only if its newly drawn line
             self.lines['length'] += 1
@@ -427,6 +447,9 @@ class Plotter:
 
     def _add_aline(self, axes, coords, url=None):
         '''Draw arbitary lines connecting 2 points'''
+
+        if df is None:
+            return
 
         if url is None:
             # increment only if its newly drawn line
@@ -444,6 +467,9 @@ class Plotter:
         self.lines['artists'].append(line)
 
     def _add_horizontal_segment(self, axes, y, xmin, xmax, url=None):
+        if df is None:
+            return
+
         if url is None:
             # increment only if its newly drawn line
             self.lines['length'] += 1
@@ -475,6 +501,9 @@ class Plotter:
             self.lines['length'] -= 1
 
     def _getClosestPrice(self, x, y):
+        if df is None:
+            return
+
         _open, high, low, close, * _ = df.iloc[x]
 
         if y >= high:
@@ -525,7 +554,7 @@ class Plotter:
                                             width=2.5,
                                             ylabel='Dorsey RS'))
 
-        if self.args.m_rs:
+        if self.args.m_rs and 'M_RS' in df.columns:
             zero_line = Series(data=0, index=df.index)
 
             added_plots.extend([
@@ -609,7 +638,7 @@ class Plotter:
             fpath = self.daily_dir / f'{sym.lower()}_sme.csv'
 
             if not fpath.is_file():
-                exit(f"Error: File not found: {fpath}")
+                return None
 
         df = getDataFrame(fpath,
                           self.tf,
@@ -618,8 +647,8 @@ class Plotter:
 
         plot_period = min(df.shape[0], self.period)
 
-        if self.args.rs or self.args.m_rs:
-            df['RS'] = ((df['Close'] / self.idx_cl) * 100).round(2)
+        if self.args.rs:
+            df['RS'] = relativeStrength(df['Close'], self.idx_cl)
 
         if self.args.m_rs:
             if self.tf == 'weekly':
@@ -627,12 +656,14 @@ class Plotter:
             else:
                 rs_period = self.config.PLOT_M_RS_LEN_D
 
-            sma_rs = df['RS'].rolling(rs_period).mean()
-            df['M_RS'] = (((df['RS'] / sma_rs) - 1) * 100).round(2)
-
             # prevent crash if plot period is less than RS period
             if df.shape[0] < rs_period:
-                df['M_RS'] = 0
+                print(
+                    f'WARN: {sym.upper()} - Inadequate data to plot Mansfield RS.')
+            else:
+                df['M_RS'] = manfieldRelativeStrength(df['Close'],
+                                                      self.idx_cl,
+                                                      rs_period)
 
         if self.args.sma:
             for period in self.args.sma:
