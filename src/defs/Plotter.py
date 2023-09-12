@@ -402,11 +402,18 @@ class Plotter:
             if _type == 'hline':
                 y, xmin, xmax = coord
 
-                coord = (y, df.index.get_loc(xmin), df.index.get_loc(xmax))
+                try:
+                    coord = (y, df.index.get_loc(xmin), df.index.get_loc(xmax))
+                except KeyError:
+                    continue
+
                 self._add_horizontal_segment(self.main_ax, *coord, url=url)
                 continue
 
-            coord = tuple((df.index.get_loc(x), y) for x, y in coord)
+            try:
+                coord = tuple((df.index.get_loc(x), y) for x, y in coord)
+            except KeyError:
+                continue
 
             if _type == 'tline':
                 self._add_tline(self.main_ax, coord, url=url)
@@ -532,7 +539,7 @@ class Plotter:
 
         self.plot_args['title'] = self.title
 
-        self.plot_args['xlim'] = (0, df.shape[0] + 14)
+        self.plot_args['xlim'] = (0, df.shape[0] + 15)
 
         if self.args.save:
             img_name = f'{sym.replace(" ", "-")}.png'
@@ -573,16 +580,25 @@ class Plotter:
 
         if self.args.sma:
             for period in self.args.sma:
+                if not f'SMA_{period}' in df.columns:
+                    continue
+
                 added_plots.append(make_addplot(df[f'SMA_{period}'],
                                                 label=f'SM{period}'))
 
         if self.args.ema:
             for period in self.args.ema:
+                if not f'EMA_{period}' in df.columns:
+                    continue
+
                 added_plots.append(make_addplot(df[f'EMA_{period}'],
                                                 label=f'EM{period}'))
 
         if self.args.vol_sma:
             for period in self.args.vol_sma:
+                if not f'VMA_{period}' in df.columns:
+                    continue
+
                 added_plots.append(make_addplot(df[f'VMA_{period}'],
                                                 label=f'MA{period}',
                                                 panel='lower',
@@ -645,7 +661,9 @@ class Plotter:
                           self.max_period,
                           fromDate=self.args.date)
 
-        plot_period = min(df.shape[0], self.period)
+        df_len = df.shape[0]
+
+        plot_period = min(df_len, self.period)
 
         if self.args.rs:
             df['RS'] = relativeStrength(df['Close'], self.idx_cl)
@@ -657,7 +675,7 @@ class Plotter:
                 rs_period = self.config.PLOT_M_RS_LEN_D
 
             # prevent crash if plot period is less than RS period
-            if df.shape[0] < rs_period:
+            if df_len < rs_period:
                 print(
                     f'WARN: {sym.upper()} - Inadequate data to plot Mansfield RS.')
             else:
@@ -667,17 +685,33 @@ class Plotter:
 
         if self.args.sma:
             for period in self.args.sma:
+                if df_len < period:
+                    print(
+                        f'WARN: {sym.upper()} - Inadequate data to plot SMA {period}.')
+                    continue
+
                 df[f'SMA_{period}'] = df['Close'].rolling(
                     period).mean().round(2)
 
         if self.args.ema:
             for period in self.args.ema:
+                if df_len < period:
+                    print(
+                        f'WARN: {sym.upper()} - Inadequate data to plot EMA {period}.')
+                    continue
+
                 alpha = 2 / (period + 1)
+
                 df[f'EMA_{period}'] = df['Close'].ewm(
                     alpha=alpha).mean().round(2)
 
         if self.args.vol_sma:
             for period in self.args.vol_sma:
+                if df_len < period:
+                    print(
+                        f'WARN: {sym.upper()} - Inadequate data to plot Volume SMA {period}.')
+                    continue
+
                 df[f'VMA_{period}'] = df['Volume'].rolling(
                     period).mean().round(2)
 
