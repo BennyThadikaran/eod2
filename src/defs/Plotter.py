@@ -267,7 +267,14 @@ class Plotter:
             self._deleteLine('', artist=event.artist)
 
     def _on_key_release(self, event):
+
         if event.key in ('control', 'shift', 'ctrl+shift'):
+            if event.key == 'ctrl+shift' and len(self.line) == 2:
+                # On release after first click,
+                # Draw a horizontal segment from xmin to x-axis end
+                y, xmin = self.line
+                self._add_horizontal_segment(event.inaxes, y, xmin)
+
             self.main_ax.set_title('DRAW MODE', **self.title_args)
             self.line.clear()
 
@@ -402,8 +409,13 @@ class Plotter:
             if _type == 'hline':
                 y, xmin, xmax = coord
 
+                # check for DataFrame index out of bounds errors
                 try:
-                    coord = (y, df.index.get_loc(xmin), df.index.get_loc(xmax))
+                    # Draw line to specified point on x-axis else draw to end
+                    if not xmax is None:
+                        xmax = df.index.get_loc(xmax)
+
+                    coord = (y, df.index.get_loc(xmin), xmax)
                 except KeyError:
                     continue
 
@@ -427,11 +439,11 @@ class Plotter:
             # increment only if its newly drawn line
             self.lines['length'] += 1
             url = f'axhline:{randomChar(6)}'
+            self.lines['lines'][url] = y
 
         self.line_args['color'] = self.config.PLOT_AXHLINE_COLOR
         line = axes.axhline(y, url=url, **self.line_args)
         self.lines['artists'].append(line)
-        self.lines['lines'][url] = y
 
     def _add_tline(self, axes, coords, url=None):
         '''Draw trendlines passing through 2 points'''
@@ -443,13 +455,14 @@ class Plotter:
             # increment only if its newly drawn line
             self.lines['length'] += 1
             url = f'tline:{randomChar(6)}'
+            self.lines['lines'][url] = tuple(
+                (df.index[x], y) for x, y in coords)
 
         self.line_args['color'] = self.config.PLOT_TLINE_COLOR
 
         # second click to get ending coordinates
         line = axes.axline(*coords, url=url, **self.line_args)
 
-        self.lines['lines'][url] = tuple((df.index[x], y) for x, y in coords)
         self.lines['artists'].append(line)
 
     def _add_aline(self, axes, coords, url=None):
@@ -463,17 +476,18 @@ class Plotter:
             self.lines['length'] += 1
             url = f'aline:{randomChar(6)}'
 
+            self.lines['lines'][url] = tuple(
+                (df.index[x], y) for x, y in coords)
+
         self.segment_args['colors'] = (self.config.PLOT_ALINE_COLOR,)
 
         line = LineCollection([coords], url=url, **self.segment_args)
 
         axes.add_collection(line)
 
-        self.lines['lines'][url] = tuple((df.index[x], y) for x, y in coords)
-
         self.lines['artists'].append(line)
 
-    def _add_horizontal_segment(self, axes, y, xmin, xmax, url=None):
+    def _add_horizontal_segment(self, axes, y, xmin, xmax=None, url=None):
         if df is None:
             return
 
@@ -482,11 +496,17 @@ class Plotter:
             self.lines['length'] += 1
             url = f'hline:{randomChar(6)}'
 
+            self.lines['lines'][url] = (
+                y, df.index[xmin], df.index[xmax] if xmax else None)
+
+        if xmax is None:
+            # draw line till end of x-axis
+            xmax = df.index.get_loc(df.index[-1])
+
         self.segment_args['colors'] = (self.config.PLOT_HLINE_COLOR,)
 
         line = axes.hlines(y, xmin, xmax, url=url, **self.segment_args)
 
-        self.lines['lines'][url] = (y, df.index[xmin], df.index[xmax])
         self.lines['artists'].append(line)
 
     def _deleteLine(self, key, artist=None):
