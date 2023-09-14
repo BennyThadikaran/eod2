@@ -4,8 +4,6 @@ from defs.Config import Config
 from defs.Plugin import Plugin
 from argparse import ArgumentParser
 from datetime import datetime
-from os import system
-from sys import platform
 from pathlib import Path
 
 DIR = Path(__file__).parent
@@ -152,16 +150,6 @@ if args.resume and hasattr(config, 'PLOT_RESUME'):
 
     if resume['watch'] == args.watch:
         plotter.idx = resume['idx']
-
-WHITE = '\033[1;37m'
-ENDC = '\033[0m'
-
-# Check if system is windows or linux
-if 'win' in platform:
-    # enable color support in Windows
-    system('color')
-
-print(f'{WHITE}n: Next, p: Previous, q: Quit{ENDC}')
 
 while True:
     if answer in ('n', 'p'):
