@@ -200,6 +200,7 @@ class Plotter:
         global df
 
         self.draw_mode = False
+        self.has_updated = False
 
         meta = None
 
@@ -238,28 +239,37 @@ class Plotter:
                                color='black',
                                fontdict={'fontweight': 'bold'})
 
-        tf = f'_{self.tf[0]}'
+        lines_path = self.DIR / 'data' / 'lines' / f'{sym}.p'
 
-        lines_path = self.DIR / 'data' / 'lines' / f'{sym}{tf}.p'
-
-        default_lines = {'length': 0, 'artists': [], 'lines': {}}
+        default_lines = {
+            'artists': [],
+            'daily': {
+                'length': 0,
+                'lines': {}
+            },
+            'weekly': {
+                'length': 0,
+                'lines': {}
+            }
+        }
 
         lines = loads(lines_path.read_bytes()
                       ) if lines_path.is_file() else default_lines
 
-        if lines['length'] > 0:
+        if lines[self.tf]['length'] > 0:
             self._loadLines(lines)
         else:
             self.lines = lines
 
         show(block=True)
 
-        length = self.lines['length']
+        daily_len = self.lines['daily']['length']
+        weekly_len = self.lines['weekly']['length']
 
-        if length == 0 and lines_path.is_file():
+        if (daily_len == 0 and weekly_len == 0 and lines_path.is_file()):
             return lines_path.unlink()
 
-        if length > 0:
+        if self.has_updated:
             lines_path.write_bytes(dumps(self.lines))
 
     def _on_pick(self, event):
@@ -397,10 +407,13 @@ class Plotter:
 
         self.lines = lines
 
-        for url in self.lines['lines']:
+        if not self.tf in self.lines:
+            return
+
+        for url in self.lines[self.tf]['lines']:
             _type, _ = url.split(':')
 
-            coord = self.lines['lines'][url]
+            coord = self.lines[self.tf]['lines'][url]
 
             if _type == 'axhline':
                 self._add_hline(self.main_ax, coord, url=url)
@@ -437,9 +450,10 @@ class Plotter:
 
         if url is None:
             # increment only if its newly drawn line
-            self.lines['length'] += 1
+            self.lines[self.tf]['length'] += 1
             url = f'axhline:{randomChar(6)}'
-            self.lines['lines'][url] = y
+            self.lines[self.tf]['lines'][url] = y
+            self.has_updated = True
 
         self.line_args['color'] = self.config.PLOT_AXHLINE_COLOR
         line = axes.axhline(y, url=url, **self.line_args)
@@ -453,10 +467,12 @@ class Plotter:
 
         if url is None:
             # increment only if its newly drawn line
-            self.lines['length'] += 1
+            self.lines[self.tf]['length'] += 1
             url = f'tline:{randomChar(6)}'
-            self.lines['lines'][url] = tuple(
+            self.lines[self.tf]['lines'][url] = tuple(
                 (df.index[x], y) for x, y in coords)
+
+            self.has_updated = True
 
         self.line_args['color'] = self.config.PLOT_TLINE_COLOR
 
@@ -473,11 +489,13 @@ class Plotter:
 
         if url is None:
             # increment only if its newly drawn line
-            self.lines['length'] += 1
+            self.lines[self.tf]['length'] += 1
             url = f'aline:{randomChar(6)}'
 
-            self.lines['lines'][url] = tuple(
+            self.lines[self.tf]['lines'][url] = tuple(
                 (df.index[x], y) for x, y in coords)
+
+            self.has_updated = True
 
         self.segment_args['colors'] = (self.config.PLOT_ALINE_COLOR,)
 
@@ -493,11 +511,13 @@ class Plotter:
 
         if url is None:
             # increment only if its newly drawn line
-            self.lines['length'] += 1
+            self.lines[self.tf]['length'] += 1
             url = f'hline:{randomChar(6)}'
 
-            self.lines['lines'][url] = (
+            self.lines[self.tf]['lines'][url] = (
                 y, df.index[xmin], df.index[xmax] if xmax else None)
+
+            self.has_updated = True
 
         if xmax is None:
             # draw line till end of x-axis
@@ -514,9 +534,11 @@ class Plotter:
         if key == 'shift':
             for lineArtist in self.lines['artists'].copy():
                 lineArtist.remove()
-            self.lines['length'] = 0
+
+            self.lines[self.tf]['length'] = 0
             self.lines['artists'].clear()
-            self.lines['lines'].clear()
+            self.lines[self.tf]['lines'].clear()
+            self.has_updated = True
             return
 
         if artist and artist in self.lines['artists']:
@@ -524,8 +546,9 @@ class Plotter:
 
             artist.remove()
             self.lines['artists'].remove(artist)
-            self.lines['lines'].pop(url)
-            self.lines['length'] -= 1
+            self.lines[self.tf]['lines'].pop(url)
+            self.lines[self.tf]['length'] -= 1
+            self.has_updated = True
 
     def _getClosestPrice(self, x, y):
         if df is None:

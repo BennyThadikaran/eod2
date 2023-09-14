@@ -51,25 +51,12 @@ class DateTickFormatter:
             self.month = self.dates[0].month
 
         if self.len <= 22:
-            return self._daily()
+            return self._atInterval(2)
 
         if self.len < 200:
             return self._atInterval(self._getInterval())
 
         return self._monthly()
-
-    def _daily(self):
-        '''Labels ticks on every candle'''
-
-        labels = []
-
-        for dt in self.dates:
-            if self.tf == 'daily' and dt.weekday() > 4:
-                continue
-
-            labels.append(self._formatDate(dt))
-
-        return (FixedLocator(tuple(range(self.len))), FixedFormatter(labels))
 
     def _monthly(self):
         '''Labels ticks on 1st Candle of every month and year'''
@@ -97,21 +84,8 @@ class DateTickFormatter:
     def _atInterval(self, interval):
         '''Labels ticks at every interval of candle dates'''
 
-        labels = []
-        ticks = []
-        nextTick = interval
+        ticks = range(1, len(self.dates), interval)
 
-        for i, dt in enumerate(self.dates):
-            if i == 1:
-                labels.append(self._formatDate(dt))
-                ticks.append(i)
-            elif i == self.len - 1:
-                break
-            elif i == nextTick:
-                ticks.append(i)
-                labels.append(self._formatDate(dt))
-                nextTick += interval
-
-            i += 1
+        labels = tuple(self._formatDate(self.dates[i]) for i in ticks)
 
         return (FixedLocator(ticks), FixedFormatter(labels))
