@@ -263,7 +263,9 @@ class Plotter:
 
         show(block=True)
 
-        self.plot_args['addplot'].clear()
+        if 'addplot' in self.plot_args:
+            self.plot_args['addplot'].clear()
+
         daily_len = self.lines['daily']['length']
         weekly_len = self.lines['weekly']['length']
 
