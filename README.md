@@ -1,4 +1,4 @@
-# EOD2
+# 🎇 EOD2
 
 An automated Python script to download and update NSE stocks, indices, and delivery data.
 
@@ -12,16 +12,13 @@ Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for
 
 If you :heart: my work so far, please :star2: this repo.
 
-## Installation, Usage, and Other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
+## 👽 Installation, Usage, and Other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 
-_**Existing users of EOD2:** Make sure to update `mplfinance` to latest version to ensure `plot.py` runs without errors._
+## 💪 EOD2 Discussions
 
-## Updates
+I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discussions). Connect with other members and share your thoughts, views, and questions about EOD2.
 
-- 7th Sep 2023: SME Stocks, interactive chart drawing and custom keybindings, Experimental plugin support with RSI indicator plugin
-- For other recent updates see [Wiki](https://github.com/BennyThadikaran/eod2/wiki)
-
-## Features
+## 🔥 Features
 
 - Daily EOD data for over 2000 NSE stocks since 1995.
 - Stores OHLCV and delivery data of individual stocks and indices in csv files.
