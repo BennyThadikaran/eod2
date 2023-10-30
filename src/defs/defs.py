@@ -32,9 +32,8 @@ if config.AMIBROKER and not amibroker_folder.exists():
     amibroker_folder.mkdir()
 
 isin = read_csv(isin_file, index_col='ISIN')
-etfs = (DIR / 'eod2_data' / 'etf.csv').read_text().strip().split('\n')
 
-header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY,DELIV_PER\n'
+header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY\n'
 
 split_regex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
@@ -285,8 +284,8 @@ def updateNseEOD(bhavFile: Path):
     for t in df.itertuples(name=None):
         idx, sym, series, O, H, L, C, _, _, V, *_ = t
 
-        # ignore rights issue and etfs
-        if '-RE' in sym or sym in etfs:
+        # ignore rights issue
+        if '-RE' in sym:
             continue
 
         prefix = '_sme' if series in ('SM', 'ST') else ''
@@ -378,8 +377,8 @@ def updateDelivery(file: Path):
     for t in df.itertuples(name=None):
         sym, series, *_, v, _, trd_count, dq, _ = t
 
-        # ignore rights issue and etfs
-        if '-RE' in sym or sym in etfs:
+        # ignore rights issue
+        if '-RE' in sym:
             continue
 
         updateDeliveryData(sym, series, v, int(trd_count), dq)
