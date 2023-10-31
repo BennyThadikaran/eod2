@@ -8,7 +8,7 @@ from string import ascii_lowercase
 from typing import Any
 
 
-DIR = Path(__file__).parent.parent
+DIR = Path(__file__).parents[1]
 daily_folder = DIR / 'eod2_data' / 'daily'
 delivery_folder = DIR / 'eod2_data' / 'delivery'
 save_folder = DIR / 'SAVED_CHARTS'
@@ -189,12 +189,13 @@ def getScreenSize():
 
     return (round(width / mm), round(height / mm))
 
+
 def relativeStrength(close, index_close):
     return (close / index_close * 100).round(2)
+
 
 def manfieldRelativeStrength(close, index_close, period):
     rs = relativeStrength(close, index_close)
 
     sma_rs = rs.rolling(period).mean()
     return ((rs / sma_rs - 1) * 100).round(2)
-

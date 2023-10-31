@@ -1,106 +1,87 @@
+from sys import platform
+import json
+from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
-from json import loads, dumps
-from os.path import getmtime, getsize
-from defs.NSE import NSE
 from defs.Dates import Dates
-from zipfile import ZipFile
 from pandas import read_csv, concat
-from sys import platform
 from os import system, SEEK_END, SEEK_CUR
 from re import compile
 from defs.Config import Config
-from time import sleep
-from typing import Literal
 
 if 'win' in platform:
     # enable color support in Windows
     system('color')
 
 
-DIR = Path(__file__).parent.parent
-daily_folder = DIR / 'eod2_data' / 'daily'
-delivery_folder = DIR / 'eod2_data' / 'delivery'
-equityActionsFile = DIR / 'eod2_data' / 'nse_actions.json'
-smeActionsFile = DIR / 'eod2_data' / 'sme_actions.json'
-isin_file = DIR / 'eod2_data' / 'isin.csv'
-amibroker_folder = DIR / 'eod2_data' / 'amibroker'
+DIR = Path(__file__).parents[1]
+DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
+DELIVERY_FOLDER = DIR / 'eod2_data' / 'delivery'
+ISIN_FILE = DIR / 'eod2_data' / 'isin.csv'
+AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
+
+META_FILE = DIR / 'eod2_data' / 'meta.json'
+
+meta: dict = json.loads(META_FILE.read_bytes())
 
 config = Config()
 
-if config.AMIBROKER and not amibroker_folder.exists():
-    amibroker_folder.mkdir()
+if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
+    AMIBROKER_FOLDER.mkdir()
 
-isin = read_csv(isin_file, index_col='ISIN')
+isin = read_csv(ISIN_FILE, index_col='ISIN')
 
-header_text = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY\n'
+headerText = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY\n'
 
-split_regex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
+splitRegex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
-bonus_regex = compile(r'(\d+) ?: ?(\d+)')
+bonusRegex = compile(r'(\d+) ?: ?(\d+)')
 
 # initiate the dates class from utils.py
-dates = Dates()
+dates = Dates(meta['lastUpdate'])
 
-has_latest_holidays = False
+hasLatestHolidays = False
 
 
-def getHolidayList(nse: NSE, file: Path):
+def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
     Saves and returns the holiday Object"""
-
-    global has_latest_holidays
-
-    url = 'https://www.nseindia.com/api/holiday-master'
-
-    params = {'type': 'trading'}
-
-    data = nse.makeRequest(url, params)
+    try:
+        data = nse.holidays(type=nse.HOLIDAY_TRADING)
+    except Exception as e:
+        exit(f'{e!r}\nFailed to download holidays')
 
     # CM pertains to capital market or equity holdays
     data = {k['tradingDate']: k['description'] for k in data['CM']}
-
-    file.write_text(dumps(data, indent=3))
-
     print('NSE Holiday list updated')
 
-    has_latest_holidays = True
     return data
-
-
-def isHolidaysFileUpdated(file: Path):
-    """Returns True if the holiday.json files exists and
-    year of download matches the current year"""
-
-    return file.is_file() and datetime.fromtimestamp(getmtime(file)).year == dates.dt.year
 
 
 def checkForHolidays(nse: NSE):
     """Returns True if current date is a holiday.
     Exits the script if today is a holiday"""
 
-    file = DIR / 'eod2_data' / 'holiday.json'
-
-    if isHolidaysFileUpdated(file):
-        # holidays are updated for current year
-        holidays = loads(file.read_bytes())
-    else:
-        # new year get new holiday list
-        holidays = getHolidayList(nse, file)
+    global hasLatestHolidays
 
     # the current date for which data is being synced
     curDt = dates.dt.strftime('%d-%b-%Y')
     isToday = curDt == dates.today.strftime('%d-%b-%Y')
 
-    if curDt in holidays:
-        if not has_latest_holidays:
-            holidays = getHolidayList(nse, file)
+    if not 'holidays' in meta or meta['holidayYear'] != dates.dt.year:
+        meta['holidays'] = getHolidayList(nse)
+        meta['holidayYear'] = dates.dt.year
+        hasLatestHolidays = True
+
+    if curDt in meta['holidays']:
+        if not hasLatestHolidays:
+            meta['holidays'] = getHolidayList(nse)
 
         if not isToday:
-            print(f'{curDt} Market Holiday: {holidays[curDt]}')
+            print(f'{curDt} Market Holiday: {meta["holdays"][curDt]}')
             return True
 
-        exit(f'Market Holiday: {holidays[curDt]}')
+        exit(f'Market Holiday: {meta["holidays"][curDt]}')
 
     return False
 
@@ -112,156 +93,90 @@ def validateNseActionsFile(nse: NSE):
     The actionsFile pertains to Bonus, Splits, dividends etc.
     """
 
-    for file in (equityActionsFile, smeActionsFile):
-        index = 'sme' if 'sme' in file.name else 'equities'
+    for actions in ('equityActions', 'smeActions'):
+        segment = 'sme' if 'sme' in actions else 'equities'
 
-        if not file.is_file():
-            getActions(file, nse, dates.dt, dates.dt + timedelta(8), index)
+        if not actions in meta:
+            print(f'Updating NSE {segment.upper()} actions file')
+
+            try:
+                meta[actions] = nse.actions(segment=segment,
+                                            from_date=dates.dt,
+                                            to_date=dates.dt + timedelta(8))
+            except Exception as e:
+                exit(f'{e!r}\nFailed to download {segment} actions')
+
+            meta[f'{actions}Expiry'] = (dates.dt + timedelta(7)).isoformat()
         else:
-            lastModifiedTS = getmtime(file)
+            expiryDate = datetime.fromisoformat(meta[f'{actions}Expiry'])
+            newExpiry = (expiryDate + timedelta(7)).isoformat()
 
             # Update every 7 days from last download
-            if dates.dt.timestamp() - lastModifiedTS > 7 * 24 * 60 * 60:
-                frm_dt = datetime.fromtimestamp(lastModifiedTS) + timedelta(7)
-                getActions(file, nse, frm_dt, dates.dt + timedelta(8), index)
+            if dates.dt < expiryDate:
+                continue
 
+            print(f'Updating NSE {segment.upper()} actions file')
 
-def getActions(file: Path,
-               nse: NSE,
-               from_dt: datetime,
-               to_dt: datetime,
-               index: Literal['equities', 'sme'] = 'equities'):
-    """Make a request for corporate actions specifing the date range."""
+            try:
+                meta[actions] = nse.actions(segment=segment,
+                                            from_date=expiryDate,
+                                            to_date=expiryDate + timedelta(8))
+            except Exception as e:
+                exit(f'{e!r}\nFailed to download {segment} actions')
 
-    print('Updating NSE corporate actions file')
-    fmt = '%d-%m-%Y'
-
-    params = {
-        'index': index,
-        'from_date': from_dt.strftime(fmt),
-        'to_date': to_dt.strftime(fmt),
-    }
-
-    data = nse.makeRequest(
-        'https://www.nseindia.com/api/corporates-corporateActions', params=params)
-
-    file.write_text(dumps(data, indent=3))
+            meta[f'{actions}Expiry'] = newExpiry
 
 
 def isAmiBrokerFolderUpdated():
     'Returns true if the folder has files'
 
-    return any(amibroker_folder.iterdir())
+    return any(AMIBROKER_FOLDER.iterdir())
 
 
-def updateAmiBrokerRecords(nse):
+def updateAmiBrokerRecords(nse: NSE):
     '''Downloads and updates the amibroker files upto the number of days
     set in Config.AMI_UPDATE_DAYS'''
 
-    today = dates.dt
+    lastUpdate = datetime.fromisoformat(meta['lastUpdate'])
     dates.dt -= timedelta(config.AMI_UPDATE_DAYS)
-    total_days = config.AMI_UPDATE_DAYS
+    totalDays = config.AMI_UPDATE_DAYS
 
-    print(f'Fetching bhavcopy for last {total_days} days',
+    print(f'Fetching bhavcopy for last {totalDays} days',
           'and converting to AmiBroker format.\n'
           'This is a one time process. It will take a few minutes.')
 
-    while dates.dt <= today:
-        # A small pause to not overload requests on NSE server.
-        sleep(0.5)
-
+    while dates.dt <= lastUpdate:
         if dates.dt.weekday() == 5:
             dates.dt += timedelta(2)
 
         try:
-            bhavFile = downloadNseBhav(nse, exitOnError=False)
-        except FileNotFoundError:
+            bhavFile = nse.equityBhavcopy(dates.dt)
+        except (RuntimeError, FileNotFoundError):
             dates.dt += timedelta(1)
             continue
 
-        with ZipFile(bhavFile) as zip:
-            csvFile = zip.namelist()[0]
-
-            # get first item in namelist. fixes errors due to folders in zipfile
-            with zip.open(csvFile) as f:
-                toAmiBrokerFormat(f, csvFile)
+        toAmiBrokerFormat(bhavFile)
 
         bhavFile.unlink()
 
-        days_complete = total_days - (today - dates.dt).days
-        pct_complete = int(days_complete / total_days * 100)
-        print(f'{pct_complete} %', end="\r" * 5, flush=True)
+        daysComplete = totalDays - (lastUpdate - dates.dt).days
+        pctComplete = int(daysComplete / totalDays * 100)
+        print(f'{pctComplete} %', end="\r" * 5, flush=True)
         dates.dt += timedelta(1)
 
     print("\nDone")
 
 
-def downloadNseDelivery(nse: NSE):
-    """Download the daily report for Equity delivery data
-    and return the saved file path. Exit if the download fails"""
-
-    url = f'https://archives.nseindia.com/products/content/sec_bhavdata_full_{dates.dt:%d%m%Y}.csv'
-
-    delivery_file = nse.download(url)
-
-    if not delivery_file.is_file() or getsize(delivery_file) < 50000:
-        exit('Download Failed: ' + delivery_file.name)
-
-    return delivery_file
-
-
-def downloadNseBhav(nse: NSE, exitOnError=True):
-    """Download the daily report for Equity bhav copy and
-    return the saved file path. Exit if the download fails"""
-
-    dt_str = dates.dt.strftime('%d%b%Y').upper()
-    month = dt_str[2:5].upper()
-
-    url = f'https://archives.nseindia.com/content/historical/EQUITIES/{dates.dt.year}/{month}/cm{dt_str}bhav.csv.zip'
-
-    bhavFile = nse.download(url)
-
-    if not bhavFile.is_file() or getsize(bhavFile) < 5000:
-        bhavFile.unlink()
-        if exitOnError:
-            exit('Download Failed: ' + bhavFile.name)
-        else:
-            raise FileNotFoundError()
-
-    return bhavFile
-
-
-def downloadIndexFile(nse: NSE):
-    """Download the daily report for Equity Index and
-    return the saved file path. Exit if the download fails"""
-
-    base_url = 'https://archives.nseindia.com/content'
-    url = f'{base_url}/indices/ind_close_all_{dates.dt:%d%m%Y}.csv'
-
-    index_file = nse.download(url)
-
-    if not index_file.is_file() or getsize(index_file) < 5000:
-        exit('Download Failed: ' + index_file.name)
-
-    return index_file
-
-
 def updateNseEOD(bhavFile: Path):
     """Update all stocks with latest price data from bhav copy"""
 
-    isin_updated = False
+    isinUpdated = False
 
-    # cm01FEB2023bhav.csv.zip
-    with ZipFile(bhavFile) as zip:
-        csvFile = zip.namelist()[0]
+    df = read_csv(bhavFile, index_col='ISIN')
 
-        with zip.open(csvFile) as f:
-            df = read_csv(f, index_col='ISIN')
-
-            if config.AMIBROKER:
-                print("Converting to AmiBroker format")
-                f.seek(0)
-                toAmiBrokerFormat(f, csvFile)
+    if config.AMIBROKER:
+        print("Converting to AmiBroker format")
+        toAmiBrokerFormat(bhavFile)
 
     # save the csv file to the below folder.
     folder = DIR / 'nseBhav' / str(dates.dt.year)
@@ -270,7 +185,7 @@ def updateNseEOD(bhavFile: Path):
     if not folder.is_dir():
         folder.mkdir(parents=True)
 
-    df.to_csv(folder / csvFile)
+    df.to_csv(folder / bhavFile)
 
     # filter the dataframe for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
@@ -289,51 +204,51 @@ def updateNseEOD(bhavFile: Path):
             continue
 
         prefix = '_sme' if series in ('SM', 'ST') else ''
-        sym_file = daily_folder / f'{sym.lower()}{prefix}.csv'
+        SYM_FILE = DAILY_FOLDER / f'{sym.lower()}{prefix}.csv'
 
         # ISIN is a unique identifier for each stock symbol.
         # When a symbol name changes its ISIN remains the same
         # This allows for tracking changes in symbol names and
         # updating file names accordingly
         if not idx in isin.index:
-            isin_updated = True
+            isinUpdated = True
             isin.at[idx, 'SYMBOL'] = sym
 
         # if symbol name does not match the symbol name under its ISIN
         # we rename the files in daily and delivery folder
         if sym != isin.at[idx, 'SYMBOL']:
-            isin_updated = True
+            isinUpdated = True
             old = isin.at[idx, 'SYMBOL'].lower()
 
             new = sym.lower()
 
             isin.at[idx, 'SYMBOL'] = sym
 
-            sym_file = daily_folder / f'{new}.csv'
-            old_file = daily_folder / f'{old}.csv'
-            old_delivery_file = delivery_folder / f'{old}.csv'
+            SYM_FILE = DAILY_FOLDER / f'{new}.csv'
+            OLD_FILE = DAILY_FOLDER / f'{old}.csv'
+            OLD_DELIVERY_FILE = DELIVERY_FOLDER / f'{old}.csv'
 
             try:
-                old_file.rename(sym_file)
+                OLD_FILE.rename(SYM_FILE)
             except FileNotFoundError:
                 print(
                     f'WARN: Renaming daily/{old}.csv to {new}.csv. No such file.')
 
             try:
-                old_delivery_file.rename(delivery_folder / f'{new}.csv')
+                OLD_DELIVERY_FILE.rename(DELIVERY_FOLDER / f'{new}.csv')
             except FileNotFoundError:
                 print(
                     f'WARN: Renaming delivery/{old}.csv to {new}.csv. No such file.')
 
             print(f'Name Changed: {old} to {new}')
 
-        updateNseSymbol(sym_file, O, H, L, C, V)
+        updateNseSymbol(SYM_FILE, O, H, L, C, V)
 
-    if isin_updated:
-        isin.to_csv(isin_file)
+    if isinUpdated:
+        isin.to_csv(ISIN_FILE)
 
 
-def toAmiBrokerFormat(bhav_file_handle, fileName: str):
+def toAmiBrokerFormat(file: Path):
     'Converts and saves bhavcopy into amibroker format'
 
     cols = ['SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH',
@@ -343,7 +258,7 @@ def toAmiBrokerFormat(bhav_file_handle, fileName: str):
     rcols[1] = 'DATE'
     rcols[-2] = 'VOLUME'
 
-    df = read_csv(bhav_file_handle, parse_dates=['TIMESTAMP'])
+    df = read_csv(file, parse_dates=['TIMESTAMP'])
 
     df = df[(df['SERIES'] == 'EQ') | (
         df['SERIES'] == 'BE') | (df['SERIES'] == 'BZ')]
@@ -351,7 +266,7 @@ def toAmiBrokerFormat(bhav_file_handle, fileName: str):
     df = df[cols]
     df.columns = rcols
     df['DATE'] = df['DATE'].dt.strftime("%Y%m%d")
-    df.to_csv(amibroker_folder / fileName, index=False)
+    df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
 
 
 def updateDelivery(file: Path):
@@ -375,39 +290,39 @@ def updateDelivery(file: Path):
 
     # iterate over each row as a tuple
     for t in df.itertuples(name=None):
-        sym, series, *_, v, _, trd_count, dq, _ = t
+        sym, series, *_, v, _, trdCount, dq, _ = t
 
         # ignore rights issue
         if '-RE' in sym:
             continue
 
-        updateDeliveryData(sym, series, v, int(trd_count), dq)
+        updateDeliveryData(sym, series, v, int(trdCount), dq)
 
     print('Delivery Data updated')
 
 
-def updateNseSymbol(sym_file: Path, o, h, l, c, v):
+def updateNseSymbol(symFile: Path, o, h, l, c, v):
     'Appends EOD stock data to end of file'
 
     text = ''
 
-    if not sym_file.is_file():
+    if not symFile.is_file():
         text += 'Date,Open,High,Low,Close,Volume\n'
 
     text += f'{dates.pandas_dt},{o},{h},{l},{c},{v}\n'
 
-    with sym_file.open('a') as f:
+    with symFile.open('a') as f:
         f.write(text)
 
 
-def updateDeliveryData(sym: str, series: str, v: int, trd_count: int, dq: int):
+def updateDeliveryData(sym: str, series: str, v: int, trdCount: int, dq: int):
     """Update the delivery data for each file"""
 
-    file = delivery_folder / f'{sym.lower()}.csv'
+    file = DELIVERY_FOLDER / f'{sym.lower()}.csv'
     text = ''
 
     if not file.is_file():
-        text += header_text
+        text += headerText
 
     # BE and BZ series stocks are all delivery trades, so we use the volume
     if series == ' BE' or series == ' BZ':
@@ -416,10 +331,10 @@ def updateDeliveryData(sym: str, series: str, v: int, trd_count: int, dq: int):
         dq = int(dq)
 
     # average volume per trade.
-    avg_trd_count = round(v / trd_count, 2)
+    avgTrdCount = round(v / trdCount, 2)
 
     # append the line into the csv file and save it
-    text += f'{dates.pandas_dt},{v},{trd_count},{avg_trd_count},{dq}\n'
+    text += f'{dates.pandas_dt},{v},{trdCount},{avgTrdCount},{dq}\n'
 
     with file.open('a') as f:
         f.write(text)
@@ -429,7 +344,7 @@ def getSplit(sym, string):
     '''Run a regex search for splits related corporate action and
     return the adjustment factor'''
 
-    match = split_regex.search(string)
+    match = splitRegex.search(string)
 
     if match is None:
         print(f'{sym}: Not Matched. {string}')
@@ -442,7 +357,7 @@ def getBonus(sym, string):
     '''Run a regex search for bonus related corporate action and
     return the adjustment factor'''
 
-    match = bonus_regex.search(string)
+    match = bonusRegex.search(string)
 
     if match is None:
         print(f'{sym}: Not Matched. {string}')
@@ -455,7 +370,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
     '''Makes adjustment to stock data prior to ex date,
     returning a tuple of pandas DataFrame and filename'''
 
-    file = daily_folder / f'{symbol.lower()}.csv'
+    file = DAILY_FOLDER / f'{symbol.lower()}.csv'
 
     if not file.is_file():
         print(f'{symbol}: File not found')
@@ -486,7 +401,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
 def updateIndice(sym, O, H, L, C, V):
     'Appends Index EOD data to end of file'
 
-    file = daily_folder / f'{sym.lower()}.csv'
+    file = DAILY_FOLDER / f'{sym.lower()}.csv'
 
     text = ''
 
@@ -538,14 +453,14 @@ def adjustNseStocks():
     '''Iterates over NSE corporate actions searching for splits or bonus
     on current date and adjust the stock accordingly'''
 
-    dt_str = dates.dt.strftime('%d-%b-%Y')
+    dtStr = dates.dt.strftime('%d-%b-%Y')
 
-    for actionFile in (equityActionsFile, smeActionsFile):
-        actions = loads(actionFile.read_bytes())
+    for actions in ('equityActions', 'smeActions'):
+        actions = meta[actions]
 
         # Store all Dataframes with associated files names to be saved to file
         # if no error occurs
-        df_commits = []
+        dfCommits = []
 
         try:
             for act in actions:
@@ -560,33 +475,33 @@ def adjustNseStocks():
                 if series in ('SM', 'ST'):
                     sym += '_sme'
 
-                if ('split' in purpose or 'splt' in purpose) and ex == dt_str:
+                if ('split' in purpose or 'splt' in purpose) and ex == dtStr:
                     adjustmentFactor = getSplit(sym, purpose)
 
                     if adjustmentFactor is None:
                         continue
 
-                    df_commits.append(makeAdjustment(sym, adjustmentFactor))
+                    dfCommits.append(makeAdjustment(sym, adjustmentFactor))
 
                     print(f'{sym}: {purpose}')
 
-                if 'bonus' in purpose and ex == dt_str:
+                if 'bonus' in purpose and ex == dtStr:
                     adjustmentFactor = getBonus(sym, purpose)
 
                     if adjustmentFactor is None:
                         continue
 
-                    df_commits.append(makeAdjustment(sym, adjustmentFactor))
+                    dfCommits.append(makeAdjustment(sym, adjustmentFactor))
 
                     print(f'{sym}: {purpose}')
         except Exception as e:
             # discard all Dataframes and raise error,
             # so changes can be rolled back
-            df_commits.clear()
+            dfCommits.clear()
             raise e
 
         # commit changes
-        for df, file in df_commits:
+        for df, file in dfCommits:
             df.to_csv(file)
 
 
@@ -632,11 +547,11 @@ def rollback(folder: Path):
     print('Rollback successful')
 
 
-def cleanup(files_lst):
+def cleanup(filesLst):
     '''Remove files downloaded from nse and stock csv files not updated
     in the last 365 days'''
 
-    for file in files_lst:
+    for file in filesLst:
         file.unlink()
 
     # remove outdated files
@@ -644,16 +559,16 @@ def cleanup(files_lst):
     count = 0
     fmt = '%Y-%m-%d'
 
-    for file in daily_folder.iterdir():
+    for file in DAILY_FOLDER.iterdir():
         lastUpdated = datetime.strptime(getLastDate(file), fmt)
 
-        dlvry_file = delivery_folder / file.name
+        DLV_FILE = DELIVERY_FOLDER / file.name
 
         if lastUpdated < deadline:
             file.unlink()
 
-            if dlvry_file.is_file():
-                dlvry_file.unlink()
+            if DLV_FILE.is_file():
+                DLV_FILE.unlink()
 
             count += 1
 

@@ -1,3 +1,14 @@
+from sys import platform
+
+try:
+    from nse import NSE
+except ModuleNotFoundError:
+    # Inform user to install nse.
+    pip = 'pip' if 'win' in platform else 'pip3'
+
+    exit(f"EOD2 requires 'nse' package. Run '{pip} install -U nse'")
+
+import json
 from defs import defs
 from argparse import ArgumentParser
 # from sys import argv
@@ -24,80 +35,86 @@ if args.version:
 if args.config:
     exit(str(defs.config))
 
-lastUpdateDate = defs.dates.getLastUpdated()
+nse = NSE(defs.DIR)
 
-with defs.NSE() as nse:
-    if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
-        defs.updateAmiBrokerRecords(nse)
+if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
+    defs.updateAmiBrokerRecords(nse)
 
-    while True:
-        defs.dates.getNextDate()
+while True:
+    defs.dates.getNextDate()
 
-        if defs.checkForHolidays(nse):
-            continue
+    if defs.checkForHolidays(nse):
+        continue
 
-        # Validate NSE actions file
-        defs.validateNseActionsFile(nse)
+    # Validate NSE actions file
+    defs.validateNseActionsFile(nse)
 
-        # Download all files and validate for errors
-        print('Downloading Files')
+    # Download all files and validate for errors
+    print('Downloading Files')
 
+    try:
         # NSE bhav copy
-        bhav_file = defs.downloadNseBhav(nse)
+        BHAV_FILE = nse.equityBhavcopy(defs.dates.dt)
 
         # NSE delivery
-        delivery_file = defs.downloadNseDelivery(nse)
+        DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
 
         # Index file
-        index_file = defs.downloadIndexFile(nse)
+        INDEX_FILE = nse.indicesBhavcopy(defs.dates.dt)
+    except (RuntimeError, Exception) as e:
+        exit(repr(e))
 
-        try:
-            print('Starting Data Sync')
+    try:
+        print('Starting Data Sync')
 
-            defs.updateNseEOD(bhav_file)
+        defs.updateNseEOD(BHAV_FILE)
 
-            print('EOD sync complete')
+        print('EOD sync complete')
 
-            defs.updateDelivery(delivery_file)
+        defs.updateDelivery(DELIVERY_FILE)
 
-            print('Delivery sync complete')
+        print('Delivery sync complete')
 
-            # INDEX sync
-            defs.updateIndexEOD(index_file)
+        # INDEX sync
+        defs.updateIndexEOD(INDEX_FILE)
 
-            print('Index sync complete.')
-        except Exception as e:
-            # rollback
-            print(f"Error during data sync. {e!r}")
-            defs.rollback(defs.daily_folder)
-            defs.rollback(defs.delivery_folder)
+        print('Index sync complete.')
+    except Exception as e:
+        # rollback
+        print(f"Error during data sync. {e!r}")
+        defs.rollback(defs.DAILY_FOLDER)
+        defs.rollback(defs.DELIVERY_FOLDER)
 
-            defs.dates.dt = lastUpdateDate
-            defs.dates.setLastUpdated()
-            exit()
+        defs.dates.dt = defs.dates.lastUpdate
+        defs.meta['lastUpdate'] = defs.dates.dt.isoformat()
+        defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+        exit()
 
-        # No errors continue
+    # No errors continue
 
-        # Adjust Splits and bonus
-        print('Makings adjustments for splits and bonus')
+    # Adjust Splits and bonus
+    print('Makings adjustments for splits and bonus')
 
-        try:
-            defs.adjustNseStocks()
-        except Exception as e:
-            print(
-                f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
-            defs.rollback(defs.daily_folder)
-            defs.rollback(defs.delivery_folder)
+    try:
+        defs.adjustNseStocks()
+    except Exception as e:
+        print(
+            f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
 
-            defs.dates.dt = lastUpdateDate
-            defs.dates.setLastUpdated()
-            exit()
+        defs.rollback(defs.DAILY_FOLDER)
+        defs.rollback(defs.DELIVERY_FOLDER)
 
-        print('Cleaning up files')
+        defs.dates.dt = defs.dates.lastUpdate
+        defs.meta['last_update'] = defs.dates.dt.isoformat()
+        defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+        exit()
 
-        defs.cleanup((bhav_file, delivery_file, index_file))
+    print('Cleaning up files')
 
-        defs.dates.setLastUpdated()
-        lastUpdateDate = defs.dates.dt
+    defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
-        print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')
+    defs.dates.lastUpdate = defs.dates.dt
+    defs.meta['lastUpdate'] = defs.dates.dt.isoformat()
+    defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+
+    print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')

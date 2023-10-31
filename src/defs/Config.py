@@ -1,7 +1,7 @@
 from pathlib import Path
 from json import loads
 
-DIR = Path(__file__).parent.parent
+DIR = Path(__file__).parents[1]
 
 
 class Config:

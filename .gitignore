@@ -136,7 +136,7 @@ dmypy.json
 nseBhav
 nseDelivery
 nseIndices
-cookies
+nse_cookies.pkl
 src/defs/user.json
 src/data/*
 !src/data/sectors.csv
