@@ -1,5 +1,6 @@
 from sys import platform
 import json
+import numpy as np
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
@@ -8,6 +9,7 @@ from pandas import read_csv, concat
 from os import system, SEEK_END, SEEK_CUR
 from re import compile
 from defs.Config import Config
+from typing import cast, Any
 
 # Avoid side effects in case this file is directly executed
 # instead of being imported
@@ -19,7 +21,6 @@ if __name__ != '__main__':
 
     DIR = Path(__file__).parents[1]
     DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
-    DELIVERY_FOLDER = DIR / 'eod2_data' / 'delivery'
     ISIN_FILE = DIR / 'eod2_data' / 'isin.csv'
     AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
 
@@ -34,7 +35,7 @@ if __name__ != '__main__':
 
     isin = read_csv(ISIN_FILE, index_col='ISIN')
 
-    headerText = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY\n'
+    headerText = 'Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n'
 
     splitRegex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
@@ -170,66 +171,87 @@ def updateAmiBrokerRecords(nse: NSE):
     print("\nDone")
 
 
-def updateNseEOD(bhavFile: Path):
+def updateNseEOD(bhavFile: Path, deliveryFile: Path):
     """Update all stocks with latest price data from bhav copy"""
 
     isinUpdated = False
 
     df = read_csv(bhavFile, index_col='ISIN')
+    dlvDf = read_csv(deliveryFile, index_col='SYMBOL')
 
     if config.AMIBROKER:
         print("Converting to AmiBroker format")
         toAmiBrokerFormat(bhavFile)
 
     # save the csv file to the below folder.
-    folder = DIR / 'nseBhav' / str(dates.dt.year)
+    BHAV_FOLDER = DIR / 'nseBhav' / str(dates.dt.year)
+    DLV_FOLDER = DIR / 'nseDelivery' / str(dates.dt.year)
 
     # Create it if not exists
-    if not folder.is_dir():
-        folder.mkdir(parents=True)
+    if not BHAV_FOLDER.is_dir():
+        BHAV_FOLDER.mkdir(parents=True)
 
-    df.to_csv(folder / bhavFile)
+    if not DLV_FOLDER.is_dir():
+        DLV_FOLDER.mkdir(parents=True)
+
+    df.to_csv(BHAV_FOLDER / bhavFile.name)
+    dlvDf.to_csv(DLV_FOLDER / bhavFile.name)
 
     # filter the dataframe for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
-    df = df[(df['SERIES'] == 'EQ') |
-            (df['SERIES'] == 'BE') |
-            (df['SERIES'] == 'BZ') |
-            (df['SERIES'] == 'SM') |
-            (df['SERIES'] == 'ST')]
+    df: DataFrame = df[(df['SERIES'] == 'EQ') |
+                       (df['SERIES'] == 'BE') |
+                       (df['SERIES'] == 'BZ') |
+                       (df['SERIES'] == 'SM') |
+                       (df['SERIES'] == 'ST')]
+
+    # filter the dataframe for stocks series EQ, BE and BZ
+    # https://www.nseindia.com/market-data/legend-of-series
+    dlvDf: DataFrame = dlvDf[(dlvDf[' SERIES'] == ' EQ') |
+                             (dlvDf[' SERIES'] == ' BE') |
+                             (dlvDf[' SERIES'] == ' BZ') |
+                             (dlvDf[' SERIES'] == ' SM') |
+                             (dlvDf[' SERIES'] == ' ST')]
 
     # iterate over each row as a tuple
-    for t in df.itertuples(name=None):
-        idx, sym, series, O, H, L, C, _, _, V, *_ = t
+    for t in df.itertuples():
+        t: Any = cast(Any, t)
 
         # ignore rights issue
-        if '-RE' in sym:
+        if '-RE' in t.SYMBOL:
             continue
 
-        prefix = '_sme' if series in ('SM', 'ST') else ''
-        SYM_FILE = DAILY_FOLDER / f'{sym.lower()}{prefix}.csv'
+        if t.SYMBOL in dlvDf.index:
+            trdCnt, dq = dlvDf.loc[t.SYMBOL, [' NO_OF_TRADES', ' DELIV_QTY']]
+
+            # BE and BZ series stocks are all delivery trades, so we use the volume
+            dq = t.TOTTRDQTY if t.SERIES in ('BE', 'BZ') else int(dq)
+        else:
+            trdCnt = dq = np.NAN
+
+        prefix = '_sme' if t.SERIES in ('SM', 'ST') else ''
+        SYM_FILE = DAILY_FOLDER / f'{t.SYMBOL.lower()}{prefix}.csv'
 
         # ISIN is a unique identifier for each stock symbol.
         # When a symbol name changes its ISIN remains the same
         # This allows for tracking changes in symbol names and
         # updating file names accordingly
-        if not idx in isin.index:
+        if not t.Index in isin.index:
             isinUpdated = True
-            isin.at[idx, 'SYMBOL'] = sym
+            isin.at[t.Index, 'SYMBOL'] = t.SYMBOL
 
         # if symbol name does not match the symbol name under its ISIN
         # we rename the files in daily and delivery folder
-        if sym != isin.at[idx, 'SYMBOL']:
+        if t.SYMBOL != isin.at[t.Index, 'SYMBOL']:
             isinUpdated = True
-            old = isin.at[idx, 'SYMBOL'].lower()
+            old = isin.at[t.Index, 'SYMBOL'].lower()
 
-            new = sym.lower()
+            new = t.SYMBOL.lower()
 
-            isin.at[idx, 'SYMBOL'] = sym
+            isin.at[t.Index, 'SYMBOL'] = t.SYMBOL
 
             SYM_FILE = DAILY_FOLDER / f'{new}.csv'
             OLD_FILE = DAILY_FOLDER / f'{old}.csv'
-            OLD_DELIVERY_FILE = DELIVERY_FOLDER / f'{old}.csv'
 
             try:
                 OLD_FILE.rename(SYM_FILE)
@@ -237,15 +259,10 @@ def updateNseEOD(bhavFile: Path):
                 print(
                     f'WARN: Renaming daily/{old}.csv to {new}.csv. No such file.')
 
-            try:
-                OLD_DELIVERY_FILE.rename(DELIVERY_FOLDER / f'{new}.csv')
-            except FileNotFoundError:
-                print(
-                    f'WARN: Renaming delivery/{old}.csv to {new}.csv. No such file.')
-
             print(f'Name Changed: {old} to {new}')
 
-        updateNseSymbol(SYM_FILE, O, H, L, C, V)
+        updateNseSymbol(SYM_FILE, t.OPEN, t.HIGH, t.LOW, t.CLOSE, t.TOTTRDQTY,
+                        trdCnt, dq)
 
     if isinUpdated:
         isin.to_csv(ISIN_FILE)
@@ -275,74 +292,19 @@ def toAmiBrokerFormat(file: Path):
     df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
 
 
-def updateDelivery(file: Path):
-    """Update all stocks with latest delivery data"""
-
-    df = read_csv(file, index_col='SYMBOL')
-
-    # save the csv file to the below folder.
-    folder = DIR / 'nseDelivery' / str(dates.dt.year)
-
-    # Create it if not exists
-    if not folder.is_dir():
-        folder.mkdir(parents=True)
-
-    df.to_csv(folder / file.name)
-
-    # filter the dataframe for stocks series EQ, BE and BZ
-    # https://www.nseindia.com/market-data/legend-of-series
-    df = df[(df[' SERIES'] == ' EQ') | (
-        df[' SERIES'] == ' BE') | (df[' SERIES'] == ' BZ')]
-
-    # iterate over each row as a tuple
-    for t in df.itertuples(name=None):
-        sym, series, *_, v, _, trdCount, dq, _ = t
-
-        # ignore rights issue
-        if '-RE' in sym:
-            continue
-
-        updateDeliveryData(sym, series, v, int(trdCount), dq)
-
-    print('Delivery Data updated')
-
-
-def updateNseSymbol(symFile: Path, o, h, l, c, v):
+def updateNseSymbol(symFile: Path, o, h, l, c, v, trdCnt, dq):
     'Appends EOD stock data to end of file'
 
     text = ''
 
     if not symFile.is_file():
-        text += 'Date,Open,High,Low,Close,Volume\n'
-
-    text += f'{dates.pandas_dt},{o},{h},{l},{c},{v}\n'
-
-    with symFile.open('a') as f:
-        f.write(text)
-
-
-def updateDeliveryData(sym: str, series: str, v: int, trdCount: int, dq: int):
-    """Update the delivery data for each file"""
-
-    file = DELIVERY_FOLDER / f'{sym.lower()}.csv'
-    text = ''
-
-    if not file.is_file():
         text += headerText
 
-    # BE and BZ series stocks are all delivery trades, so we use the volume
-    if series == ' BE' or series == ' BZ':
-        dq = v
-    else:
-        dq = int(dq)
+    avgTrdCnt = round(v / trdCnt, 2)
 
-    # average volume per trade.
-    avgTrdCount = round(v / trdCount, 2)
+    text += f'{dates.pandas_dt},{o},{h},{l},{c},{v},{trdCnt},{avgTrdCnt},{dq}\n'
 
-    # append the line into the csv file and save it
-    text += f'{dates.pandas_dt},{v},{trdCount},{avgTrdCount},{dq}\n'
-
-    with file.open('a') as f:
+    with symFile.open('a') as f:
         f.write(text)
 
 
@@ -393,10 +355,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
 
     df = df.iloc[:idx].copy()
 
-    for col in df.columns:
-        if col == 'Volume':
-            continue
-
+    for col in ('Open', 'High', 'Low', 'Close'):
         # nearest 0.05 = round(nu / 0.05) * 0.05
         df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
@@ -412,9 +371,9 @@ def updateIndice(sym, O, H, L, C, V):
     text = ''
 
     if not file.is_file():
-        text += 'Date,Open,High,Low,Close,Volume\n'
+        text += headerText
 
-    text += f"{dates.pandas_dt},{O},{H},{L},{C},{V}\n"
+    text += f"{dates.pandas_dt},{O},{H},{L},{C},{V},,,\n"
 
     with file.open('a') as f:
         f.write(text)
@@ -568,14 +527,8 @@ def cleanup(filesLst):
     for file in DAILY_FOLDER.iterdir():
         lastUpdated = datetime.strptime(getLastDate(file), fmt)
 
-        DLV_FILE = DELIVERY_FOLDER / file.name
-
         if lastUpdated < deadline:
             file.unlink()
-
-            if DLV_FILE.is_file():
-                DLV_FILE.unlink()
-
             count += 1
 
     print(f'{count} files deleted')

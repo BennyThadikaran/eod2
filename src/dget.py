@@ -34,7 +34,7 @@ class c:
 
 
 def lookup(sym):
-    fpath = DIR / 'eod2_data' / 'delivery' / f'{sym}.csv'
+    fpath = DIR / 'eod2_data' / 'daily' / f'{sym}.csv'
 
     if not fpath.exists():
         exit(f'{sym}: File not found.')
@@ -44,19 +44,19 @@ def lookup(sym):
     df['AVG_TRD_QTY'] = df['QTY_PER_TRADE'].rolling(
         config.DGET_AVG_DAYS).mean().round(2)
 
-    df['AVG_DLV_QTY'] = df['DELIV_QTY'].rolling(
+    df['AVG_DLV_QTY'] = df['DLV_QTY'].rolling(
         config.DGET_AVG_DAYS).mean().round(2)
 
-    df['AVG_VOL'] = df['TTL_TRD_QNTY'].rolling(
+    df['AVG_VOL'] = df['Volume'].rolling(
         config.DGET_AVG_DAYS).mean().round(2)
 
-    df['DQ'] = (df['DELIV_QTY'] / df['AVG_DLV_QTY']).round(2)
+    df['DQ'] = (df['DLV_QTY'] / df['AVG_DLV_QTY']).round(2)
     df['TQ'] = (df['QTY_PER_TRADE'] / df['AVG_TRD_QTY']).round(2)
-    df['VOL'] = (df['TTL_TRD_QNTY'] / df['AVG_VOL']).round(2)
+    df['VOL'] = (df['Volume'] / df['AVG_VOL']).round(2)
 
     df['IM'] = True
     df['IM'] = df['IM'].where((df['QTY_PER_TRADE'] > df['AVG_TRD_QTY']) & (
-        df['DELIV_QTY'] > df['AVG_DLV_QTY']), '')
+        df['DLV_QTY'] > df['AVG_DLV_QTY']), '')
 
     df['DQ'] = df['DQ'].apply(c.num)
     df['TQ'] = df['TQ'].apply(c.num)
@@ -115,7 +115,7 @@ config = Config()
 
 DIR = Path(__file__).parent
 configPath = DIR / 'defs' / 'user.json'
-dlv_path = DIR / 'eod2_data' / 'delivery'
+DAILY = DIR / 'eod2_data' / 'daily'
 
 # Check if system is windows or linux
 if 'win' in platform:
@@ -184,19 +184,25 @@ else:
     txt = ''
 
     for sym in symList:
-        fpath = dlv_path / f'{sym.lower()}.csv'
+        fpath = DAILY / f'{sym.lower()}.csv'
 
         if not fpath.exists():
-            print(f'Error: File not found: {fpath}')
+            print(f'Error: File not found: {fpath.name}')
             continue
 
         # Create Dataframe of last 30 days
-        df = read_csv(fpath, index_col='Date')[-config.DLV_AVG_LEN:]
+        df = read_csv(fpath,
+                      index_col='Date',
+                      parse_dates=True)[-config.DLV_AVG_LEN:]
+
+        if df['DLV_QTY'].dropna().empty:
+            print(f'No delivery data: {sym.upper()}')
+            continue
 
         try:
             # generate average of last 30 days
             avgQty, avgDlvQty, avgVol = df[
-                ['QTY_PER_TRADE', 'DELIV_QTY', 'TTL_TRD_QNTY']
+                ['QTY_PER_TRADE', 'DLV_QTY', 'Volume']
             ].mean(numeric_only=True).round(2)
         except ValueError:
             # New stocks may not have enough data to generate averages
@@ -205,7 +211,7 @@ else:
         # Get the last value for each column
         tradeQty, dlvQty, volume = df.loc[
             df.index[-1],
-            ['QTY_PER_TRADE', 'DELIV_QTY', 'TTL_TRD_QNTY']
+            ['QTY_PER_TRADE', 'DLV_QTY', 'Volume']
         ]
 
         tq = round(tradeQty / avgQty, 2)

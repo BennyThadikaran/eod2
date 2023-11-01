@@ -84,7 +84,7 @@ def printResult(folder):
 def diagnose(file: Path, folderName: str, expectedColumnLen: int):
     try:
         df = read_csv(file, index_col='Date',
-                      parse_dates=True, na_filter=False)
+                      parse_dates=True)
     except Exception as e:
         # Catch pandas or file parsing errors
         exceptionsList.append(f'{child.name.upper()}: {e!r}')
@@ -135,7 +135,6 @@ def diagnose(file: Path, folderName: str, expectedColumnLen: int):
 
 
 daily = DIR / 'eod2_data' / 'daily'
-delivery = DIR / 'eod2_data' / 'delivery'
 
 dtypeMismatchText = '{}: Column type Mismatch in {}. Expected float64 or int64. Got {}'
 columnMismatchText = '{}: Column Length Mismatch. Expect {} got {}'
@@ -153,13 +152,3 @@ for child in daily.iterdir():
         break
 
 printResult(daily)
-reset()
-
-for child in delivery.iterdir():
-
-    diagnose(child, 'delivery', 4)
-
-    if getErrorCount() >= ERROR_THRESHOLD:
-        break
-
-printResult(delivery)

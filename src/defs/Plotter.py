@@ -103,7 +103,6 @@ class Plotter:
         self.parser = parser
         self.DIR = DIR
         self.daily_dir = DIR / 'eod2_data' / 'daily'
-        self.dlv_dir = DIR / 'eod2_data' / 'delivery'
         self.configPath = DIR / 'defs' / 'user.json'
 
         if args.preset and args.preset_save:
@@ -650,23 +649,16 @@ class Plotter:
                                                 panel='lower',
                                                 linewidths=0.7))
 
-        if self.args.dlv:
-            dlv_path = self.dlv_dir / f'{sym}.csv'
+        if self.args.dlv and not df['DLV_QTY'].dropna().empty:
+            getDeliveryLevels(df, self.config)
 
-            if dlv_path.exists():
-                getDeliveryLevels(df,
-                                  self._loadDeliveryData(dlv_path),
-                                  self.config)
+            self.plot_args['marketcolor_overrides'] = df['MCOverrides'].values
 
-                self.plot_args['marketcolor_overrides'] = df['MCOverrides'].values
-
-                added_plots.append(make_addplot(df['IM'],
-                                                type='scatter',
-                                                marker='*',
-                                                color='midnightblue',
-                                                label="IM"))
-            else:
-                print('No delivery data found')
+            added_plots.append(make_addplot(df['IM'],
+                                            type='scatter',
+                                            marker='*',
+                                            color='midnightblue',
+                                            label="IM"))
 
         if len(added_plots) > 0:
             self.plot_args['addplot'] = added_plots

@@ -8,10 +8,10 @@ except ModuleNotFoundError:
 
     exit(f"EOD2 requires 'nse' package. Run '{pip} install -U nse'")
 
-import json
+from defs.utils import writeJson
 from defs import defs
 from argparse import ArgumentParser
-# from sys import argv
+
 
 parser = ArgumentParser(prog='init.py')
 
@@ -41,7 +41,7 @@ if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
     defs.updateAmiBrokerRecords(nse)
 
 while True:
-    if defs.dates.nextDate():
+    if not defs.dates.nextDate():
         nse.exit()
         exit()
 
@@ -70,13 +70,9 @@ while True:
     try:
         print('Starting Data Sync')
 
-        defs.updateNseEOD(BHAV_FILE)
+        defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
 
         print('EOD sync complete')
-
-        defs.updateDelivery(DELIVERY_FILE)
-
-        print('Delivery sync complete')
 
         # INDEX sync
         defs.updateIndexEOD(INDEX_FILE)
@@ -86,11 +82,9 @@ while True:
         # rollback
         print(f"Error during data sync. {e!r}")
         defs.rollback(defs.DAILY_FOLDER)
-        defs.rollback(defs.DELIVERY_FOLDER)
 
-        defs.dates.dt = defs.dates.lastUpdate
-        defs.meta['lastUpdate'] = defs.dates.dt.isoformat()
-        defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+        defs.meta['lastUpdate'] = defs.dates.lastUpdate
+        writeJson(defs.META_FILE, defs.meta)
         nse.exit()
         exit()
 
@@ -106,11 +100,9 @@ while True:
             f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
 
         defs.rollback(defs.DAILY_FOLDER)
-        defs.rollback(defs.DELIVERY_FOLDER)
 
-        defs.dates.dt = defs.dates.lastUpdate
-        defs.meta['last_update'] = defs.dates.dt.isoformat()
-        defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+        defs.meta['last_update'] = defs.dates.lastUpdate
+        writeJson(defs.META_FILE, defs.meta)
         nse.exit()
         exit()
 
@@ -118,8 +110,7 @@ while True:
 
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
-    defs.dates.lastUpdate = defs.dates.dt
-    defs.meta['lastUpdate'] = defs.dates.dt.isoformat()
-    defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+    defs.meta['lastUpdate'] = defs.dates.lastUpdate = defs.dates.dt
+    writeJson(defs.META_FILE, defs.meta)
 
     print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')

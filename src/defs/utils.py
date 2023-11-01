@@ -8,12 +8,6 @@ from string import ascii_lowercase
 from typing import Any
 
 
-DIR = Path(__file__).parents[1]
-daily_folder = DIR / 'eod2_data' / 'daily'
-delivery_folder = DIR / 'eod2_data' / 'delivery'
-save_folder = DIR / 'SAVED_CHARTS'
-
-
 class DateEncoder(JSONEncoder):
 
     def default(self, o):
@@ -22,19 +16,24 @@ class DateEncoder(JSONEncoder):
         return super().default(o)
 
 
-def loadJson(fPath):
+def loadJson(fPath: Path):
     return loads(fPath.read_bytes())
 
 
-def writeJson(fPath, data):
-    return fPath.write_text(dumps(data, indent=3, cls=DateEncoder))
+def writeJson(fPath: Path, data):
+    fPath.write_text(dumps(data, indent=3, cls=DateEncoder))
 
 
 def randomChar(length):
     return ''.join(choice(ascii_lowercase) for _ in range(length))
 
 
-def getDataFrame(fpath: Path, tf: str, period: int, column=None, customDict=None, fromDate=None) -> Any:
+def getDataFrame(fpath: Path,
+                 tf: str,
+                 period: int,
+                 column=None,
+                 customDict=None,
+                 fromDate=None) -> Any:
     df = read_csv(fpath,
                   index_col='Date',
                   parse_dates=True,
@@ -81,34 +80,28 @@ def arg_parse_dict(dct):
     return lst
 
 
-def getDeliveryLevels(df, dlv_df, config):
-    if dlv_df is None:
-        return (None,) * df.shape[0]
-
+def getDeliveryLevels(df, config):
     # Average of traded volume
-    avgTrdQty = dlv_df['QTY_PER_TRADE'].rolling(
-        config.DLV_AVG_LEN).mean().round(2)
+    avgTrdQty = df['QTY_PER_TRADE'].rolling(config.DLV_AVG_LEN).mean().round(2)
 
     # Average of delivery
-    avgDlvQty = dlv_df['DELIV_QTY'].rolling(config.DLV_AVG_LEN).mean().round(2)
+    avgDlvQty = df['DLV_QTY'].rolling(config.DLV_AVG_LEN).mean().round(2)
 
     # above average delivery days
-    dlv_df['DQ'] = dlv_df['DELIV_QTY'] / avgDlvQty
+    df['DQ'] = df['DLV_QTY'] / avgDlvQty
 
     # above average Traded volume days
-    dlv_df['TQ'] = dlv_df['QTY_PER_TRADE'] / avgTrdQty
+    df['TQ'] = df['QTY_PER_TRADE'] / avgTrdQty
 
     # get combination of above average traded volume and delivery days
-    dlv_df['IM'] = (dlv_df['TQ'] > 1.2) & (dlv_df['DQ'] > 1.2)
+    df['IM_F'] = (df['TQ'] > 1.2) & (df['DQ'] > 1.2)
 
     # see https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
     df['MCOverrides'] = None
     df['IM'] = float('nan')
 
-    dlv_df = dlv_df.loc[df.index[0].date():]
-
-    for idx in dlv_df.index:
-        dq, im = dlv_df.loc[idx, ['DQ', 'IM']]
+    for idx in df.index:
+        dq, im = df.loc[idx, ['DQ', 'IM_F']]
 
         if im:
             df.loc[idx, 'IM'] = df.loc[idx, 'Low'] * 0.99
