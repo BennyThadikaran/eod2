@@ -1,5 +1,5 @@
 from pathlib import Path
-from json import loads
+import json
 
 DIR = Path(__file__).parents[1]
 
@@ -132,7 +132,7 @@ class Config:
         user_config = DIR / "defs" / "user.json"
 
         if user_config.exists():
-            dct = loads(user_config.read_bytes())
+            dct = json.loads(user_config.read_bytes())
 
             if 'WATCH' in dct:
                 dct['WATCH'].update(self.WATCH)

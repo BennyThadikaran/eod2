@@ -1,14 +1,14 @@
-from json import JSONEncoder, loads, dumps
+import json
+import pandas as pd
+import string
+import random
 from datetime import datetime
-from pandas import read_csv
 from pathlib import Path
 from tkinter import Tk
-from random import choice
-from string import ascii_lowercase
 from typing import Any
 
 
-class DateEncoder(JSONEncoder):
+class DateEncoder(json.JSONEncoder):
 
     def default(self, o):
         if isinstance(o, datetime):
@@ -17,15 +17,15 @@ class DateEncoder(JSONEncoder):
 
 
 def loadJson(fPath: Path):
-    return loads(fPath.read_bytes())
+    return json.loads(fPath.read_bytes())
 
 
 def writeJson(fPath: Path, data):
-    fPath.write_text(dumps(data, indent=3, cls=DateEncoder))
+    fPath.write_text(json.dumps(data, indent=3, cls=DateEncoder))
 
 
 def randomChar(length):
-    return ''.join(choice(ascii_lowercase) for _ in range(length))
+    return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
 
 
 def getDataFrame(fpath: Path,
@@ -34,10 +34,10 @@ def getDataFrame(fpath: Path,
                  column=None,
                  customDict=None,
                  fromDate=None) -> Any:
-    df = read_csv(fpath,
-                  index_col='Date',
-                  parse_dates=True,
-                  na_filter=True)
+    df = pd.read_csv(fpath,
+                     index_col='Date',
+                     parse_dates=True,
+                     na_filter=True)
 
     if fromDate:
         df = df[:fromDate]

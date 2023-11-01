@@ -1,4 +1,4 @@
-from pandas import read_csv
+import pandas as pd
 from pathlib import Path
 
 '''
@@ -83,8 +83,8 @@ def printResult(folder):
 
 def diagnose(file: Path, folderName: str, expectedColumnLen: int):
     try:
-        df = read_csv(file, index_col='Date',
-                      parse_dates=True)
+        df = pd.read_csv(file, index_col='Date',
+                         parse_dates=True)
     except Exception as e:
         # Catch pandas or file parsing errors
         exceptionsList.append(f'{child.name.upper()}: {e!r}')

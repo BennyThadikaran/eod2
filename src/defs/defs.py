@@ -1,13 +1,13 @@
-from sys import platform
+import sys
 import json
+import re
+import os
 import numpy as np
+import pandas as pd
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Dates import Dates
-from pandas import read_csv, concat
-from os import system, SEEK_END, SEEK_CUR
-from re import compile
 from defs.Config import Config
 from typing import cast, Any
 
@@ -15,9 +15,9 @@ from typing import cast, Any
 # instead of being imported
 if __name__ != '__main__':
 
-    if 'win' in platform:
+    if 'win' in sys.platform:
         # enable color support in Windows
-        system('color')
+        os.system('color')
 
     DIR = Path(__file__).parents[1]
     DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
@@ -33,13 +33,13 @@ if __name__ != '__main__':
     if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
         AMIBROKER_FOLDER.mkdir()
 
-    isin = read_csv(ISIN_FILE, index_col='ISIN')
+    isin = pd.read_csv(ISIN_FILE, index_col='ISIN')
 
     headerText = 'Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n'
 
-    splitRegex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
+    splitRegex = re.compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
-    bonusRegex = compile(r'(\d+) ?: ?(\d+)')
+    bonusRegex = re.compile(r'(\d+) ?: ?(\d+)')
 
     # initiate the dates class from utils.py
     dates = Dates(meta['lastUpdate'])
@@ -176,8 +176,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path):
 
     isinUpdated = False
 
-    df = read_csv(bhavFile, index_col='ISIN')
-    dlvDf = read_csv(deliveryFile, index_col='SYMBOL')
+    df = pd.read_csv(bhavFile, index_col='ISIN')
+    dlvDf = pd.read_csv(deliveryFile, index_col='SYMBOL')
 
     if config.AMIBROKER:
         print("Converting to AmiBroker format")
@@ -197,21 +197,21 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path):
     df.to_csv(BHAV_FOLDER / bhavFile.name)
     dlvDf.to_csv(DLV_FOLDER / bhavFile.name)
 
-    # filter the dataframe for stocks series EQ, BE and BZ
+    # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
-    df: DataFrame = df[(df['SERIES'] == 'EQ') |
-                       (df['SERIES'] == 'BE') |
-                       (df['SERIES'] == 'BZ') |
-                       (df['SERIES'] == 'SM') |
-                       (df['SERIES'] == 'ST')]
+    df: pd.DataFrame = df[(df['SERIES'] == 'EQ') |
+                          (df['SERIES'] == 'BE') |
+                          (df['SERIES'] == 'BZ') |
+                          (df['SERIES'] == 'SM') |
+                          (df['SERIES'] == 'ST')]
 
-    # filter the dataframe for stocks series EQ, BE and BZ
+    # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
-    dlvDf: DataFrame = dlvDf[(dlvDf[' SERIES'] == ' EQ') |
-                             (dlvDf[' SERIES'] == ' BE') |
-                             (dlvDf[' SERIES'] == ' BZ') |
-                             (dlvDf[' SERIES'] == ' SM') |
-                             (dlvDf[' SERIES'] == ' ST')]
+    dlvDf: pd.DataFrame = dlvDf[(dlvDf[' SERIES'] == ' EQ') |
+                                (dlvDf[' SERIES'] == ' BE') |
+                                (dlvDf[' SERIES'] == ' BZ') |
+                                (dlvDf[' SERIES'] == ' SM') |
+                                (dlvDf[' SERIES'] == ' ST')]
 
     # iterate over each row as a tuple
     for t in df.itertuples():
@@ -278,7 +278,7 @@ def toAmiBrokerFormat(file: Path):
     rcols[1] = 'DATE'
     rcols[-2] = 'VOLUME'
 
-    df = read_csv(file, parse_dates=['TIMESTAMP'])
+    df = pd.read_csv(file, parse_dates=['TIMESTAMP'])
 
     df = df[(df['SERIES'] == 'EQ') |
             (df['SERIES'] == 'BE') |
@@ -336,7 +336,7 @@ def getBonus(sym, string):
 
 def makeAdjustment(symbol: str, adjustmentFactor: float):
     '''Makes adjustment to stock data prior to ex date,
-    returning a tuple of pandas DataFrame and filename'''
+    returning a tuple of pandas pd.DataFrame and filename'''
 
     file = DAILY_FOLDER / f'{symbol.lower()}.csv'
 
@@ -344,10 +344,10 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
         print(f'{symbol}: File not found')
         return
 
-    df = read_csv(file,
-                  index_col='Date',
-                  parse_dates=True,
-                  na_filter=False)
+    df = pd.read_csv(file,
+                     index_col='Date',
+                     parse_dates=True,
+                     na_filter=False)
 
     idx = df.index.get_loc(dates.dt)
 
@@ -359,7 +359,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
         # nearest 0.05 = round(nu / 0.05) * 0.05
         df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
-    df = concat([df, last])
+    df = pd.concat([df, last])
     return (df, file)
 
 
@@ -388,7 +388,7 @@ def updateIndexEOD(file: Path):
     if not folder.is_dir():
         folder.mkdir(parents=True)
 
-    df = read_csv(file, index_col='Index Name')
+    df = pd.read_csv(file, index_col='Index Name')
 
     df.to_csv(folder / file.name)
 
@@ -423,7 +423,7 @@ def adjustNseStocks():
     for actions in ('equityActions', 'smeActions'):
         actions = meta[actions]
 
-        # Store all Dataframes with associated files names to be saved to file
+        # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
         dfCommits = []
 
@@ -460,7 +460,7 @@ def adjustNseStocks():
 
                     print(f'{sym}: {purpose}')
         except Exception as e:
-            # discard all Dataframes and raise error,
+            # discard all pd.DataFrames and raise error,
             # so changes can be rolled back
             dfCommits.clear()
             raise e
@@ -477,11 +477,11 @@ def getLastDate(file):
     with open(file, 'rb') as f:
         try:
             # seek 2 bytes to the last line ending ( \n )
-            f.seek(-2, SEEK_END)
+            f.seek(-2, os.SEEK_END)
 
             # seek backwards 2 bytes till the next line ending
             while f.read(1) != b'\n':
-                f.seek(-2, SEEK_CUR)
+                f.seek(-2, os.SEEK_CUR)
 
         except OSError:
             # catch OSError in case of a one line file
@@ -502,8 +502,8 @@ def rollback(folder: Path):
     print(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
-        df = read_csv(file, index_col='Date',
-                      parse_dates=True, na_filter=False)
+        df = pd.read_csv(file, index_col='Date',
+                         parse_dates=True, na_filter=False)
 
         if dt in df.index:
             df = df.drop(dt)
