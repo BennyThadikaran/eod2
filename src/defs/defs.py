@@ -255,7 +255,7 @@ def toAmiBrokerFormat(file: Path):
     'Converts and saves bhavcopy into amibroker format'
 
     cols = ['SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH',
-            'LOW', 'CLOSE', 'TOTTRDVAL', 'ISIN']
+            'LOW', 'CLOSE', 'TOTTRDQTY', 'ISIN']
 
     rcols = list(cols)
     rcols[1] = 'DATE'
@@ -263,8 +263,11 @@ def toAmiBrokerFormat(file: Path):
 
     df = read_csv(file, parse_dates=['TIMESTAMP'])
 
-    df = df[(df['SERIES'] == 'EQ') | (
-        df['SERIES'] == 'BE') | (df['SERIES'] == 'BZ')]
+    df = df[(df['SERIES'] == 'EQ') |
+            (df['SERIES'] == 'BE') |
+            (df['SERIES'] == 'BZ') |
+            (df['SERIES'] == 'SM') |
+            (df['SERIES'] == 'ST')]
 
     df = df[cols]
     df.columns = rcols
