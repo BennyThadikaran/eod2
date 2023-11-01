@@ -9,38 +9,41 @@ from os import system, SEEK_END, SEEK_CUR
 from re import compile
 from defs.Config import Config
 
-if 'win' in platform:
-    # enable color support in Windows
-    system('color')
+# Avoid side effects in case this file is directly executed
+# instead of being imported
+if __name__ != '__main__':
 
+    if 'win' in platform:
+        # enable color support in Windows
+        system('color')
 
-DIR = Path(__file__).parents[1]
-DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
-DELIVERY_FOLDER = DIR / 'eod2_data' / 'delivery'
-ISIN_FILE = DIR / 'eod2_data' / 'isin.csv'
-AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
+    DIR = Path(__file__).parents[1]
+    DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
+    DELIVERY_FOLDER = DIR / 'eod2_data' / 'delivery'
+    ISIN_FILE = DIR / 'eod2_data' / 'isin.csv'
+    AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
 
-META_FILE = DIR / 'eod2_data' / 'meta.json'
+    META_FILE = DIR / 'eod2_data' / 'meta.json'
 
-meta: dict = json.loads(META_FILE.read_bytes())
+    meta: dict = json.loads(META_FILE.read_bytes())
 
-config = Config()
+    config = Config()
 
-if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
-    AMIBROKER_FOLDER.mkdir()
+    if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
+        AMIBROKER_FOLDER.mkdir()
 
-isin = read_csv(ISIN_FILE, index_col='ISIN')
+    isin = read_csv(ISIN_FILE, index_col='ISIN')
 
-headerText = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY\n'
+    headerText = 'Date,TTL_TRD_QNTY,NO_OF_TRADES,QTY_PER_TRADE,DELIV_QTY\n'
 
-splitRegex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
+    splitRegex = compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
 
-bonusRegex = compile(r'(\d+) ?: ?(\d+)')
+    bonusRegex = compile(r'(\d+) ?: ?(\d+)')
 
-# initiate the dates class from utils.py
-dates = Dates(meta['lastUpdate'])
+    # initiate the dates class from utils.py
+    dates = Dates(meta['lastUpdate'])
 
-hasLatestHolidays = False
+    hasLatestHolidays = False
 
 
 def getHolidayList(nse: NSE):

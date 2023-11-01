@@ -41,7 +41,9 @@ if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
     defs.updateAmiBrokerRecords(nse)
 
 while True:
-    defs.dates.getNextDate()
+    if defs.dates.nextDate():
+        nse.exit()
+        exit()
 
     if defs.checkForHolidays(nse):
         continue
@@ -62,6 +64,7 @@ while True:
         # Index file
         INDEX_FILE = nse.indicesBhavcopy(defs.dates.dt)
     except (RuntimeError, Exception) as e:
+        nse.exit()
         exit(repr(e))
 
     try:
@@ -88,6 +91,7 @@ while True:
         defs.dates.dt = defs.dates.lastUpdate
         defs.meta['lastUpdate'] = defs.dates.dt.isoformat()
         defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+        nse.exit()
         exit()
 
     # No errors continue
@@ -107,6 +111,7 @@ while True:
         defs.dates.dt = defs.dates.lastUpdate
         defs.meta['last_update'] = defs.dates.dt.isoformat()
         defs.META_FILE.write_text(json.dumps(defs.meta, indent=2))
+        nse.exit()
         exit()
 
     print('Cleaning up files')

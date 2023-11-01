@@ -9,8 +9,9 @@ class Dates:
         self.dt = self.lastUpdate = datetime.fromisoformat(lastUpdate)
         self.pandas_dt = self.dt.strftime('%Y-%m-%d')
 
-    def getNextDate(self):
-        'Gets the next trading date or exit if its a future date'
+    def nextDate(self):
+        '''Set the next trading date and return True.
+        If its a future date, return False'''
 
         curTime = datetime.today()
         nxtDt = self.dt + timedelta(1)
@@ -23,10 +24,12 @@ class Dates:
             self.dt = nxtDt
 
         if self.dt > curTime:
-            exit('All Up To Date')
+            print('All Up To Date')
+            return False
 
         if self.dt.day == curTime.day and curTime.hour < 18:
-            exit("All Up To Date. Check again after 7pm for today's EOD data")
+            print("All Up To Date. Check again after 7pm for today's EOD data")
+            return False
 
         self.pandas_dt = self.dt.strftime('%Y-%m-%d')
-        return
+        return True
