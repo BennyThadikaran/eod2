@@ -302,7 +302,7 @@ def updateNseSymbol(symFile: Path, o, h, l, c, v, trdCnt, dq):
 
     avgTrdCnt = round(v / trdCnt, 2)
 
-    text += f'{dates.pandas_dt},{o},{h},{l},{c},{v},{trdCnt},{avgTrdCnt},{dq}\n'
+    text += f'{dates.pandasDt},{o},{h},{l},{c},{v},{trdCnt},{avgTrdCnt},{dq}\n'
 
     with symFile.open('a') as f:
         f.write(text)
@@ -373,7 +373,7 @@ def updateIndice(sym, O, H, L, C, V):
     if not file.is_file():
         text += headerText
 
-    text += f"{dates.pandas_dt},{O},{H},{L},{C},{V},,,\n"
+    text += f"{dates.pandasDt},{O},{H},{L},{C},{V},,,\n"
 
     with file.open('a') as f:
         f.write(text)
@@ -498,7 +498,7 @@ def rollback(folder: Path):
     '''Iterate over all files in folder and delete any lines
     pertaining to the current date'''
 
-    dt = dates.pandas_dt
+    dt = dates.pandasDt
     print(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():

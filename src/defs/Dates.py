@@ -7,7 +7,7 @@ class Dates:
     def __init__(self, lastUpdate: str):
         self.today = datetime.combine(datetime.today(), datetime.min.time())
         self.dt = self.lastUpdate = datetime.fromisoformat(lastUpdate)
-        self.pandas_dt = self.dt.strftime('%Y-%m-%d')
+        self.pandasDt = self.dt.strftime('%Y-%m-%d')
 
     def nextDate(self):
         '''Set the next trading date and return True.
@@ -31,5 +31,5 @@ class Dates:
             print("All Up To Date. Check again after 7pm for today's EOD data")
             return False
 
-        self.pandas_dt = self.dt.strftime('%Y-%m-%d')
+        self.pandasDt = self.dt.strftime('%Y-%m-%d')
         return True
