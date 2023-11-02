@@ -2,13 +2,14 @@ import pandas as pd
 from pathlib import Path
 
 '''
-This script checks data integrity of all csv files in eod2_data/daily and eod2_data/delivery folders.
+This script checks data integrity of all csv files in eod2_data/daily.
 
 It checks for:
 - Empty files
 - Corrupt or incorrectly formatted files
 - Duplicate entries in files
-- Mismatch in column dataTypes. Strings or NAN in place of Int or Float
+- Incorrect column dataTypes.
+- NAN values in OHLCV rows
 
 By default only a maximum of 5 errors are printed. Edit the ERROR_THRESHOLD variable to print more error. Once error is corrected must rerun to verify.
 
@@ -28,7 +29,8 @@ duplicatesList = []
 typeMismatchList = []
 indexMismatchList = []
 exceptionsList = []
-dailyColLenMismatch = []
+colMismatchList = []
+hasNansList = []
 
 
 def getErrorCount():
@@ -36,12 +38,11 @@ def getErrorCount():
                len(typeMismatchList),
                len(indexMismatchList),
                len(exceptionsList),
-               len(dailyColLenMismatch))
+               len(colMismatchList),
+               len(hasNansList))
 
 
-def printResult(folder):
-    print('Folder: ', folder.name.upper())
-
+def printResult():
     if getErrorCount() == 0:
         print(f'No errors\n')
         return
@@ -62,9 +63,13 @@ def printResult(folder):
         print('\nFile or Pandas exceptions')
         print('\n'.join(exceptionsList))
 
-    if folder.name == 'daily' and len(dailyColLenMismatch):
+    if len(colMismatchList):
         print('\nColumn mismatch')
-        print('\n'.join(dailyColLenMismatch))
+        print('\n'.join(colMismatchList))
+
+    if len(hasNansList):
+        print('\nColumn with NaN values')
+        print('\n'.join(hasNansList))
 
 
 daily = DIR / 'eod2_data' / 'daily'
@@ -72,14 +77,13 @@ daily = DIR / 'eod2_data' / 'daily'
 dtypeMismatchText = '{}: Column type Mismatch in {}. Expected float64 or int64. Got {}'
 columnMismatchText = '{}: Column Length Mismatch. Expect {} got {}'
 indexMismatchText = '{}: Pandas Index type Mismatch. Expect datetime64[ns] got {}'
+hasNansText = '{}: Column {} has NAN values'
 
 for child in daily.iterdir():
 
     try:
         df = pd.read_csv(child, index_col='Date',
                          parse_dates=True)
-        ndf = pd.read_csv(child, index_col='Date',
-                          parse_dates=True, na_filter=False)
     except Exception as e:
         # Catch pandas or file parsing errors
         exceptionsList.append(f'{child.name.upper()}: {e!r}')
@@ -109,10 +113,10 @@ for child in daily.iterdir():
             colLength
         )
 
-        dailyColLenMismatch.append(txt)
+        colMismatchList.append(txt)
 
     # Catch column dataType mismatch
-    for col in ('TOTAL_TRADES', 'QTY_PER_TRADE', 'DLV_QTY'):
+    for col in df.columns:
         if not df[col].dtype in ('float64', 'int64'):
             txt = dtypeMismatchText.format(
                 child.name.upper().ljust(15),
@@ -122,23 +126,16 @@ for child in daily.iterdir():
             typeMismatchList.append(txt)
 
     for col in ('Open', 'High', 'Low', 'Close', 'Volume'):
-        if not ndf[col].dtype in ('float64', 'int64'):
-            txt = dtypeMismatchText.format(
+        if df[col].hasnans:
+            hasNansList.append(hasNansText.format(
                 child.name.upper().ljust(15),
-                col,
-                ndf[col].dtype)
-
-            typeMismatchList.append(txt)
+                col))
 
     # Catch duplicate entries in file
     if df.index.has_duplicates:
         duplicatesList.append(child.name.upper())
 
-    if max(len(duplicatesList),
-           len(typeMismatchList),
-           len(indexMismatchList),
-           len(exceptionsList),
-           len(dailyColLenMismatch)) >= ERROR_THRESHOLD:
+    if getErrorCount() >= ERROR_THRESHOLD:
         break
 
-printResult(daily)
+printResult()
