@@ -28,17 +28,7 @@ duplicatesList = []
 typeMismatchList = []
 indexMismatchList = []
 exceptionsList = []
-dlvColLenMismatch = []
 dailyColLenMismatch = []
-
-
-def reset():
-    duplicatesList.clear()
-    typeMismatchList.clear()
-    indexMismatchList.clear()
-    exceptionsList.clear()
-    dlvColLenMismatch.clear()
-    dailyColLenMismatch.clear()
 
 
 def getErrorCount():
@@ -46,7 +36,7 @@ def getErrorCount():
                len(typeMismatchList),
                len(indexMismatchList),
                len(exceptionsList),
-               len(dlvColLenMismatch))
+               len(dailyColLenMismatch))
 
 
 def printResult(folder):
@@ -76,24 +66,27 @@ def printResult(folder):
         print('\nColumn mismatch')
         print('\n'.join(dailyColLenMismatch))
 
-    if folder.name == 'delivery' and len(dlvColLenMismatch):
-        print('\nColumn mismatch')
-        print('\n'.join(dlvColLenMismatch))
 
+daily = DIR / 'eod2_data' / 'daily'
 
-def diagnose(file: Path, folderName: str, expectedColumnLen: int):
+dtypeMismatchText = '{}: Column type Mismatch in {}. Expected float64 or int64. Got {}'
+columnMismatchText = '{}: Column Length Mismatch. Expect {} got {}'
+indexMismatchText = '{}: Pandas Index type Mismatch. Expect datetime64[ns] got {}'
+
+for child in daily.iterdir():
+
     try:
-        df = pd.read_csv(file, index_col='Date',
+        df = pd.read_csv(child, index_col='Date',
                          parse_dates=True)
     except Exception as e:
         # Catch pandas or file parsing errors
         exceptionsList.append(f'{child.name.upper()}: {e!r}')
-        return
+        continue
 
     # File is empty or only has column headings
     if df.shape[0] < 1:
-        print(f'{folderName}/{file.name} is empty.')
-        return
+        print(f'daily/{child.name} is empty.')
+        continue
 
     # Catch Type errors in Datetime index
     if df.index.dtype != 'datetime64[ns]':
@@ -107,17 +100,14 @@ def diagnose(file: Path, folderName: str, expectedColumnLen: int):
     colLength = len(columns)
 
     # Catch column length errors
-    if colLength != expectedColumnLen:
+    if colLength != 8:
         txt = columnMismatchText.format(
             child.name.upper().ljust(15),
-            expectedColumnLen,
+            5,
             colLength
         )
 
-        if folderName == 'daily':
-            dailyColLenMismatch.append(txt)
-        else:
-            dlvColLenMismatch.append(txt)
+        dailyColLenMismatch.append(txt)
 
     # Catch column dataType mismatch
     for col in df.columns:
@@ -132,17 +122,6 @@ def diagnose(file: Path, folderName: str, expectedColumnLen: int):
     # Catch duplicate entries in file
     if df.index.has_duplicates:
         duplicatesList.append(child.name.upper())
-
-
-daily = DIR / 'eod2_data' / 'daily'
-
-dtypeMismatchText = '{}: Column type Mismatch in {}. Expected float64 or int64. Got {}'
-columnMismatchText = '{}: Column Length Mismatch. Expect {} got {}'
-indexMismatchText = '{}: Pandas Index type Mismatch. Expect datetime64[ns] got {}'
-
-for child in daily.iterdir():
-
-    diagnose(child, 'daily', 5)
 
     if max(len(duplicatesList),
            len(typeMismatchList),
