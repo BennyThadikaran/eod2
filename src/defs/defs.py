@@ -195,7 +195,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path):
         DLV_FOLDER.mkdir(parents=True)
 
     df.to_csv(BHAV_FOLDER / bhavFile.name)
-    dlvDf.to_csv(DLV_FOLDER / bhavFile.name)
+    dlvDf.to_csv(DLV_FOLDER / deliveryFile.name)
 
     # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
