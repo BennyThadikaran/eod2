@@ -98,7 +98,7 @@ class Config:
     PLOT_RS_INDEX = 'nifty 50'
     MAGNET_MODE = True
 
-    PLOT_PRESET = {}
+    PRESET = {}
     WATCH = {
         'SECTORS': 'sectors.csv'
     }

@@ -765,8 +765,15 @@ class Plotter:
         return df[start_dt:]
 
     def _list(self):
-        watch_lst = [i.lower() for i in self.config.WATCH.keys()]
-        preset_lst = [i.lower() for i in self.config.PRESET.keys()]
+        if hasattr(self.config, 'WATCH'):
+            watch_lst = [i.lower() for i in self.config.WATCH.keys()]
+        else:
+            watch_lst = []
+
+        if hasattr(self.config, 'PRESET'):
+            preset_lst = [i.lower() for i in self.config.PRESET.keys()]
+        else:
+            preset_lst = []
 
         if not len(watch_lst):
             print('No Watchlists')
