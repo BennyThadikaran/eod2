@@ -664,28 +664,6 @@ class Plotter:
         if len(added_plots) > 0:
             self.plot_args['addplot'] = added_plots
 
-    def _loadDeliveryData(self, fPath):
-        dct = {
-            'TTL_TRD_QNTY': 'sum',
-            'NO_OF_TRADES': 'sum',
-            'QTY_PER_TRADE': 'sum',
-            'DELIV_QTY': 'sum'
-        }
-
-        dq = getDataFrame(fPath,
-                          self.tf,
-                          self.max_period,
-                          customDict=dct,
-                          fromDate=self.args.date)
-
-        if self.tf == 'weekly':
-            dq = dq.drop('QTY_PER_TRADE', axis=1)
-
-            dq['QTY_PER_TRADE'] = (
-                dq['TTL_TRD_QNTY'] / dq['NO_OF_TRADES']).round(2)
-
-        return dq
-
     def _prepData(self, sym):
         fpath = self.daily_dir / f'{sym.lower()}.csv'
 
