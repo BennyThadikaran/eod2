@@ -82,6 +82,7 @@ while True:
         # rollback
         print(f"Error during data sync. {e!r}")
         defs.rollback(defs.DAILY_FOLDER)
+        defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
         defs.meta['lastUpdate'] = defs.dates.lastUpdate
         writeJson(defs.META_FILE, defs.meta)
@@ -100,6 +101,7 @@ while True:
             f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
 
         defs.rollback(defs.DAILY_FOLDER)
+        defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
         defs.meta['last_update'] = defs.dates.lastUpdate
         writeJson(defs.META_FILE, defs.meta)
@@ -109,6 +111,7 @@ while True:
     print('Cleaning up files')
 
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
+    defs.cleanOutDated()
 
     defs.meta['lastUpdate'] = defs.dates.lastUpdate = defs.dates.dt
     writeJson(defs.META_FILE, defs.meta)

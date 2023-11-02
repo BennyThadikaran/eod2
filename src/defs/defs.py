@@ -513,19 +513,20 @@ def rollback(folder: Path):
 
 
 def cleanup(filesLst):
-    '''Remove files downloaded from nse and stock csv files not updated
-    in the last 365 days'''
+    '''Remove files downloaded from nse'''
 
     for file in filesLst:
-        file.unlink()
+        file.unlink(missing_ok=True)
 
-    # remove outdated files
+
+def cleanOutDated():
+    '''Delete CSV files not updated in the last 365 days'''
+
     deadline = dates.today - timedelta(365)
     count = 0
-    fmt = '%Y-%m-%d'
 
     for file in DAILY_FOLDER.iterdir():
-        lastUpdated = datetime.strptime(getLastDate(file), fmt)
+        lastUpdated = datetime.strptime(getLastDate(file), '%Y-%m-%d')
 
         if lastUpdated < deadline:
             file.unlink()
