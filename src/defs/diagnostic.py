@@ -78,6 +78,8 @@ for child in daily.iterdir():
     try:
         df = pd.read_csv(child, index_col='Date',
                          parse_dates=True)
+        ndf = pd.read_csv(child, index_col='Date',
+                          parse_dates=True, na_filter=False)
     except Exception as e:
         # Catch pandas or file parsing errors
         exceptionsList.append(f'{child.name.upper()}: {e!r}')
@@ -110,12 +112,21 @@ for child in daily.iterdir():
         dailyColLenMismatch.append(txt)
 
     # Catch column dataType mismatch
-    for col in df.columns:
+    for col in ('TOTAL_TRADES', 'QTY_PER_TRADE', 'DLV_QTY'):
         if not df[col].dtype in ('float64', 'int64'):
             txt = dtypeMismatchText.format(
                 child.name.upper().ljust(15),
                 col,
                 df[col].dtype)
+
+            typeMismatchList.append(txt)
+
+    for col in ('Open', 'High', 'Low', 'Close', 'Volume'):
+        if not ndf[col].dtype in ('float64', 'int64'):
+            txt = dtypeMismatchText.format(
+                child.name.upper().ljust(15),
+                col,
+                ndf[col].dtype)
 
             typeMismatchList.append(txt)
 
@@ -127,7 +138,7 @@ for child in daily.iterdir():
            len(typeMismatchList),
            len(indexMismatchList),
            len(exceptionsList),
-           len(dailyColLenMismatch)) >= 5:
+           len(dailyColLenMismatch)) >= ERROR_THRESHOLD:
         break
 
 printResult(daily)
