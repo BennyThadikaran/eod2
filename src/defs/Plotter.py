@@ -782,7 +782,8 @@ class Plotter:
 
         data = loadJson(self.configPath) if self.configPath.is_file() else {}
 
-        opts = vars(self.args).copy()
+        # get a copy of __dict__ and filter only truthy values into a dict
+        opts = {k: v for k, v in vars(self.args).copy().items() if v}
 
         del opts['preset_save']
 
