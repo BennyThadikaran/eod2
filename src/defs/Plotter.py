@@ -253,8 +253,10 @@ class Plotter:
             }
         }
 
-        lines = pickle.loads(lines_path.read_bytes()
-                             ) if lines_path.is_file() else default_lines
+        if lines_path.exists():
+            lines = pickle.loads(lines_path.read_bytes())
+        else:
+            lines = default_lines
 
         if lines[self.tf]['length'] > 0:
             self._loadLines(lines)
@@ -273,6 +275,9 @@ class Plotter:
             return lines_path.unlink()
 
         if self.has_updated:
+            if not lines_path.parent.exists():
+                lines_path.parent.mkdir(parents=True)
+
             lines_path.write_bytes(pickle.dumps(self.lines))
 
     def _on_pick(self, event):
