@@ -1,6 +1,17 @@
+from sys import platform
+
+try:
+    from nse import NSE
+except ModuleNotFoundError:
+    # Inform user to install nse.
+    pip = 'pip' if 'win' in platform else 'pip3'
+
+    exit(f"EOD2 requires 'nse' package. Run '{pip} install -U nse'")
+
+from defs.utils import writeJson
 from defs import defs
 from argparse import ArgumentParser
-# from sys import argv
+
 
 parser = ArgumentParser(prog='init.py')
 
@@ -24,80 +35,101 @@ if args.version:
 if args.config:
     exit(str(defs.config))
 
-lastUpdateDate = defs.dates.getLastUpdated()
+nse = NSE(defs.DIR)
 
-with defs.NSE() as nse:
-    if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
-        defs.updateAmiBrokerRecords(nse)
+if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
+    defs.updateAmiBrokerRecords(nse)
 
-    while True:
-        defs.dates.getNextDate()
+if not 'DLV_PENDING_DATES' in defs.meta:
+    defs.meta['DLV_PENDING_DATES'] = []
 
-        if defs.checkForHolidays(nse):
-            continue
+if len(defs.meta['DLV_PENDING_DATES']):
+    pendingList = defs.meta['DLV_PENDING_DATES'].copy()
 
-        # Validate NSE actions file
-        defs.validateNseActionsFile(nse)
+    for dateStr in pendingList:
+        if defs.updatePendingDeliveryData(nse, dateStr):
+            writeJson(defs.META_FILE, defs.meta)
 
-        # Download all files and validate for errors
-        print('Downloading Files')
 
+while True:
+    if not defs.dates.nextDate():
+        nse.exit()
+        exit()
+
+    if defs.checkForHolidays(nse):
+        continue
+
+    # Validate NSE actions file
+    defs.validateNseActionsFile(nse)
+
+    # Download all files and validate for errors
+    print('Downloading Files')
+
+    try:
         # NSE bhav copy
-        bhav_file = defs.downloadNseBhav(nse)
-
-        # NSE delivery
-        delivery_file = defs.downloadNseDelivery(nse)
+        BHAV_FILE = nse.equityBhavcopy(defs.dates.dt)
 
         # Index file
-        index_file = defs.downloadIndexFile(nse)
+        INDEX_FILE = nse.indicesBhavcopy(defs.dates.dt)
+    except (RuntimeError, Exception) as e:
+        nse.exit()
+        exit(repr(e))
 
-        try:
-            print('Starting Data Sync')
+    try:
+        # NSE delivery
+        DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
+    except (RuntimeError, Exception) as e:
+        defs.meta['DLV_PENDING_DATES'].append(defs.dates.dt.isoformat())
+        DELIVERY_FILE = None
+        print('Delivery Report Unavailable. Will retry in subsequent sync')
 
-            defs.updateNseEOD(bhav_file)
+    try:
+        print('Starting Data Sync')
 
-            print('EOD sync complete')
+        defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
 
-            defs.updateDelivery(delivery_file)
+        print('EOD sync complete')
 
-            print('Delivery sync complete')
+        # INDEX sync
+        defs.updateIndexEOD(INDEX_FILE)
 
-            # INDEX sync
-            defs.updateIndexEOD(index_file)
+        print('Index sync complete.')
+    except Exception as e:
+        # rollback
+        print(f"Error during data sync. {e!r}")
+        defs.rollback(defs.DAILY_FOLDER)
+        defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
-            print('Index sync complete.')
-        except Exception as e:
-            # rollback
-            print(f"Error during data sync. {e!r}")
-            defs.rollback(defs.daily_folder)
-            defs.rollback(defs.delivery_folder)
+        defs.meta['lastUpdate'] = defs.dates.lastUpdate
+        writeJson(defs.META_FILE, defs.meta)
+        nse.exit()
+        exit()
 
-            defs.dates.dt = lastUpdateDate
-            defs.dates.setLastUpdated()
-            exit()
+    # No errors continue
 
-        # No errors continue
+    # Adjust Splits and bonus
+    print('Makings adjustments for splits and bonus')
 
-        # Adjust Splits and bonus
-        print('Makings adjustments for splits and bonus')
+    try:
+        defs.adjustNseStocks()
+    except Exception as e:
+        print(
+            f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
 
-        try:
-            defs.adjustNseStocks()
-        except Exception as e:
-            print(
-                f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
-            defs.rollback(defs.daily_folder)
-            defs.rollback(defs.delivery_folder)
+        defs.rollback(defs.DAILY_FOLDER)
+        defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
-            defs.dates.dt = lastUpdateDate
-            defs.dates.setLastUpdated()
-            exit()
+        defs.meta['last_update'] = defs.dates.lastUpdate
+        writeJson(defs.META_FILE, defs.meta)
+        nse.exit()
+        exit()
 
-        print('Cleaning up files')
+    print('Cleaning up files')
 
-        defs.cleanup((bhav_file, delivery_file, index_file))
+    defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
+    defs.cleanOutDated()
 
-        defs.dates.setLastUpdated()
-        lastUpdateDate = defs.dates.dt
+    defs.meta['lastUpdate'] = defs.dates.lastUpdate = defs.dates.dt
+    writeJson(defs.META_FILE, defs.meta)
 
-        print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')
+    print(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')

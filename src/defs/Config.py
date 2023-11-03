@@ -1,7 +1,7 @@
 from pathlib import Path
-from json import loads
+import json
 
-DIR = Path(__file__).parent.parent
+DIR = Path(__file__).parents[1]
 
 
 class Config:
@@ -98,7 +98,7 @@ class Config:
     PLOT_RS_INDEX = 'nifty 50'
     MAGNET_MODE = True
 
-    PLOT_PRESET = {}
+    PRESET = {}
     WATCH = {
         'SECTORS': 'sectors.csv'
     }
@@ -132,7 +132,7 @@ class Config:
         user_config = DIR / "defs" / "user.json"
 
         if user_config.exists():
-            dct = loads(user_config.read_bytes())
+            dct = json.loads(user_config.read_bytes())
 
             if 'WATCH' in dct:
                 dct['WATCH'].update(self.WATCH)
@@ -140,7 +140,7 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = '4.0'
+    VERSION = '5.0.0'
 
     def toList(self, filename: str):
         return (DIR / 'data' / filename).read_text().strip().split("\n")

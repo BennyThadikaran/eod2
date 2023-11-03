@@ -1,13 +1,14 @@
+import pandas as pd
+import pickle
+import numpy as np
+import mplfinance as mpl
+import matplotlib.pyplot as plt
 from pathlib import Path
-from defs.utils import arg_parse_dict, getDataFrame, getScreenSize, getLevels, getDeliveryLevels, writeJson, loadJson, randomChar, relativeStrength, manfieldRelativeStrength
-from mplfinance import plot, make_addplot, show
-from matplotlib.collections import LineCollection
-from matplotlib.pyplot import close, ion
 from datetime import timedelta
-from numpy import NaN
-from pandas import Series
+from matplotlib.collections import LineCollection
 from defs.DateTickFormatter import DateTickFormatter
-from pickle import loads, dumps
+from defs.utils import arg_parse_dict, getDataFrame, getScreenSize, getLevels, getDeliveryLevels, writeJson, loadJson, randomChar, relativeStrength, manfieldRelativeStrength
+
 
 HELP = '''                                           ## Help ##
 
@@ -40,7 +41,7 @@ Delete all lines: Hold Shift key + right mouse click
 
 
 def processPlot(df, plot_args):
-    plot(df, **plot_args)
+    mpl.plot(df, **plot_args)
 
 
 def format_coords(x, _):
@@ -96,14 +97,13 @@ class Plotter:
     }
 
     def __init__(self, args, config, plugins, parser, DIR: Path):
-        ion()
+        plt.ion()
         self.args = args
         self.config = config
         self.plugins = plugins
         self.parser = parser
         self.DIR = DIR
         self.daily_dir = DIR / 'eod2_data' / 'daily'
-        self.dlv_dir = DIR / 'eod2_data' / 'delivery'
         self.configPath = DIR / 'defs' / 'user.json'
 
         if args.preset and args.preset_save:
@@ -221,7 +221,7 @@ class Plotter:
         if self.args.save:
             return df
 
-        fig, axs = plot(df, **self.plot_args)
+        fig, axs = mpl.plot(df, **self.plot_args)
 
         locator, formatter = DateTickFormatter(df.index).getLabels()
 
@@ -253,15 +253,17 @@ class Plotter:
             }
         }
 
-        lines = loads(lines_path.read_bytes()
-                      ) if lines_path.is_file() else default_lines
+        if lines_path.exists():
+            lines = pickle.loads(lines_path.read_bytes())
+        else:
+            lines = default_lines
 
         if lines[self.tf]['length'] > 0:
             self._loadLines(lines)
         else:
             self.lines = lines
 
-        show(block=True)
+        mpl.show(block=True)
 
         if 'addplot' in self.plot_args:
             self.plot_args['addplot'].clear()
@@ -273,7 +275,10 @@ class Plotter:
             return lines_path.unlink()
 
         if self.has_updated:
-            lines_path.write_bytes(dumps(self.lines))
+            if not lines_path.parent.exists():
+                lines_path.parent.mkdir(parents=True)
+
+            lines_path.write_bytes(pickle.dumps(self.lines))
 
     def _on_pick(self, event):
         if event.mouseevent.button == 3:
@@ -382,7 +387,7 @@ class Plotter:
                 return
 
             self.key = event.key
-            close('all')
+            plt.close('all')
 
     def _toggleDrawMode(self):
         if self.draw_mode:
@@ -601,27 +606,27 @@ class Plotter:
             }
 
         if self.args.rs:
-            added_plots.append(make_addplot(df['RS'],
-                                            panel='lower',
-                                            color=self.config.PLOT_RS_COLOR,
-                                            width=2.5,
-                                            ylabel='Dorsey RS'))
+            added_plots.append(mpl.make_addplot(df['RS'],
+                                                panel='lower',
+                                                color=self.config.PLOT_RS_COLOR,
+                                                width=2.5,
+                                                ylabel='Dorsey RS'))
 
         if self.args.m_rs and 'M_RS' in df.columns:
-            zero_line = Series(data=0, index=df.index)
+            zero_line = pd.Series(data=0, index=df.index)
 
             added_plots.extend([
-                make_addplot(df['M_RS'],
-                             panel='lower',
-                             color=self.config.PLOT_M_RS_COLOR,
-                             width=2.5,
-                             ylabel='Mansfield RS'),
+                mpl.make_addplot(df['M_RS'],
+                                 panel='lower',
+                                 color=self.config.PLOT_M_RS_COLOR,
+                                 width=2.5,
+                                 ylabel='Mansfield RS'),
 
-                make_addplot(zero_line,
-                             panel='lower',
-                             color=self.config.PLOT_M_RS_COLOR,
-                             linestyle='dashed',
-                             width=1.5)
+                mpl.make_addplot(zero_line,
+                                 panel='lower',
+                                 color=self.config.PLOT_M_RS_COLOR,
+                                 linestyle='dashed',
+                                 width=1.5)
             ])
 
         if self.args.sma:
@@ -629,69 +634,40 @@ class Plotter:
                 if not f'SMA_{period}' in df.columns:
                     continue
 
-                added_plots.append(make_addplot(df[f'SMA_{period}'],
-                                                label=f'SM{period}'))
+                added_plots.append(mpl.make_addplot(df[f'SMA_{period}'],
+                                                    label=f'SM{period}'))
 
         if self.args.ema:
             for period in self.args.ema:
                 if not f'EMA_{period}' in df.columns:
                     continue
 
-                added_plots.append(make_addplot(df[f'EMA_{period}'],
-                                                label=f'EM{period}'))
+                added_plots.append(mpl.make_addplot(df[f'EMA_{period}'],
+                                                    label=f'EM{period}'))
 
         if self.args.vol_sma:
             for period in self.args.vol_sma:
                 if not f'VMA_{period}' in df.columns:
                     continue
 
-                added_plots.append(make_addplot(df[f'VMA_{period}'],
-                                                label=f'MA{period}',
-                                                panel='lower',
-                                                linewidths=0.7))
+                added_plots.append(mpl.make_addplot(df[f'VMA_{period}'],
+                                                    label=f'MA{period}',
+                                                    panel='lower',
+                                                    linewidths=0.7))
 
-        if self.args.dlv:
-            dlv_path = self.dlv_dir / f'{sym}.csv'
+        if self.args.dlv and not df['DLV_QTY'].dropna().empty:
+            getDeliveryLevels(df, self.config)
 
-            if dlv_path.exists():
-                getDeliveryLevels(df,
-                                  self._loadDeliveryData(dlv_path),
-                                  self.config)
+            self.plot_args['marketcolor_overrides'] = df['MCOverrides'].values
 
-                self.plot_args['marketcolor_overrides'] = df['MCOverrides'].values
-
-                added_plots.append(make_addplot(df['IM'],
+            added_plots.append(mpl.make_addplot(df['IM'],
                                                 type='scatter',
                                                 marker='*',
                                                 color='midnightblue',
                                                 label="IM"))
-            else:
-                print('No delivery data found')
 
         if len(added_plots) > 0:
             self.plot_args['addplot'] = added_plots
-
-    def _loadDeliveryData(self, fPath):
-        dct = {
-            'TTL_TRD_QNTY': 'sum',
-            'NO_OF_TRADES': 'sum',
-            'QTY_PER_TRADE': 'sum',
-            'DELIV_QTY': 'sum'
-        }
-
-        dq = getDataFrame(fPath,
-                          self.tf,
-                          self.max_period,
-                          customDict=dct,
-                          fromDate=self.args.date)
-
-        if self.tf == 'weekly':
-            dq = dq.drop('QTY_PER_TRADE', axis=1)
-
-            dq['QTY_PER_TRADE'] = (
-                dq['TTL_TRD_QNTY'] / dq['NO_OF_TRADES']).round(2)
-
-        return dq
 
     def _prepData(self, sym):
         fpath = self.daily_dir / f'{sym.lower()}.csv'
@@ -766,14 +742,21 @@ class Plotter:
         else:
             start_dt = df.index[-plot_period] - timedelta(1)
 
-        df.loc[start_dt] = NaN
+        df.loc[start_dt] = np.NAN
         df = df.sort_index()
 
         return df[start_dt:]
 
     def _list(self):
-        watch_lst = [i.lower() for i in self.config.WATCH.keys()]
-        preset_lst = [i.lower() for i in self.config.PRESET.keys()]
+        if hasattr(self.config, 'WATCH'):
+            watch_lst = [i.lower() for i in self.config.WATCH.keys()]
+        else:
+            watch_lst = []
+
+        if hasattr(self.config, 'PRESET'):
+            preset_lst = [i.lower() for i in self.config.PRESET.keys()]
+        else:
+            preset_lst = []
 
         if not len(watch_lst):
             print('No Watchlists')
@@ -804,7 +787,8 @@ class Plotter:
 
         data = loadJson(self.configPath) if self.configPath.is_file() else {}
 
-        opts = vars(self.args).copy()
+        # get a copy of __dict__ and filter only truthy values into a dict
+        opts = {k: v for k, v in vars(self.args).copy().items() if v}
 
         del opts['preset_save']
 

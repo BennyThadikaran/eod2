@@ -123,6 +123,9 @@ if len(config.PLOT_PLUGINS):
 
 args = parser.parse_args()
 
+if args.tf == 'weekly' and args.dlv:
+    exit('WARN: Delivery data not available on Weekly Timeframe')
+
 plotter = Plotter(args, config, plugin, parser, DIR)
 
 symList = plotter.symList
