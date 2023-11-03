@@ -131,6 +131,85 @@ def validateNseActionsFile(nse: NSE):
             meta[f'{actions}Expiry'] = newExpiry
 
 
+def updatePendingDeliveryData(nse: NSE, date: str):
+    '''Return True on successful file update or max failed attempts
+    else False on failed attempt
+    '''
+
+    dt = datetime.fromisoformat(date)
+    daysSinceFailure = (datetime.today() - dt).days
+
+    try:
+        FILE = nse.deliveryBhavcopy(dt)
+    except (RuntimeError, Exception):
+        if daysSinceFailure == 5:
+            print('Max Failed: Aborting Future attempts')
+            return True
+
+        print(f'{dt:%d %b}: Delivery report not yet updated.')
+        return False
+
+    print(f'Updating delivery report dated {dt:%d %b %Y}:',
+          end=' ',
+          flush=True)
+
+    try:
+        df = pd.read_csv(FILE, index_col='SYMBOL')
+
+        # save the csv file to the below folder.
+        DLV_FOLDER = DIR / 'nseDelivery' / str(dt.year)
+
+        if not DLV_FOLDER.is_dir():
+            DLV_FOLDER.mkdir(parents=True)
+
+        df.to_csv(DLV_FOLDER / FILE.name)
+
+        # filter the pd.DataFrame for stocks series EQ, BE and BZ
+        # https://www.nseindia.com/market-data/legend-of-series
+        df = df[(df[' SERIES'] == ' EQ') |
+                (df[' SERIES'] == ' BE') |
+                (df[' SERIES'] == ' BZ') |
+                (df[' SERIES'] == ' SM') |
+                (df[' SERIES'] == ' ST')]
+
+        for sym in df.index:
+            DAILY_FILE = DAILY_FOLDER / f'{sym.lower()}.csv'
+
+            if not DAILY_FILE.exists():
+                continue
+
+            dailyDf = pd.read_csv(DAILY_FILE,
+                                  index_col='Date',
+                                  parse_dates=True)
+
+            if not dt in dailyDf.index:
+                continue
+
+            vol = dailyDf.loc[dt, 'Volume']
+            series = df.loc[sym, ' SERIES']
+
+            trdCnt, dq = df.loc[sym, [' NO_OF_TRADES', ' DELIV_QTY']]
+
+            # BE and BZ series stocks are all delivery trades,
+            # so we use the volume
+            dq = vol if series in (' BE', ' BZ') else int(dq)
+            avgTrdCnt = round(vol / trdCnt, 2)
+
+            dailyDf.loc[dt, 'TOTAL_TRADES'] = trdCnt
+            dailyDf.loc[dt, 'QTY_PER_TRADE'] = avgTrdCnt
+            dailyDf.loc[dt, 'DLV_QTY'] = dq
+            dailyDf.to_csv(DAILY_FILE)
+    except Exception as e:
+        print(repr(e))
+        FILE.unlink()
+        return False
+
+    meta['DLV_PENDING_DATES'].remove(date)
+    FILE.unlink()
+    print('✓ Done')
+    return True
+
+
 def isAmiBrokerFolderUpdated():
     'Returns true if the folder has files'
 
@@ -171,31 +250,44 @@ def updateAmiBrokerRecords(nse: NSE):
     print("\nDone")
 
 
-def updateNseEOD(bhavFile: Path, deliveryFile: Path):
+def toAmiBrokerFormat(file: Path):
+    'Converts and saves bhavcopy into amibroker format'
+
+    cols = ['SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH',
+            'LOW', 'CLOSE', 'TOTTRDQTY', 'ISIN']
+
+    rcols = list(cols)
+    rcols[1] = 'DATE'
+    rcols[-2] = 'VOLUME'
+
+    df = pd.read_csv(file, parse_dates=['TIMESTAMP'])
+
+    df = df[(df['SERIES'] == 'EQ') |
+            (df['SERIES'] == 'BE') |
+            (df['SERIES'] == 'BZ') |
+            (df['SERIES'] == 'SM') |
+            (df['SERIES'] == 'ST')]
+
+    df = df[cols]
+    df.columns = rcols
+    df['DATE'] = df['DATE'].dt.strftime("%Y%m%d")
+    df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
+
+
+def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
     """Update all stocks with latest price data from bhav copy"""
 
     isinUpdated = False
 
     df = pd.read_csv(bhavFile, index_col='ISIN')
-    dlvDf = pd.read_csv(deliveryFile, index_col='SYMBOL')
 
-    if config.AMIBROKER:
-        print("Converting to AmiBroker format")
-        toAmiBrokerFormat(bhavFile)
-
-    # save the csv file to the below folder.
     BHAV_FOLDER = DIR / 'nseBhav' / str(dates.dt.year)
-    DLV_FOLDER = DIR / 'nseDelivery' / str(dates.dt.year)
 
     # Create it if not exists
     if not BHAV_FOLDER.is_dir():
         BHAV_FOLDER.mkdir(parents=True)
 
-    if not DLV_FOLDER.is_dir():
-        DLV_FOLDER.mkdir(parents=True)
-
     df.to_csv(BHAV_FOLDER / bhavFile.name)
-    dlvDf.to_csv(DLV_FOLDER / deliveryFile.name)
 
     # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
@@ -205,13 +297,30 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path):
                           (df['SERIES'] == 'SM') |
                           (df['SERIES'] == 'ST')]
 
-    # filter the pd.DataFrame for stocks series EQ, BE and BZ
-    # https://www.nseindia.com/market-data/legend-of-series
-    dlvDf: pd.DataFrame = dlvDf[(dlvDf[' SERIES'] == ' EQ') |
-                                (dlvDf[' SERIES'] == ' BE') |
-                                (dlvDf[' SERIES'] == ' BZ') |
-                                (dlvDf[' SERIES'] == ' SM') |
-                                (dlvDf[' SERIES'] == ' ST')]
+    if config.AMIBROKER:
+        print("Converting to AmiBroker format")
+        toAmiBrokerFormat(bhavFile)
+
+    if deliveryFile:
+        dlvDf = pd.read_csv(deliveryFile, index_col='SYMBOL')
+
+        # save the csv file to the below folder.
+        DLV_FOLDER = DIR / 'nseDelivery' / str(dates.dt.year)
+
+        if not DLV_FOLDER.is_dir():
+            DLV_FOLDER.mkdir(parents=True)
+
+        dlvDf.to_csv(DLV_FOLDER / deliveryFile.name)
+
+        # filter the pd.DataFrame for stocks series EQ, BE and BZ
+        # https://www.nseindia.com/market-data/legend-of-series
+        dlvDf = dlvDf[(dlvDf[' SERIES'] == ' EQ') |
+                      (dlvDf[' SERIES'] == ' BE') |
+                      (dlvDf[' SERIES'] == ' BZ') |
+                      (dlvDf[' SERIES'] == ' SM') |
+                      (dlvDf[' SERIES'] == ' ST')]
+    else:
+        dlvDf = None
 
     # iterate over each row as a tuple
     for t in df.itertuples():
@@ -221,13 +330,18 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path):
         if '-RE' in t.SYMBOL:
             continue
 
-        if t.SYMBOL in dlvDf.index:
-            trdCnt, dq = dlvDf.loc[t.SYMBOL, [' NO_OF_TRADES', ' DELIV_QTY']]
+        if not dlvDf is None:
+            if t.SYMBOL in dlvDf.index:
+                trdCnt, dq = dlvDf.loc[t.SYMBOL, [
+                    ' NO_OF_TRADES', ' DELIV_QTY']]
 
-            # BE and BZ series stocks are all delivery trades, so we use the volume
-            dq = t.TOTTRDQTY if t.SERIES in ('BE', 'BZ') else int(dq)
+                # BE and BZ series stocks are all delivery trades,
+                # so we use the volume
+                dq = t.TOTTRDQTY if t.SERIES in ('BE', 'BZ') else int(dq)
+            else:
+                trdCnt = dq = np.NAN
         else:
-            trdCnt = dq = np.NAN
+            trdCnt = dq = ''
 
         prefix = '_sme' if t.SERIES in ('SM', 'ST') else ''
         SYM_FILE = DAILY_FOLDER / f'{t.SYMBOL.lower()}{prefix}.csv'
@@ -268,30 +382,6 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path):
         isin.to_csv(ISIN_FILE)
 
 
-def toAmiBrokerFormat(file: Path):
-    'Converts and saves bhavcopy into amibroker format'
-
-    cols = ['SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH',
-            'LOW', 'CLOSE', 'TOTTRDQTY', 'ISIN']
-
-    rcols = list(cols)
-    rcols[1] = 'DATE'
-    rcols[-2] = 'VOLUME'
-
-    df = pd.read_csv(file, parse_dates=['TIMESTAMP'])
-
-    df = df[(df['SERIES'] == 'EQ') |
-            (df['SERIES'] == 'BE') |
-            (df['SERIES'] == 'BZ') |
-            (df['SERIES'] == 'SM') |
-            (df['SERIES'] == 'ST')]
-
-    df = df[cols]
-    df.columns = rcols
-    df['DATE'] = df['DATE'].dt.strftime("%Y%m%d")
-    df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
-
-
 def updateNseSymbol(symFile: Path, o, h, l, c, v, trdCnt, dq):
     'Appends EOD stock data to end of file'
 
@@ -300,7 +390,7 @@ def updateNseSymbol(symFile: Path, o, h, l, c, v, trdCnt, dq):
     if not symFile.is_file():
         text += headerText
 
-    avgTrdCnt = round(v / trdCnt, 2)
+    avgTrdCnt = '' if trdCnt == '' else round(v / trdCnt, 2)
 
     text += f'{dates.pandasDt},{o},{h},{l},{c},{v},{trdCnt},{avgTrdCnt},{dq}\n'
 
@@ -516,6 +606,8 @@ def cleanup(filesLst):
     '''Remove files downloaded from nse'''
 
     for file in filesLst:
+        if file is None:
+            continue
         file.unlink(missing_ok=True)
 
 

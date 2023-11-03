@@ -40,6 +40,17 @@ nse = NSE(defs.DIR)
 if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
     defs.updateAmiBrokerRecords(nse)
 
+if not 'DLV_PENDING_DATES' in defs.meta:
+    defs.meta['DLV_PENDING_DATES'] = []
+
+if len(defs.meta['DLV_PENDING_DATES']):
+    pendingList = defs.meta['DLV_PENDING_DATES'].copy()
+
+    for dateStr in pendingList:
+        if defs.updatePendingDeliveryData(nse, dateStr):
+            writeJson(defs.META_FILE, defs.meta)
+
+
 while True:
     if not defs.dates.nextDate():
         nse.exit()
@@ -58,14 +69,19 @@ while True:
         # NSE bhav copy
         BHAV_FILE = nse.equityBhavcopy(defs.dates.dt)
 
-        # NSE delivery
-        DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
-
         # Index file
         INDEX_FILE = nse.indicesBhavcopy(defs.dates.dt)
     except (RuntimeError, Exception) as e:
         nse.exit()
         exit(repr(e))
+
+    try:
+        # NSE delivery
+        DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
+    except (RuntimeError, Exception) as e:
+        defs.meta['DLV_PENDING_DATES'].append(defs.dates.dt.isoformat())
+        DELIVERY_FILE = None
+        print('Delivery Report Unavailable. Will retry in subsequent sync')
 
     try:
         print('Starting Data Sync')
