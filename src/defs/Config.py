@@ -99,9 +99,7 @@ class Config:
     MAGNET_MODE = True
 
     PRESET = {}
-    WATCH = {
-        'SECTORS': 'sectors.csv'
-    }
+    WATCH = {'SECTORS': 'sectors.csv'}
 
     # PLOT THEMES AND COLORS
     # 'binance', 'binancedark', 'blueskies', 'brasil', 'charles',
@@ -140,7 +138,7 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = '5.0.0'
+    VERSION = '5.0.1'
 
     def toList(self, filename: str):
         return (DIR / 'data' / filename).read_text().strip().split("\n")

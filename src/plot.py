@@ -55,11 +55,7 @@ parser.add_argument('-s',
                     action='store_true',
                     help='Save chart as png.')
 
-
-parser.add_argument('-v',
-                    '--volume',
-                    action='store_true',
-                    help='Add Volume')
+parser.add_argument('-v', '--volume', action='store_true', help='Add Volume')
 
 parser.add_argument('--rs',
                     action='store_true',
@@ -99,11 +95,12 @@ parser.add_argument('-d',
                     metavar='str',
                     help='ISO format date YYYY-MM-DD.')
 
-parser.add_argument('--period',
-                    action='store',
-                    type=int,
-                    metavar='int',
-                    help=f'Number of Candles to plot. Default {config.PLOT_DAYS}')
+parser.add_argument(
+    '--period',
+    action='store',
+    type=int,
+    metavar='int',
+    help=f'Number of Candles to plot. Default {config.PLOT_DAYS}')
 
 parser.add_argument('--snr',
                     action='store_true',
@@ -138,9 +135,7 @@ if args.save:
 
     with ProcessPoolExecutor() as executor:
         for sym in symList:
-            executor.submit(processPlot,
-                            plotter.plot(sym),
-                            plotter.plot_args)
+            executor.submit(processPlot, plotter.plot(sym), plotter.plot_args)
     exit('Done')
 
 # PROMPT BETWEEN EACH CHART
@@ -183,10 +178,7 @@ while True:
             else:
                 userObj = {}
 
-            userObj['PLOT_RESUME'] = {
-                'watch': args.watch,
-                'idx': plotter.idx
-            }
+            userObj['PLOT_RESUME'] = {'watch': args.watch, 'idx': plotter.idx}
             writeJson(plotter.configPath, userObj)
         exit('\nquiting')
 

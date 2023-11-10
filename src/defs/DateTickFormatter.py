@@ -2,6 +2,7 @@ from matplotlib.ticker import FixedFormatter, FixedLocator
 
 
 class DateTickFormatter:
+
     def __init__(self, dates, tf='daily'):
         '''Dates: DatetimeIndex
         tf: daily or weekly'''
