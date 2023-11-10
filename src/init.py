@@ -12,7 +12,6 @@ from defs.utils import writeJson
 from defs import defs
 from argparse import ArgumentParser
 
-
 parser = ArgumentParser(prog='init.py')
 
 group = parser.add_mutually_exclusive_group()
@@ -40,7 +39,7 @@ nse = NSE(defs.DIR)
 if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
     defs.updateAmiBrokerRecords(nse)
 
-if not 'DLV_PENDING_DATES' in defs.meta:
+if 'DLV_PENDING_DATES' not in defs.meta:
     defs.meta['DLV_PENDING_DATES'] = []
 
 if len(defs.meta['DLV_PENDING_DATES']):
@@ -49,7 +48,6 @@ if len(defs.meta['DLV_PENDING_DATES']):
     for dateStr in pendingList:
         if defs.updatePendingDeliveryData(nse, dateStr):
             writeJson(defs.META_FILE, defs.meta)
-
 
 while True:
     if not defs.dates.nextDate():
@@ -78,7 +76,7 @@ while True:
     try:
         # NSE delivery
         DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
-    except (RuntimeError, Exception) as e:
+    except (RuntimeError, Exception):
         defs.meta['DLV_PENDING_DATES'].append(defs.dates.dt.isoformat())
         DELIVERY_FILE = None
         print('Delivery Report Unavailable. Will retry in subsequent sync')
@@ -114,7 +112,8 @@ while True:
         defs.adjustNseStocks()
     except Exception as e:
         print(
-            f"Error while making adjustments. {e!r}\nAll adjustments have been discarded.")
+            f"Error while making adjustments. {e!r}\nAll adjustments have been discarded."
+        )
 
         defs.rollback(defs.DAILY_FOLDER)
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))

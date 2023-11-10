@@ -9,7 +9,6 @@ from matplotlib.collections import LineCollection
 from defs.DateTickFormatter import DateTickFormatter
 from defs.utils import arg_parse_dict, getDataFrame, getScreenSize, getLevels, getDeliveryLevels, writeJson, loadJson, randomChar, relativeStrength, manfieldRelativeStrength
 
-
 HELP = '''                                           ## Help ##
 
 Shift + H   Toggle help text                 R               Reset to original view
@@ -57,9 +56,10 @@ def format_coords(x, _):
 
     dt_str = f'{dt:%d %b %Y}'.upper()
 
-    O, H, L, C, V = df.loc[dt, ['Open', 'High', 'Low', 'Close', 'Volume']]
+    open, high, low, close, vol = df.loc[
+        dt, ['Open', 'High', 'Low', 'Close', 'Volume']]
 
-    _str = f'{dt_str}{s}O: {O}{s}H: {H}{s}L: {L}{s}C: {C}{s}V: {V:,.0f}'
+    _str = f'{dt_str}{s}O: {open}{s}H: {high}{s}L: {low}{s}C: {close}{s}V: {vol:,.0f}'
 
     if 'M_RS' in df.columns:
         _str += f'{s}MRS: {df.loc[dt, "M_RS"]}'
@@ -85,16 +85,9 @@ class Plotter:
         'picker': True
     }
 
-    segment_args = {
-        'pickradius': 3,
-        'picker': True,
-        'colors': ['crimson']
-    }
+    segment_args = {'pickradius': 3, 'picker': True, 'colors': ['crimson']}
 
-    title_args = {
-        'loc': 'right',
-        'fontdict': {'fontweight': 'bold'}
-    }
+    title_args = {'loc': 'right', 'fontdict': {'fontweight': 'bold'}}
 
     def __init__(self, args, config, plugins, parser, DIR: Path):
         plt.ion()
@@ -108,7 +101,8 @@ class Plotter:
 
         if args.preset and args.preset_save:
             exit(
-                'plot.py: error: argument --preset: not allowed with argument --preset_save')
+                'plot.py: error: argument --preset: not allowed with argument --preset_save'
+            )
 
         if args.preset:
             args = self._loadPreset(args.preset)
@@ -319,7 +313,7 @@ class Plotter:
         if event.key is None:
             self._add_hline(event.inaxes, y)
 
-        if not event.key in ('control', 'shift', 'ctrl+shift'):
+        if event.key not in ('control', 'shift', 'ctrl+shift'):
             return
 
         # shift + mouse click to assign coord for trend line
@@ -369,11 +363,13 @@ class Plotter:
                 if self.helpText is None:
                     x = self.main_ax.get_xlim()[0]
                     y = self.main_ax.get_ylim()[0]
-                    self.helpText = self.main_ax.text(x, y,
-                                                      HELP,
-                                                      color='darkslategrey',
-                                                      backgroundcolor='mintcream',
-                                                      fontweight='bold')
+                    self.helpText = self.main_ax.text(
+                        x,
+                        y,
+                        HELP,
+                        color='darkslategrey',
+                        backgroundcolor='mintcream',
+                        fontweight='bold')
                 else:
                     self.helpText.remove()
                     self.helpText = None
@@ -400,14 +396,16 @@ class Plotter:
             self.draw_mode = True
             self.main_ax.set_title('DRAW MODE', **self.title_args)
 
-            self.events.append(self.fig.canvas.mpl_connect('key_release_event',
-                                                           self._on_key_release))
+            self.events.append(
+                self.fig.canvas.mpl_connect('key_release_event',
+                                            self._on_key_release))
 
-            self.events.append(self.fig.canvas.mpl_connect('button_press_event',
-                                                           self._on_button_press))
+            self.events.append(
+                self.fig.canvas.mpl_connect('button_press_event',
+                                            self._on_button_press))
 
-            self.events.append(self.fig.canvas.mpl_connect('pick_event',
-                                                           self._on_pick))
+            self.events.append(
+                self.fig.canvas.mpl_connect('pick_event', self._on_pick))
 
     def _loadLines(self, lines):
         if df is None:
@@ -415,7 +413,7 @@ class Plotter:
 
         self.lines = lines
 
-        if not self.tf in self.lines:
+        if self.tf not in self.lines:
             return
 
         for url in self.lines[self.tf]['lines']:
@@ -433,7 +431,7 @@ class Plotter:
                 # check for DataFrame index out of bounds errors
                 try:
                     # Draw line to specified point on x-axis else draw to end
-                    if not xmax is None:
+                    if xmax is not None:
                         xmax = df.index.get_loc(xmax)
 
                     coord = (y, df.index.get_loc(xmin), xmax)
@@ -505,7 +503,7 @@ class Plotter:
 
             self.has_updated = True
 
-        self.segment_args['colors'] = (self.config.PLOT_ALINE_COLOR,)
+        self.segment_args['colors'] = (self.config.PLOT_ALINE_COLOR, )
 
         line = LineCollection([coords], url=url, **self.segment_args)
 
@@ -522,8 +520,9 @@ class Plotter:
             self.lines[self.tf]['length'] += 1
             url = f'hline:{randomChar(6)}'
 
-            self.lines[self.tf]['lines'][url] = (
-                y, df.index[xmin], df.index[xmax] if xmax else None)
+            self.lines[self.tf]['lines'][url] = (y, df.index[xmin],
+                                                 df.index[xmax]
+                                                 if xmax else None)
 
             self.has_updated = True
 
@@ -531,7 +530,7 @@ class Plotter:
             # draw line till end of x-axis
             xmax = df.index.get_loc(df.index[-1])
 
-        self.segment_args['colors'] = (self.config.PLOT_HLINE_COLOR,)
+        self.segment_args['colors'] = (self.config.PLOT_HLINE_COLOR, )
 
         line = axes.hlines(y, xmin, xmax, url=url, **self.segment_args)
 
@@ -562,7 +561,7 @@ class Plotter:
         if df is None:
             return
 
-        _open, high, low, close, * _ = df.iloc[x]
+        _open, high, low, close, *_ = df.iloc[x]
 
         if y >= high:
             # if pointer is at or above high snap to high
@@ -585,7 +584,7 @@ class Plotter:
 
         self.title = f'{sym.upper()} - {self.tf.capitalize()}'
 
-        if not meta is None:
+        if meta is not None:
             self.title += f' | {"  ".join(meta).upper()}'
 
         self.plot_args['title'] = self.title
@@ -606,11 +605,12 @@ class Plotter:
             }
 
         if self.args.rs:
-            added_plots.append(mpl.make_addplot(df['RS'],
-                                                panel='lower',
-                                                color=self.config.PLOT_RS_COLOR,
-                                                width=2.5,
-                                                ylabel='Dorsey RS'))
+            added_plots.append(
+                mpl.make_addplot(df['RS'],
+                                 panel='lower',
+                                 color=self.config.PLOT_RS_COLOR,
+                                 width=2.5,
+                                 ylabel='Dorsey RS'))
 
         if self.args.m_rs and 'M_RS' in df.columns:
             zero_line = pd.Series(data=0, index=df.index)
@@ -621,7 +621,6 @@ class Plotter:
                                  color=self.config.PLOT_M_RS_COLOR,
                                  width=2.5,
                                  ylabel='Mansfield RS'),
-
                 mpl.make_addplot(zero_line,
                                  panel='lower',
                                  color=self.config.PLOT_M_RS_COLOR,
@@ -631,40 +630,42 @@ class Plotter:
 
         if self.args.sma:
             for period in self.args.sma:
-                if not f'SMA_{period}' in df.columns:
+                if f'SMA_{period}' not in df.columns:
                     continue
 
-                added_plots.append(mpl.make_addplot(df[f'SMA_{period}'],
-                                                    label=f'SM{period}'))
+                added_plots.append(
+                    mpl.make_addplot(df[f'SMA_{period}'], label=f'SM{period}'))
 
         if self.args.ema:
             for period in self.args.ema:
-                if not f'EMA_{period}' in df.columns:
+                if f'EMA_{period}' not in df.columns:
                     continue
 
-                added_plots.append(mpl.make_addplot(df[f'EMA_{period}'],
-                                                    label=f'EM{period}'))
+                added_plots.append(
+                    mpl.make_addplot(df[f'EMA_{period}'], label=f'EM{period}'))
 
         if self.args.vol_sma:
             for period in self.args.vol_sma:
-                if not f'VMA_{period}' in df.columns:
+                if f'VMA_{period}' not in df.columns:
                     continue
 
-                added_plots.append(mpl.make_addplot(df[f'VMA_{period}'],
-                                                    label=f'MA{period}',
-                                                    panel='lower',
-                                                    linewidths=0.7))
+                added_plots.append(
+                    mpl.make_addplot(df[f'VMA_{period}'],
+                                     label=f'MA{period}',
+                                     panel='lower',
+                                     linewidths=0.7))
 
         if self.args.dlv and not df['DLV_QTY'].dropna().empty:
             getDeliveryLevels(df, self.config)
 
             self.plot_args['marketcolor_overrides'] = df['MCOverrides'].values
 
-            added_plots.append(mpl.make_addplot(df['IM'],
-                                                type='scatter',
-                                                marker='*',
-                                                color='midnightblue',
-                                                label="IM"))
+            added_plots.append(
+                mpl.make_addplot(df['IM'],
+                                 type='scatter',
+                                 marker='*',
+                                 color='midnightblue',
+                                 label="IM"))
 
         if len(added_plots) > 0:
             self.plot_args['addplot'] = added_plots
@@ -699,27 +700,29 @@ class Plotter:
             # prevent crash if plot period is less than RS period
             if df_len < rs_period:
                 print(
-                    f'WARN: {sym.upper()} - Inadequate data to plot Mansfield RS.')
+                    f'WARN: {sym.upper()} - Inadequate data to plot Mansfield RS.'
+                )
             else:
-                df['M_RS'] = manfieldRelativeStrength(df['Close'],
-                                                      self.idx_cl,
+                df['M_RS'] = manfieldRelativeStrength(df['Close'], self.idx_cl,
                                                       rs_period)
 
         if self.args.sma:
             for period in self.args.sma:
                 if df_len < period:
                     print(
-                        f'WARN: {sym.upper()} - Inadequate data to plot SMA {period}.')
+                        f'WARN: {sym.upper()} - Inadequate data to plot SMA {period}.'
+                    )
                     continue
 
-                df[f'SMA_{period}'] = df['Close'].rolling(
-                    period).mean().round(2)
+                df[f'SMA_{period}'] = df['Close'].rolling(period).mean().round(
+                    2)
 
         if self.args.ema:
             for period in self.args.ema:
                 if df_len < period:
                     print(
-                        f'WARN: {sym.upper()} - Inadequate data to plot EMA {period}.')
+                        f'WARN: {sym.upper()} - Inadequate data to plot EMA {period}.'
+                    )
                     continue
 
                 alpha = 2 / (period + 1)
@@ -731,7 +734,8 @@ class Plotter:
             for period in self.args.vol_sma:
                 if df_len < period:
                     print(
-                        f'WARN: {sym.upper()} - Inadequate data to plot Volume SMA {period}.')
+                        f'WARN: {sym.upper()} - Inadequate data to plot Volume SMA {period}.'
+                    )
                     continue
 
                 df[f'VMA_{period}'] = df['Volume'].rolling(
@@ -771,7 +775,7 @@ class Plotter:
         exit()
 
     def _loadPreset(self, preset):
-        if not preset in getattr(self.config, 'PRESET'):
+        if preset not in getattr(self.config, 'PRESET'):
             exit(f"Error: No preset named '{preset}'")
 
         args_dct = getattr(self.config, 'PRESET')[preset]
@@ -782,7 +786,8 @@ class Plotter:
         return self.parser.parse_args(arg_parse_dict(args_dct))
 
     def _savePreset(self, preset):
-        if self.args.watch and not self.args.watch.upper() in self.config.WATCH:
+        if self.args.watch and self.args.watch.upper(
+        ) not in self.config.WATCH:
             exit(f"Error: No watchlist named '{self.args.watch}'")
 
         data = loadJson(self.configPath) if self.configPath.is_file() else {}
@@ -792,7 +797,7 @@ class Plotter:
 
         del opts['preset_save']
 
-        if not 'PRESET' in data:
+        if 'PRESET' not in data:
             data['PRESET'] = {}
 
         data['PRESET'][preset] = opts
@@ -800,7 +805,7 @@ class Plotter:
         print(f"Preset saved as '{preset}'")
 
     def _removePreset(self, preset):
-        if not preset in getattr(self.config, 'PRESET'):
+        if preset not in getattr(self.config, 'PRESET'):
             exit(f"Error: No preset named: '{preset}'")
 
         if not self.configPath.is_file():
@@ -808,7 +813,7 @@ class Plotter:
 
         data = loadJson(self.configPath)
 
-        if not 'PRESET' in data or not preset in data['PRESET']:
+        if 'PRESET' not in data or preset not in data['PRESET']:
             exit(f"Error: No preset named: '{preset}'")
 
         del data['PRESET'][preset]
@@ -817,7 +822,7 @@ class Plotter:
         exit(f"Preset '{preset}' removed.")
 
     def _loadWatchList(self, watch):
-        if not watch.upper() in self.config.WATCH:
+        if watch.upper() not in self.config.WATCH:
             exit(f"Error: No watchlist named '{watch}'")
 
         file = self.DIR / 'data' / self.config.WATCH[watch.upper()]
@@ -830,7 +835,7 @@ class Plotter:
     def _addWatch(self, name, fName):
         data = loadJson(self.configPath) if self.configPath.is_file() else {}
 
-        if not 'WATCH' in data:
+        if 'WATCH' not in data:
             data['WATCH'] = {}
 
         data['WATCH'][name.upper()] = fName
@@ -838,15 +843,15 @@ class Plotter:
         exit(f"Added watchlist '{name}' with value '{fName}'")
 
     def _removeWatch(self, name):
-        if not name.upper() in getattr(self.config, 'WATCH'):
+        if name.upper() not in getattr(self.config, 'WATCH'):
             exit(f"Error: No watchlist named: '{name}'")
 
         if not self.configPath.is_file():
-            exit(f'No config file')
+            exit('No config file')
 
         data = loadJson(self.configPath)
 
-        if not 'WATCH' in data or not name.upper() in data['WATCH']:
+        if 'WATCH' not in data or name.upper() not in data['WATCH']:
             exit(f"Error: No watchlist named: '{name}'")
 
         del data['WATCH'][name.upper()]

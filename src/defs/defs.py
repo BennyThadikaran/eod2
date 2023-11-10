@@ -11,40 +11,40 @@ from defs.Dates import Dates
 from defs.Config import Config
 from typing import cast, Any
 
+if 'win' in sys.platform:
+    # enable color support in Windows
+    os.system('color')
+
+DIR = Path(__file__).parents[1]
+DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
+ISIN_FILE = DIR / 'eod2_data' / 'isin.csv'
+AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
+
+META_FILE = DIR / 'eod2_data' / 'meta.json'
+
+meta: dict = json.loads(META_FILE.read_bytes())
+
+config = Config()
+
+isin = pd.read_csv(ISIN_FILE, index_col='ISIN')
+
+headerText = 'Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n'
+
+splitRegex = re.compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
+
+bonusRegex = re.compile(r'(\d+) ?: ?(\d+)')
+
+hasLatestHolidays = False
+
+# initiate the dates class from utils.py
+dates = Dates(meta['lastUpdate'])
+
 # Avoid side effects in case this file is directly executed
 # instead of being imported
 if __name__ != '__main__':
 
-    if 'win' in sys.platform:
-        # enable color support in Windows
-        os.system('color')
-
-    DIR = Path(__file__).parents[1]
-    DAILY_FOLDER = DIR / 'eod2_data' / 'daily'
-    ISIN_FILE = DIR / 'eod2_data' / 'isin.csv'
-    AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
-
-    META_FILE = DIR / 'eod2_data' / 'meta.json'
-
-    meta: dict = json.loads(META_FILE.read_bytes())
-
-    config = Config()
-
     if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
         AMIBROKER_FOLDER.mkdir()
-
-    isin = pd.read_csv(ISIN_FILE, index_col='ISIN')
-
-    headerText = 'Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n'
-
-    splitRegex = re.compile(r'(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)')
-
-    bonusRegex = re.compile(r'(\d+) ?: ?(\d+)')
-
-    # initiate the dates class from utils.py
-    dates = Dates(meta['lastUpdate'])
-
-    hasLatestHolidays = False
 
 
 def getHolidayList(nse: NSE):
@@ -72,9 +72,9 @@ def checkForHolidays(nse: NSE):
     curDt = dates.dt.strftime('%d-%b-%Y')
     isToday = curDt == dates.today.strftime('%d-%b-%Y')
 
-    if not 'holidays' in meta or meta['holidayYear'] != dates.dt.year:
+    if 'holidays' not in meta or meta['year'] != dates.dt.year:
         meta['holidays'] = getHolidayList(nse)
-        meta['holidayYear'] = dates.dt.year
+        meta['year'] = dates.dt.year
         hasLatestHolidays = True
 
     if curDt in meta['holidays']:
@@ -100,7 +100,7 @@ def validateNseActionsFile(nse: NSE):
     for actions in ('equityActions', 'smeActions'):
         segment = 'sme' if 'sme' in actions else 'equities'
 
-        if not actions in meta:
+        if actions not in meta:
             print(f'Updating NSE {segment.upper()} actions file')
 
             try:
@@ -166,10 +166,8 @@ def updatePendingDeliveryData(nse: NSE, date: str):
 
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
-        df = df[(df[' SERIES'] == ' EQ') |
-                (df[' SERIES'] == ' BE') |
-                (df[' SERIES'] == ' BZ') |
-                (df[' SERIES'] == ' SM') |
+        df = df[(df[' SERIES'] == ' EQ') | (df[' SERIES'] == ' BE') |
+                (df[' SERIES'] == ' BZ') | (df[' SERIES'] == ' SM') |
                 (df[' SERIES'] == ' ST')]
 
         for sym in df.index:
@@ -182,7 +180,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
                                   index_col='Date',
                                   parse_dates=True)
 
-            if not dt in dailyDf.index:
+            if dt not in dailyDf.index:
                 continue
 
             vol = dailyDf.loc[dt, 'Volume']
@@ -220,32 +218,37 @@ def updateAmiBrokerRecords(nse: NSE):
     '''Downloads and updates the amibroker files upto the number of days
     set in Config.AMI_UPDATE_DAYS'''
 
-    lastUpdate = datetime.fromisoformat(meta['lastUpdate'])
-    dates.dt -= timedelta(config.AMI_UPDATE_DAYS)
+    lastUpdate = datetime.fromisoformat(meta['lastUpdate']) + timedelta(1)
+    dt = lastUpdate - timedelta(config.AMI_UPDATE_DAYS)
     totalDays = config.AMI_UPDATE_DAYS
 
-    print(f'Fetching bhavcopy for last {totalDays} days',
-          'and converting to AmiBroker format.\n'
-          'This is a one time process. It will take a few minutes.')
+    print(
+        f'Fetching bhavcopy for last {totalDays} days',
+        'and converting to AmiBroker format.\n'
+        'This is a one time process. It will take a few minutes.')
 
-    while dates.dt <= lastUpdate:
-        if dates.dt.weekday() == 5:
-            dates.dt += timedelta(2)
+    while dt < lastUpdate:
+        dt += timedelta(1)
 
-        try:
-            bhavFile = nse.equityBhavcopy(dates.dt)
-        except (RuntimeError, FileNotFoundError):
-            dates.dt += timedelta(1)
+        if dt.weekday() > 4:
             continue
+
+        dtStr = dt.strftime('%d%b%Y').upper()
+        bhavFile = DIR / 'nseBhav' / str(dt.year) / f'cm{dtStr}bhav.csv'
+
+        if not bhavFile.exists():
+            try:
+                bhavFile = nse.equityBhavcopy(dt)
+            except (RuntimeError, FileNotFoundError):
+                continue
 
         toAmiBrokerFormat(bhavFile)
 
         bhavFile.unlink()
 
-        daysComplete = totalDays - (lastUpdate - dates.dt).days
+        daysComplete = totalDays - (lastUpdate - dt).days
         pctComplete = int(daysComplete / totalDays * 100)
         print(f'{pctComplete} %', end="\r" * 5, flush=True)
-        dates.dt += timedelta(1)
 
     print("\nDone")
 
@@ -253,8 +256,10 @@ def updateAmiBrokerRecords(nse: NSE):
 def toAmiBrokerFormat(file: Path):
     'Converts and saves bhavcopy into amibroker format'
 
-    cols = ['SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH',
-            'LOW', 'CLOSE', 'TOTTRDQTY', 'ISIN']
+    cols = [
+        'SYMBOL', 'TIMESTAMP', 'OPEN', 'HIGH', 'LOW', 'CLOSE', 'TOTTRDQTY',
+        'ISIN'
+    ]
 
     rcols = list(cols)
     rcols[1] = 'DATE'
@@ -262,10 +267,8 @@ def toAmiBrokerFormat(file: Path):
 
     df = pd.read_csv(file, parse_dates=['TIMESTAMP'])
 
-    df = df[(df['SERIES'] == 'EQ') |
-            (df['SERIES'] == 'BE') |
-            (df['SERIES'] == 'BZ') |
-            (df['SERIES'] == 'SM') |
+    df = df[(df['SERIES'] == 'EQ') | (df['SERIES'] == 'BE') |
+            (df['SERIES'] == 'BZ') | (df['SERIES'] == 'SM') |
             (df['SERIES'] == 'ST')]
 
     df = df[cols]
@@ -291,10 +294,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
 
     # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
-    df: pd.DataFrame = df[(df['SERIES'] == 'EQ') |
-                          (df['SERIES'] == 'BE') |
-                          (df['SERIES'] == 'BZ') |
-                          (df['SERIES'] == 'SM') |
+    df: pd.DataFrame = df[(df['SERIES'] == 'EQ') | (df['SERIES'] == 'BE') |
+                          (df['SERIES'] == 'BZ') | (df['SERIES'] == 'SM') |
                           (df['SERIES'] == 'ST')]
 
     if config.AMIBROKER:
@@ -314,9 +315,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
 
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
-        dlvDf = dlvDf[(dlvDf[' SERIES'] == ' EQ') |
-                      (dlvDf[' SERIES'] == ' BE') |
-                      (dlvDf[' SERIES'] == ' BZ') |
+        dlvDf = dlvDf[(dlvDf[' SERIES'] == ' EQ') | (dlvDf[' SERIES'] == ' BE')
+                      | (dlvDf[' SERIES'] == ' BZ') |
                       (dlvDf[' SERIES'] == ' SM') |
                       (dlvDf[' SERIES'] == ' ST')]
     else:
@@ -330,10 +330,10 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
         if '-RE' in t.SYMBOL:
             continue
 
-        if not dlvDf is None:
+        if dlvDf is not None:
             if t.SYMBOL in dlvDf.index:
-                trdCnt, dq = dlvDf.loc[t.SYMBOL, [
-                    ' NO_OF_TRADES', ' DELIV_QTY']]
+                trdCnt, dq = dlvDf.loc[t.SYMBOL,
+                                       [' NO_OF_TRADES', ' DELIV_QTY']]
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
@@ -350,7 +350,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
         # When a symbol name changes its ISIN remains the same
         # This allows for tracking changes in symbol names and
         # updating file names accordingly
-        if not t.Index in isin.index:
+        if t.Index not in isin.index:
             isinUpdated = True
             isin.at[t.Index, 'SYMBOL'] = t.SYMBOL
 
@@ -371,7 +371,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
                 OLD_FILE.rename(SYM_FILE)
             except FileNotFoundError:
                 print(
-                    f'WARN: Renaming daily/{old}.csv to {new}.csv. No such file.')
+                    f'WARN: Renaming daily/{old}.csv to {new}.csv. No such file.'
+                )
 
             print(f'Name Changed: {old} to {new}')
 
@@ -382,7 +383,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
         isin.to_csv(ISIN_FILE)
 
 
-def updateNseSymbol(symFile: Path, o, h, l, c, v, trdCnt, dq):
+def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
     'Appends EOD stock data to end of file'
 
     text = ''
@@ -390,9 +391,9 @@ def updateNseSymbol(symFile: Path, o, h, l, c, v, trdCnt, dq):
     if not symFile.is_file():
         text += headerText
 
-    avgTrdCnt = '' if trdCnt == '' else round(v / trdCnt, 2)
+    avgTrdCnt = '' if trdCnt == '' else round(volume / trdCnt, 2)
 
-    text += f'{dates.pandasDt},{o},{h},{l},{c},{v},{trdCnt},{avgTrdCnt},{dq}\n'
+    text += f'{dates.pandasDt},{open},{high},{low},{close},{volume},{trdCnt},{avgTrdCnt},{dq}\n'
 
     with symFile.open('a') as f:
         f.write(text)
@@ -434,10 +435,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
         print(f'{symbol}: File not found')
         return
 
-    df = pd.read_csv(file,
-                     index_col='Date',
-                     parse_dates=True,
-                     na_filter=False)
+    df = pd.read_csv(file, index_col='Date', parse_dates=True, na_filter=False)
 
     idx = df.index.get_loc(dates.dt)
 
@@ -453,7 +451,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
     return (df, file)
 
 
-def updateIndice(sym, O, H, L, C, V):
+def updateIndice(sym, open, high, low, close, volume):
     'Appends Index EOD data to end of file'
 
     file = DAILY_FOLDER / f'{sym.lower()}.csv'
@@ -463,7 +461,7 @@ def updateIndice(sym, O, H, L, C, V):
     if not file.is_file():
         text += headerText
 
-    text += f"{dates.pandasDt},{O},{H},{L},{C},{V},,,\n"
+    text += f"{dates.pandasDt},{open},{high},{low},{close},{volume},,,\n"
 
     with file.open('a') as f:
         f.write(text)
@@ -486,17 +484,16 @@ def updateIndexEOD(file: Path):
                'sector_watchlist.csv').read_text().strip().split("\n")
 
     if any(config.ADDITIONAL_INDICES):
-        indices.extend([
-            sym for sym in config.ADDITIONAL_INDICES if sym not in indices
-        ])
+        indices.extend(
+            [sym for sym in config.ADDITIONAL_INDICES if sym not in indices])
 
     for sym in indices:
-        O, H, L, C, V = df.loc[sym, [
-            'Open Index Value', 'High Index Value',
-            'Low Index Value', 'Closing Index Value', 'Volume'
+        open, high, low, close, volume = df.loc[sym, [
+            'Open Index Value', 'High Index Value', 'Low Index Value',
+            'Closing Index Value', 'Volume'
         ]]
 
-        updateIndice(sym, O, H, L, C, V)
+        updateIndice(sym, open, high, low, close, volume)
 
     pe = float(df.at['Nifty 50', 'P/E'])
 
@@ -524,7 +521,7 @@ def adjustNseStocks():
                 ex = act['exDate']
                 series = act['series']
 
-                if not series in ('EQ', 'BE', 'BZ', 'SM', 'ST'):
+                if series not in ('EQ', 'BE', 'BZ', 'SM', 'ST'):
                     continue
 
                 if series in ('SM', 'ST'):
@@ -592,8 +589,10 @@ def rollback(folder: Path):
     print(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
-        df = pd.read_csv(file, index_col='Date',
-                         parse_dates=True, na_filter=False)
+        df = pd.read_csv(file,
+                         index_col='Date',
+                         parse_dates=True,
+                         na_filter=False)
 
         if dt in df.index:
             df = df.drop(dt)

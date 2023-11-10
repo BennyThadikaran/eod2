@@ -25,7 +25,8 @@ def writeJson(fPath: Path, data):
 
 
 def randomChar(length):
-    return ''.join(random.choice(string.ascii_lowercase) for _ in range(length))
+    return ''.join(
+        random.choice(string.ascii_lowercase) for _ in range(length))
 
 
 def getDataFrame(fpath: Path,
@@ -34,10 +35,7 @@ def getDataFrame(fpath: Path,
                  column=None,
                  customDict=None,
                  fromDate=None) -> Any:
-    df = pd.read_csv(fpath,
-                     index_col='Date',
-                     parse_dates=True,
-                     na_filter=True)
+    df = pd.read_csv(fpath, index_col='Date', parse_dates=True, na_filter=True)
 
     if fromDate:
         df = df[:fromDate]
@@ -66,13 +64,13 @@ def arg_parse_dict(dct):
     lst = []
     for arg, val in dct.items():
         arg = arg.replace("_", "-")
-        if val is None or val == False:
+        if val is None or not val:
             continue
 
-        if type(val) == list:
+        if isinstance(val, list):
             lst.append(f'--{arg}')
             lst.extend(map(str, val))
-        elif val == True:
+        elif val:
             lst.append(f'--{arg}')
         else:
             lst.extend((f'--{arg}', str(val)))
@@ -131,21 +129,19 @@ def getLevels(df, mean_candle_size: float):
 
     # filter for rejection from top
     # 2 succesive highs followed by 2 succesive lower highs
-    local_max = df['High'][
-        (df['High'].shift(1) < df['High']) &
-        (df['High'].shift(2) < df['High'].shift(1)) &
-        (df['High'].shift(-1) < df['High']) &
-        (df['High'].shift(-2) < df['High'].shift(-1))
-    ].dropna()
+    local_max = df['High'][(df['High'].shift(1) < df['High'])
+                           & (df['High'].shift(2) < df['High'].shift(1)) &
+                           (df['High'].shift(-1) < df['High']) &
+                           (df['High'].shift(-2)
+                            < df['High'].shift(-1))].dropna()
 
     # filter for rejection from bottom
     # 2 succesive highs followed by 2 succesive lower highs
-    local_min = df['Low'][
-        (df['Low'].shift(1) > df['Low']) &
-        (df['Low'].shift(2) > df['Low'].shift(1)) &
-        (df['Low'].shift(-1) > df['Low']) &
-        (df['Low'].shift(-2) > df['Low'].shift(-1))
-    ].dropna()
+    local_min = df['Low'][(df['Low'].shift(1) > df['Low'])
+                          & (df['Low'].shift(2) > df['Low'].shift(1)) &
+                          (df['Low'].shift(-1) > df['Low']) &
+                          (df['Low'].shift(-2)
+                           > df['Low'].shift(-1))].dropna()
 
     for idx in local_max.index:
         level = local_max[idx]

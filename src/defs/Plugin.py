@@ -3,6 +3,7 @@ from argparse import ArgumentParser
 
 
 class Plugin:
+
     def __init__(self):
         self.plugins = []
 
