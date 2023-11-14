@@ -55,7 +55,7 @@ def getHolidayList(nse: NSE):
     except Exception as e:
         exit(f'{e!r}\nFailed to download holidays')
 
-    # CM pertains to capital market or equity holdays
+    # CM pertains to capital market or equity holidays
     data = {k['tradingDate']: k['description'] for k in data['CM']}
     print('NSE Holiday list updated')
 
@@ -82,7 +82,7 @@ def checkForHolidays(nse: NSE):
             meta['holidays'] = getHolidayList(nse)
 
         if not isToday:
-            print(f'{curDt} Market Holiday: {meta["holdays"][curDt]}')
+            print(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
             return True
 
         exit(f'Market Holiday: {meta["holidays"][curDt]}')
