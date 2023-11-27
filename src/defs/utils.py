@@ -70,7 +70,7 @@ def arg_parse_dict(dct):
         if isinstance(val, list):
             lst.append(f'--{arg}')
             lst.extend(map(str, val))
-        elif val:
+        elif val is True:
             lst.append(f'--{arg}')
         else:
             lst.extend((f'--{arg}', str(val)))
