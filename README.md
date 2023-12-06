@@ -4,13 +4,14 @@ An automated Python script to download and update NSE stocks, indices, and deliv
 
 Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for use in backtesting.
 
+If you :heart: my work so far, please :star2: this repo.
+
 ### Notes
 
 - 'Daily' and 'Delivery' folders contain OHLC and delivery data for individual stocks.
 - A list of available indices can be found in 'src/eod2_data/sector_watchlist.csv'.
 - **Stock data before 2005 may not be fully adjusted** as NSE does not provide adjustment data before this year.
-
-If you :heart: my work so far, please :star2: this repo.
+- Supports **Python version >= 3.8**
 
 ## 👽 Installation, Usage, and Other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
 

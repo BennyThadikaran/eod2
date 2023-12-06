@@ -9,7 +9,7 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Dates import Dates
 from defs.Config import Config
-from typing import cast, Any
+from typing import cast, Any, Dict, Union
 
 if 'win' in sys.platform:
     # enable color support in Windows
@@ -22,7 +22,7 @@ AMIBROKER_FOLDER = DIR / 'eod2_data' / 'amibroker'
 
 META_FILE = DIR / 'eod2_data' / 'meta.json'
 
-meta: dict = json.loads(META_FILE.read_bytes())
+meta: Dict = json.loads(META_FILE.read_bytes())
 
 config = Config()
 
@@ -277,7 +277,7 @@ def toAmiBrokerFormat(file: Path):
     df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
 
 
-def updateNseEOD(bhavFile: Path, deliveryFile: Path | None):
+def updateNseEOD(bhavFile: Path, deliveryFile: Union[Path, None]):
     """Update all stocks with latest price data from bhav copy"""
 
     isinUpdated = False
@@ -487,11 +487,17 @@ def updateIndexEOD(file: Path):
         indices.extend(
             [sym for sym in config.ADDITIONAL_INDICES if sym not in indices])
 
+    cols = [
+        'Open Index Value', 'High Index Value', 'Low Index Value',
+        'Closing Index Value', 'Volume'
+    ]
+
+    # replace all '-' in columns with 0
+    for col in cols:
+        df[col] = pd.to_numeric(df[col], errors='coerce').fillna(0)
+
     for sym in indices:
-        open, high, low, close, volume = df.loc[sym, [
-            'Open Index Value', 'High Index Value', 'Low Index Value',
-            'Closing Index Value', 'Volume'
-        ]]
+        open, high, low, close, volume = df.loc[sym, cols]
 
         updateIndice(sym, open, high, low, close, volume)
 

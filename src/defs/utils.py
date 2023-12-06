@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 from pathlib import Path
 from tkinter import Tk
-from typing import Any
+from typing import Any, List
 
 
 class DateEncoder(json.JSONEncoder):
@@ -114,7 +114,7 @@ def getDeliveryLevels(df, config):
             df.loc[idx, 'MCOverrides'] = config.PLOT_DLV_DEFAULT_COLOR
 
 
-def isFarFromLevel(level: float, levels: list, mean_candle_size: float):
+def isFarFromLevel(level: float, levels: List, mean_candle_size: float):
     '''Returns true if difference between the level and any of the price levels
     is greater than the mean_candle_size.'''
     # Detection of price support and resistance levels in Python -Gianluca Malato
