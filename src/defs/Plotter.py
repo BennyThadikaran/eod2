@@ -188,7 +188,7 @@ class Plotter:
                                        self.tf,
                                        self.max_period,
                                        'Close',
-                                       fromDate=self.args.date)
+                                       toDate=self.args.date)
 
     def plot(self, sym):
         global df
@@ -682,7 +682,7 @@ class Plotter:
         df = getDataFrame(fpath,
                           self.tf,
                           self.max_period,
-                          fromDate=self.args.date)
+                          toDate=self.args.date)
 
         df_len = df.shape[0]
 

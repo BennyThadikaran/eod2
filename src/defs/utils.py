@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 from pathlib import Path
 from tkinter import Tk
-from typing import Any, List
+from typing import Any, Union, List, Tuple
 
 
 class DateEncoder(json.JSONEncoder):
@@ -32,18 +32,21 @@ def randomChar(length):
 def getDataFrame(fpath: Path,
                  tf: str,
                  period: int,
-                 column=None,
-                 customDict=None,
-                 fromDate=None) -> Any:
-    df = pd.read_csv(fpath, index_col='Date', parse_dates=True, na_filter=True)
+                 column: Union[str, None] = None,
+                 customDict: Union[dict, None] = None,
+                 toDate: Union[str, None] = None) -> Any:
+    df: pd.DataFrame = pd.read_csv(fpath,
+                                   index_col='Date',
+                                   parse_dates=True,
+                                   na_filter=True)
 
-    if fromDate:
-        df = df[:fromDate]
+    if toDate:
+        df = df[:toDate]
 
     if customDict:
-        dct = customDict
+        dct: dict = customDict
     else:
-        dct = {
+        dct: dict = {
             'Open': 'first',
             'High': 'max',
             'Low': 'min',
@@ -60,22 +63,41 @@ def getDataFrame(fpath: Path,
     return df[-period:] if column is None else df[column][-period:]
 
 
-def arg_parse_dict(dct):
-    lst = []
+def arg_parse_dict(dct: dict) -> list:
+    """
+    Convert a dictionary of arguments and values into a list of command-line 
+    arguments.
+
+    Parameters:
+    - dct (dict): Dictionary containing argument names and values.
+
+    Returns:
+    - list: List of command-line style arguments.
+
+    Example:
+    ```python
+    args = {'input_file': 'data.txt', 'output_dir': '/output', 'verbose': True}
+    command_line_args = arg_parse_dict(args)
+    ```
+    """
+
+    result = []
+
     for arg, val in dct.items():
-        arg = arg.replace("_", "-")
-        if val is None or not val:
+        if val is False or val is None:
             continue
 
-        if isinstance(val, list):
-            lst.append(f'--{arg}')
-            lst.extend(map(str, val))
-        elif val is True:
-            lst.append(f'--{arg}')
-        else:
-            lst.extend((f'--{arg}', str(val)))
+        arg = arg.replace("_", "-")
 
-    return lst
+        result.append(f'--{arg}')
+
+        if val is not True:
+            if isinstance(val, list):
+                result.extend(map(str, val))
+            else:
+                result.append(str(val))
+
+    return result
 
 
 def getDeliveryLevels(df, config):
@@ -114,7 +136,8 @@ def getDeliveryLevels(df, config):
             df.loc[idx, 'MCOverrides'] = config.PLOT_DLV_DEFAULT_COLOR
 
 
-def isFarFromLevel(level: float, levels: List, mean_candle_size: float):
+def isFarFromLevel(level: float, levels: List[Tuple[pd.DatetimeIndex, float]],
+                   mean_candle_size: float) -> bool:
     '''Returns true if difference between the level and any of the price levels
     is greater than the mean_candle_size.'''
     # Detection of price support and resistance levels in Python -Gianluca Malato
@@ -122,8 +145,38 @@ def isFarFromLevel(level: float, levels: List, mean_candle_size: float):
     return sum([abs(level - x[1]) < mean_candle_size for x in levels]) == 0
 
 
-def getLevels(df, mean_candle_size: float):
-    '''get support and resistance levels'''
+def getLevels(
+    df: pd.DataFrame, mean_candle_size: float
+) -> List[Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex,
+                                                      float]]]:
+    '''
+    Identify potential support and resistance levels in a DataFrame.
+
+    Parameters:
+    - df (pd.DataFrame): DataFrame containing at least 'High' and 'Low' columns.
+    - mean_candle_size (float): The mean size of a candle, used as a threshold for level clustering.
+
+    Returns:
+    - list of tuples: Each tuple represents a horizontal line segment, defined by two points.
+      Each point is a tuple containing date and price.
+      The list represents identified support and resistance levels.
+
+    Algorithm:
+    - The function uses local maxima and minima in the 'High' and 'Low' prices to identify potential reversal points.
+    - It filters for rejection from the top (local maxima) and from the bottom (local minima).
+    - To avoid clustering of support and resistance lines, it utilizes the isFarFromLevel function.
+    - Identified levels are returned as horizontal line segments for visualization.
+
+    Example Usage:
+    ```python
+    # Example DataFrame df with 'High' and 'Low' columns
+    levels = getLevels(df, mean_candle_size=2.0)
+    ```
+
+    Note:
+    - It is recommended to provide a DataFrame with sufficient historical price data for accurate level identification.
+    - The function is designed for use in financial technical analysis.
+    '''
 
     levels = []
 
@@ -163,7 +216,7 @@ def getLevels(df, mean_candle_size: float):
     for dt, price in levels:
         # a tuple containing start and end point coordinates for a horizontal line
         # Each tuple is composed of date and price.
-        seq = [(dt, price), (lastDt, price)]
+        seq = ((dt, price), (lastDt, price))
         alines.append(seq)
 
     return alines
@@ -179,11 +232,12 @@ def getScreenSize():
     return (round(width / mm), round(height / mm))
 
 
-def relativeStrength(close, index_close):
+def relativeStrength(close: pd.Series, index_close: pd.Series) -> pd.Series:
     return (close / index_close * 100).round(2)
 
 
-def manfieldRelativeStrength(close, index_close, period):
+def manfieldRelativeStrength(close: pd.Series, index_close: pd.Series,
+                             period: int) -> pd.Series:
     rs = relativeStrength(close, index_close)
 
     sma_rs = rs.rolling(period).mean()
