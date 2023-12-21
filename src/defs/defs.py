@@ -7,9 +7,36 @@ import pandas as pd
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
-from defs.Dates import Dates
 from defs.Config import Config
-from typing import cast, Any, Dict, Union
+from typing import cast, Any, Dict, Union, List
+
+
+class Dates:
+    'A class for date related functions in EOD2'
+
+    def __init__(self, lastUpdate: str):
+        self.today = datetime.combine(datetime.today(), datetime.min.time())
+        self.dt = self.lastUpdate = datetime.fromisoformat(lastUpdate)
+        self.pandasDt = self.dt.strftime('%Y-%m-%d')
+
+    def nextDate(self):
+        '''Set the next trading date and return True.
+        If its a future date, return False'''
+
+        curTime = datetime.today()
+        self.dt = self.dt + timedelta(1)
+
+        if self.dt > curTime:
+            print('All Up To Date')
+            return False
+
+        if self.dt.day == curTime.day and curTime.hour < 18:
+            print("All Up To Date. Check again after 7pm for today's EOD data")
+            return False
+
+        self.pandasDt = self.dt.strftime('%Y-%m-%d')
+        return True
+
 
 if 'win' in sys.platform:
     # enable color support in Windows
@@ -47,6 +74,16 @@ if __name__ != '__main__':
         AMIBROKER_FOLDER.mkdir()
 
 
+def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
+
+    for lst in holidays.values():
+        for dct in lst:
+            if 'Laxmi Pujan' in dct['description']:
+                return dct
+
+    return {}
+
+
 def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
     Saves and returns the holiday Object"""
@@ -56,6 +93,8 @@ def getHolidayList(nse: NSE):
         exit(f'{e!r}\nFailed to download holidays')
 
     # CM pertains to capital market or equity holidays
+    data['CM'].append(getMuhuratHolidayInfo(data))
+
     data = {k['tradingDate']: k['description'] for k in data['CM']}
     print('NSE Holiday list updated')
 
@@ -72,15 +111,24 @@ def checkForHolidays(nse: NSE):
     curDt = dates.dt.strftime('%d-%b-%Y')
     isToday = curDt == dates.today.strftime('%d-%b-%Y')
 
-    if 'holidays' not in meta or meta['year'] != dates.dt.year:
+    # no holiday list or year has changed or today is a holiday
+    if 'holidays' not in meta or meta['year'] != dates.dt.year or (
+            curDt in meta['holidays'] and not hasLatestHolidays):
+
         meta['holidays'] = getHolidayList(nse)
         meta['year'] = dates.dt.year
         hasLatestHolidays = True
 
-    if curDt in meta['holidays']:
-        if not hasLatestHolidays:
-            meta['holidays'] = getHolidayList(nse)
+    isMuhurat = curDt in meta['holidays'] and 'Laxmi Pujan' in meta[
+        'holidays'][curDt]
 
+    if isMuhurat:
+        return False
+
+    if dates.dt.weekday() > 4:
+        return True
+
+    if curDt in meta['holidays']:
         if not isToday:
             print(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
             return True
@@ -97,38 +145,41 @@ def validateNseActionsFile(nse: NSE):
     The actionsFile pertains to Bonus, Splits, dividends etc.
     """
 
-    for actions in ('equityActions', 'smeActions'):
-        segment = 'sme' if 'sme' in actions else 'equities'
+    for action in ('equity', 'sme'):
+        segment = 'sme' if action == 'sme' else 'equities'
 
-        if actions not in meta:
-            print(f'Updating NSE {segment.upper()} actions file')
+        if f'{action}Actions' not in meta:
+            print(f'Downloading NSE {action.upper()} actions')
 
             try:
-                meta[actions] = nse.actions(segment=segment,
-                                            from_date=dates.dt,
-                                            to_date=dates.dt + timedelta(8))
+                meta[f'{action}Actions'] = nse.actions(segment=segment,
+                                                       from_date=dates.dt,
+                                                       to_date=dates.dt +
+                                                       timedelta(8))
             except Exception as e:
-                exit(f'{e!r}\nFailed to download {segment} actions')
+                exit(f'{e!r}\nFailed to download {action} actions')
 
-            meta[f'{actions}Expiry'] = (dates.dt + timedelta(7)).isoformat()
+            meta[f'{action}ActionsExpiry'] = (dates.dt +
+                                              timedelta(7)).isoformat()
         else:
-            expiryDate = datetime.fromisoformat(meta[f'{actions}Expiry'])
+            expiryDate = datetime.fromisoformat(meta[f'{action}ActionsExpiry'])
             newExpiry = (expiryDate + timedelta(7)).isoformat()
 
             # Update every 7 days from last download
             if dates.dt < expiryDate:
                 continue
 
-            print(f'Updating NSE {segment.upper()} actions file')
+            print(f'Updating NSE {action.upper()} actions')
 
             try:
-                meta[actions] = nse.actions(segment=segment,
-                                            from_date=expiryDate,
-                                            to_date=expiryDate + timedelta(8))
+                meta[f'{action}Actions'] = nse.actions(segment=segment,
+                                                       from_date=expiryDate,
+                                                       to_date=expiryDate +
+                                                       timedelta(8))
             except Exception as e:
-                exit(f'{e!r}\nFailed to download {segment} actions')
+                exit(f'{e!r}\nFailed to update {action} actions')
 
-            meta[f'{actions}Expiry'] = newExpiry
+            meta[f'{action}ActionsExpiry'] = newExpiry
 
 
 def updatePendingDeliveryData(nse: NSE, date: str):
@@ -514,14 +565,12 @@ def adjustNseStocks():
     dtStr = dates.dt.strftime('%d-%b-%Y')
 
     for actions in ('equityActions', 'smeActions'):
-        actions = meta[actions]
-
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
         dfCommits = []
 
         try:
-            for act in actions:
+            for act in meta[actions]:
                 sym = act['symbol']
                 purpose = act['subject'].lower()
                 ex = act['exDate']
