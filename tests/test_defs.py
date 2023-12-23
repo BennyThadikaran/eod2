@@ -2,6 +2,10 @@ import unittest
 from unittest.mock import Mock, patch
 from context import defs
 from datetime import datetime
+from pathlib import Path
+import pandas as pd
+
+DIR = Path(__file__).parent / 'test_data'
 
 
 class TestGetMuhuratHolidayInfo(unittest.TestCase):
@@ -77,6 +81,41 @@ class TestGetHolidayList(unittest.TestCase):
 
 
 class TestCheckForHolidays(unittest.TestCase):
+
+    @patch.object(defs, 'dates')
+    @patch.object(defs, 'getHolidayList')
+    @patch.object(defs, 'hasLatestHolidays', True)
+    def test_is_muhurat(self, mock_get_holiday_list, _):
+
+        defs.dates.dt = defs.dates.today = datetime(2023, 11, 12)
+
+        meta_obj = {'holidays': {'12-Nov-2023': 'Laxmi Pujan'}, 'year': 2023}
+
+        # Mock NSE class
+        mock_nse = Mock()
+
+        # Call the function
+        with patch.object(defs, 'meta', meta_obj):
+            result = defs.checkForHolidays(mock_nse)
+
+        self.assertFalse(result)
+        mock_get_holiday_list.assert_not_called()
+
+    @patch.object(defs, 'dates')
+    @patch.object(defs, 'getHolidayList')
+    def test_is_weekend(self, mock_get_holiday_list, _):
+
+        defs.dates.dt = defs.dates.today = datetime(2023, 1, 1)
+
+        # Mock NSE class
+        mock_nse = Mock()
+
+        # Call the function
+        with patch.object(defs, 'meta', {'holidays': {}, 'year': 2023}):
+            result = defs.checkForHolidays(mock_nse)
+
+        self.assertTrue(result)
+        mock_get_holiday_list.assert_not_called()
 
     @patch.object(defs, 'getHolidayList')
     @patch.object(defs, 'hasLatestHolidays', False)
@@ -278,6 +317,74 @@ class TestValidateNseActionsFile(unittest.TestCase):
 
         mock_nse.actions.assert_not_called()
         self.assertEqual(defs.meta, meta_obj)
+
+
+class TestUpdateNseEOD(unittest.TestCase):
+
+    def setUp(self):
+
+        # Create temporary folders and files for testing
+        self.bhav_file_path = DIR / 'bhav_copy.csv'
+        self.delivery_file_path = DIR / 'delivery_data.csv'
+        self.bhav_folder = DIR / 'nseBhav/2023'
+        self.dlv_folder = DIR / 'nseDelivery/2023'
+        self.isin_file = DIR / 'isin.csv'
+
+    def tearDown(self) -> None:
+        bhav_file = DIR / 'nseBhav/2023/bhav_copy.csv'
+        dlv_file = DIR / 'nseDelivery/2023/delivery_data.csv'
+
+        bhav_file.unlink()
+        dlv_file.unlink()
+
+        bhav_file.parents[0].rmdir()
+        bhav_file.parents[1].rmdir()
+
+        dlv_file.parents[0].rmdir()
+        dlv_file.parents[1].rmdir()
+
+    @patch.multiple(defs,
+                    DIR=DIR,
+                    isin=pd.read_csv(DIR / 'isin.csv', index_col='ISIN'),
+                    ISIN_FILE=DIR / 'isin.csv',
+                    DAILY_FOLDER=DIR)
+    @patch.object(defs, 'config')
+    @patch.object(defs, 'updateNseSymbol')
+    def test_updateNseEOD_with_delivery_file(self, mock_update_nse_symbol,
+                                             mock_config):
+
+        mock_update_nse_symbol.return_value = None
+
+        mock_config.AMIBROKER = False
+
+        # Call the function
+        defs.updateNseEOD(self.bhav_file_path, self.delivery_file_path)
+
+        symbols = ('bob', 'jam', 'jax', 'fax_sme', 'kax_sme')
+
+        # Make assertions
+        # Only EQ, BE, BZ, SM and ST series are allowed
+        self.assertEqual(mock_update_nse_symbol.call_count, 5)
+
+        for i, call in enumerate(mock_update_nse_symbol.call_args_list):
+            args = call.args
+
+            expected_filename = f'{symbols[i]}.csv'
+
+            # first argument must be pathlib.Path
+            self.assertTrue(
+                isinstance(args[0], Path)
+                and args[0].name == expected_filename)
+
+            i = i + 1  # zero indexed
+
+            # check if args are passed correctly
+            # OHLC data starts at 100 and increments by 100 for each symbol
+            # remaining data starts at 1000 and increments by 1000 for each symbols
+            # (100, 100, 100, 100, 1000, 1000, 1000)
+            # (200, 200, 200, 200, 2000, 2000, 2000)
+            expected_args = ((i * 100, ) * 4 + (i * 1000, ) * 3)
+            self.assertEqual(args[1:], expected_args)
 
 
 if __name__ == '__main__':
