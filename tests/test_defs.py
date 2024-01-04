@@ -323,16 +323,16 @@ class TestUpdateNseEOD(unittest.TestCase):
 
     def setUp(self):
 
+        year = f'{datetime.now():%Y}'
         # Create temporary folders and files for testing
         self.bhav_file_path = DIR / 'bhav_copy.csv'
         self.delivery_file_path = DIR / 'delivery_data.csv'
-        self.bhav_folder = DIR / 'nseBhav/2023'
-        self.dlv_folder = DIR / 'nseDelivery/2023'
-        self.isin_file = DIR / 'isin.csv'
+        self.bhav_folder = DIR / f'nseBhav/{year}'
+        self.dlv_folder = DIR / f'nseDelivery/{year}'
 
     def tearDown(self) -> None:
-        bhav_file = DIR / 'nseBhav/2023/bhav_copy.csv'
-        dlv_file = DIR / 'nseDelivery/2023/delivery_data.csv'
+        bhav_file = self.bhav_folder / 'bhav_copy.csv'
+        dlv_file = self.dlv_folder / 'delivery_data.csv'
 
         bhav_file.unlink()
         dlv_file.unlink()
