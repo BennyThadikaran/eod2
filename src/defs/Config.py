@@ -138,7 +138,7 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = '5.1.0'
+    VERSION = '5.1.1'
 
     def toList(self, filename: str):
         return (DIR / 'data' / filename).read_text().strip().split("\n")

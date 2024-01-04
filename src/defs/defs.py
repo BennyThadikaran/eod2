@@ -115,9 +115,10 @@ def checkForHolidays(nse: NSE):
     if 'holidays' not in meta or meta['year'] != dates.dt.year or (
             curDt in meta['holidays'] and not hasLatestHolidays):
 
-        meta['holidays'] = getHolidayList(nse)
-        meta['year'] = dates.dt.year
-        hasLatestHolidays = True
+        if dates.dt.year == dates.today.year:
+            meta['holidays'] = getHolidayList(nse)
+            meta['year'] = dates.dt.year
+            hasLatestHolidays = True
 
     isMuhurat = curDt in meta['holidays'] and 'Laxmi Pujan' in meta[
         'holidays'][curDt]
