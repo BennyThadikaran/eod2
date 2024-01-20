@@ -68,6 +68,15 @@ while True:
         # Index file
         INDEX_FILE = nse.indicesBhavcopy(defs.dates.dt)
     except (RuntimeError, Exception) as e:
+        if defs.dates.dt.weekday() == 5:
+            if defs.dates.dt != defs.dates.today:
+                # On Error, dont exit on Saturdays, if trying to sync past dates
+                continue
+
+            # If NSE is closed and report unavailable, inform user
+            print("NSE is closed on Saturdays. If open, check availability on NSE")
+
+        # On daily sync exit on error
         nse.exit()
         exit(repr(e))
 

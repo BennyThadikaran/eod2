@@ -5,7 +5,7 @@ DIR = Path(__file__).parents[1]
 
 
 class Config:
-    '''A class to store all configuration related to EOD2
+    """A class to store all configuration related to EOD2
 
     Attributes for AMIBROKER
         AMIBROKER:              If True, converts bhavcopy to Amibroker format on
@@ -73,7 +73,7 @@ class Config:
     src/defs/ with the option you wish to override.
 
     All key attributes in user.json must be uppercase.
-    '''
+    """
 
     AMIBROKER = False
     AMI_UPDATE_DAYS = 365
@@ -95,58 +95,57 @@ class Config:
     PLOT_WEEKS = 140
     PLOT_M_RS_LEN_D = 60
     PLOT_M_RS_LEN_W = 52
-    PLOT_RS_INDEX = 'nifty 50'
+    PLOT_RS_INDEX = "nifty 50"
     MAGNET_MODE = True
 
     PRESET = {}
-    WATCH = {'SECTORS': 'sectors.csv'}
+    WATCH = {"SECTORS": "sectors.csv"}
 
     # PLOT THEMES AND COLORS
     # 'binance', 'binancedark', 'blueskies', 'brasil', 'charles',
     # 'checkers', 'classic', 'default', 'ibd', 'kenan', 'mike',
     # 'nightclouds', 'sas', 'starsandstripes', 'tradingview', 'yahoo'
-    PLOT_CHART_STYLE = 'tradingview'
+    PLOT_CHART_STYLE = "tradingview"
 
     # ohlc, candle, line
-    PLOT_CHART_TYPE = 'candle'
+    PLOT_CHART_TYPE = "candle"
 
     # https://matplotlib.org/stable/gallery/color/named_colors.html#base-colors
-    PLOT_RS_COLOR = 'darkblue'
-    PLOT_M_RS_COLOR = 'darkgreen'
-    PLOT_DLV_L1_COLOR = 'red'
-    PLOT_DLV_L2_COLOR = 'darkorange'
-    PLOT_DLV_L3_COLOR = 'royalblue'
-    PLOT_DLV_DEFAULT_COLOR = 'darkgrey'
+    PLOT_RS_COLOR = "darkblue"
+    PLOT_M_RS_COLOR = "darkgreen"
+    PLOT_DLV_L1_COLOR = "red"
+    PLOT_DLV_L2_COLOR = "darkorange"
+    PLOT_DLV_L3_COLOR = "royalblue"
+    PLOT_DLV_DEFAULT_COLOR = "darkgrey"
 
-    PLOT_AXHLINE_COLOR = 'crimson'
-    PLOT_TLINE_COLOR = 'darkturquoise'
-    PLOT_ALINE_COLOR = 'mediumseagreen'
-    PLOT_HLINE_COLOR = 'royalblue'
+    PLOT_AXHLINE_COLOR = "crimson"
+    PLOT_TLINE_COLOR = "darkturquoise"
+    PLOT_ALINE_COLOR = "mediumseagreen"
+    PLOT_HLINE_COLOR = "royalblue"
 
     ADDITIONAL_INDICES = []
 
     def __init__(self) -> None:
-
         user_config = DIR / "defs" / "user.json"
 
         if user_config.exists():
             dct = json.loads(user_config.read_bytes())
 
-            if 'WATCH' in dct:
-                dct['WATCH'].update(self.WATCH)
+            if "WATCH" in dct:
+                dct["WATCH"].update(self.WATCH)
 
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = '5.1.1'
+    VERSION = "5.1.2"
 
     def toList(self, filename: str):
-        return (DIR / 'data' / filename).read_text().strip().split("\n")
+        return (DIR / "data" / filename).read_text().strip().split("\n")
 
     def __str__(self):
-        txt = f'EOD2 | Version: {self.VERSION}\n'
+        txt = f"EOD2 | Version: {self.VERSION}\n"
 
         for p in self.__dict__:
-            txt += f'{p}: {getattr(self, p)}\n'
+            txt += f"{p}: {getattr(self, p)}\n"
 
         return txt

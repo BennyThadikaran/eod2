@@ -111,7 +111,8 @@ def checkForHolidays(nse: NSE):
 
     # no holiday list or year has changed or today is a holiday
     if (
-        "holidays" not in meta
+        dates.dt == datetime(2024, 1, 22)
+        or "holidays" not in meta
         or meta["year"] != dates.dt.year
         or (curDt in meta["holidays"] and not hasLatestHolidays)
     ):
@@ -125,7 +126,7 @@ def checkForHolidays(nse: NSE):
     if isMuhurat:
         return False
 
-    if dates.dt.weekday() > 4:
+    if dates.dt.weekday() == 6:
         return True
 
     if curDt in meta["holidays"]:
