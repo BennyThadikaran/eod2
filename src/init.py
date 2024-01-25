@@ -74,7 +74,9 @@ while True:
                 continue
 
             # If NSE is closed and report unavailable, inform user
-            print("NSE is closed on Saturdays. If open, check availability on NSE")
+            print(
+                "NSE is closed on Saturdays. If open, check availability on NSE"
+            )
 
         # On daily sync exit on error
         nse.exit()

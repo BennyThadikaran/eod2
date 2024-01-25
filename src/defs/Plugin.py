@@ -4,7 +4,6 @@ from typing import Dict
 
 
 class Plugin:
-
     def __init__(self):
         self.plugins = []
 

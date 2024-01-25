@@ -2,10 +2,9 @@ from matplotlib.ticker import FixedFormatter, FixedLocator
 
 
 class DateTickFormatter:
-
-    def __init__(self, dates, tf='daily'):
-        '''Dates: DatetimeIndex
-        tf: daily or weekly'''
+    def __init__(self, dates, tf="daily"):
+        """Dates: DatetimeIndex
+        tf: daily or weekly"""
         self.dates = dates
         self.len = len(dates)
         self.month = self.year = None
@@ -14,7 +13,7 @@ class DateTickFormatter:
         self.tf = tf
 
     def _formatDate(self, dt):
-        '''Returns the formatted date label for the ticker.'''
+        """Returns the formatted date label for the ticker."""
 
         if dt.month != self.month:
             self.month = dt.month
@@ -28,7 +27,7 @@ class DateTickFormatter:
         return dt.day
 
     def _getInterval(self):
-        '''Returns an integer interval at which the ticks will be labelled.'''
+        """Returns an integer interval at which the ticks will be labelled."""
 
         idx = 0
         while True:
@@ -43,9 +42,9 @@ class DateTickFormatter:
                 idx += 1
 
     def getLabels(self):
-        '''Returns an instance of FixedLocator and FixedFormatter in a tuple.
+        """Returns an instance of FixedLocator and FixedFormatter in a tuple.
         Ticker format based on number of candles in Data.
-        '''
+        """
 
         if self.year is None:
             self.year = self.dates[0].year
@@ -60,7 +59,7 @@ class DateTickFormatter:
         return self._monthly()
 
     def _monthly(self):
-        '''Labels ticks on 1st Candle of every month and year'''
+        """Labels ticks on 1st Candle of every month and year"""
 
         labels = []
         ticks = []
@@ -73,7 +72,7 @@ class DateTickFormatter:
                     self.year = dt.year
                     labels.append(dt.year)
                 else:
-                    labels.append(f'{dt:%b}'.upper())
+                    labels.append(f"{dt:%b}".upper())
 
                 ticks.append(i)
             elif i == 0:
@@ -83,7 +82,7 @@ class DateTickFormatter:
         return (FixedLocator(ticks), FixedFormatter(labels))
 
     def _atInterval(self, interval):
-        '''Labels ticks at every interval of candle dates'''
+        """Labels ticks at every interval of candle dates"""
 
         ticks = range(1, len(self.dates), interval)
 

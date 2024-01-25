@@ -7,27 +7,24 @@ from datetime import datetime
 
 
 class TestJsonFunctions(unittest.TestCase):
-
     def test_date_encoder(self):
         date_encoder = utils.DateEncoder()
         test_datetime = datetime(2023, 1, 1, 12, 0, 0)
 
         result = date_encoder.default(test_datetime)
-        self.assertEqual(result, '2023-01-01T12:00:00')
+        self.assertEqual(result, "2023-01-01T12:00:00")
 
     def test_write_json(self):
         # temp file
-        filepath = Path('test.json')
+        filepath = Path("test.json")
 
-        data = {'key': 'value', 'date': datetime(2023, 1, 1, 12)}
+        data = {"key": "value", "date": datetime(2023, 1, 1, 12)}
 
         utils.writeJson(filepath, data)
 
         file_content = filepath.read_text()
 
-        expected_json_string = json.dumps(data,
-                                          indent=3,
-                                          cls=utils.DateEncoder)
+        expected_json_string = json.dumps(data, indent=3, cls=utils.DateEncoder)
 
         self.assertEqual(file_content, expected_json_string)
 
@@ -36,52 +33,55 @@ class TestJsonFunctions(unittest.TestCase):
 
 
 class TestArgParseDict(unittest.TestCase):
-
     def test_different_values(self):
-        args = utils.arg_parse_dict({
-            'sym': 'tcs',
-            'sma': [20, 50, 200],
-            'volume': True
-        })
+        args = utils.arg_parse_dict(
+            {"sym": "tcs", "sma": [20, 50, 200], "volume": True}
+        )
 
-        expected = ['--sym', 'tcs', '--sma', '20', '50', '200', '--volume']
+        expected = ["--sym", "tcs", "--sma", "20", "50", "200", "--volume"]
 
         self.assertEqual(args, expected)
 
     def test_boolean_false(self):
-        args = utils.arg_parse_dict({'sym': 'tcs', 'volume': False})
+        args = utils.arg_parse_dict({"sym": "tcs", "volume": False})
 
         # volume argument not included
-        expected = ['--sym', 'tcs']
+        expected = ["--sym", "tcs"]
 
         self.assertEqual(args, expected)
 
     def test_none(self):
-        args = utils.arg_parse_dict({'sym': 'tcs', 'watch': None})
+        args = utils.arg_parse_dict({"sym": "tcs", "watch": None})
 
         # watch argument not included
-        expected = ['--sym', 'tcs']
+        expected = ["--sym", "tcs"]
 
         self.assertEqual(args, expected)
 
 
 class TestGetDataFrameFunction(unittest.TestCase):
-
     def setUp(self):
         # Create a temporary CSV file with sample data for testing
         self.csv_path = Path("test_data.csv")
 
         data = {
-            'Date':
-            pd.date_range(start='2022-01-01', periods=10),
-            'Open': [100, 105, 110, 95, 102, 108, 115, 98, 105, 112],
-            'High': [105, 112, 115, 100, 110, 118, 120, 104, 110, 118],
-            'Low': [98, 100, 105, 92, 96, 104, 110, 94, 98, 105],
-            'Close': [102, 110, 112, 98, 105, 112, 118, 100, 105, 114],
-            'Volume': [
-                100000, 120000, 95000, 110000, 105000, 98000, 115000, 102000,
-                108000, 112000
-            ]
+            "Date": pd.date_range(start="2022-01-01", periods=10),
+            "Open": [100, 105, 110, 95, 102, 108, 115, 98, 105, 112],
+            "High": [105, 112, 115, 100, 110, 118, 120, 104, 110, 118],
+            "Low": [98, 100, 105, 92, 96, 104, 110, 94, 98, 105],
+            "Close": [102, 110, 112, 98, 105, 112, 118, 100, 105, 114],
+            "Volume": [
+                100000,
+                120000,
+                95000,
+                110000,
+                105000,
+                98000,
+                115000,
+                102000,
+                108000,
+                112000,
+            ],
         }
 
         pd.DataFrame(data).to_csv(self.csv_path, index=False)
@@ -91,63 +91,66 @@ class TestGetDataFrameFunction(unittest.TestCase):
         self.csv_path.unlink()
 
     def test_default(self):
-        result = utils.getDataFrame(self.csv_path, tf='daily', period=2)
+        result = utils.getDataFrame(self.csv_path, tf="daily", period=2)
 
-        expected = pd.read_csv(self.csv_path,
-                               parse_dates=True,
-                               index_col='Date')[-2:]
+        expected = pd.read_csv(
+            self.csv_path, parse_dates=True, index_col="Date"
+        )[-2:]
 
         pd.testing.assert_frame_equal(result, expected)
 
     def test_weekly(self):
-        result = utils.getDataFrame(Path(self.csv_path), tf='weekly', period=2)
+        result = utils.getDataFrame(Path(self.csv_path), tf="weekly", period=2)
 
         dct = {
-            'Open': 'first',
-            'High': 'max',
-            'Low': 'min',
-            'Close': 'last',
-            'Volume': 'sum'
+            "Open": "first",
+            "High": "max",
+            "Low": "min",
+            "Close": "last",
+            "Volume": "sum",
         }
 
-        expected = pd.read_csv(self.csv_path,
-                               parse_dates=True,
-                               index_col='Date').resample('W').apply(dct)[-2:]
+        expected = (
+            pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")
+            .resample("W")
+            .apply(dct)[-2:]
+        )
 
         pd.testing.assert_frame_equal(result, expected)
 
     def test_weekly_close_column(self):
-        result = utils.getDataFrame(Path(self.csv_path),
-                                    tf='weekly',
-                                    period=2,
-                                    column='Close')
+        result = utils.getDataFrame(
+            Path(self.csv_path), tf="weekly", period=2, column="Close"
+        )
 
-        expected = pd.read_csv(
-            self.csv_path, parse_dates=True,
-            index_col='Date')['Close'].resample('W').apply('last')[-2:]
+        expected = (
+            pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[
+                "Close"
+            ]
+            .resample("W")
+            .apply("last")[-2:]
+        )
 
         pd.testing.assert_series_equal(result, expected)
 
     def test_toDate(self):
-        result = utils.getDataFrame(Path(self.csv_path),
-                                    tf='daily',
-                                    period=2,
-                                    toDate="2022-01-05")
+        result = utils.getDataFrame(
+            Path(self.csv_path), tf="daily", period=2, toDate="2022-01-05"
+        )
 
-        expected = pd.read_csv(self.csv_path,
-                               parse_dates=True,
-                               index_col='Date')[:"2022-01-05"][-2:]
+        expected = pd.read_csv(
+            self.csv_path, parse_dates=True, index_col="Date"
+        )[:"2022-01-05"][-2:]
 
         pd.testing.assert_frame_equal(result, expected)
 
 
 class TestGetLevels(unittest.TestCase):
-
     def setUp(self):
         # Price level 60 as resistance and 30 as support
         data = {
-            'High': (50.0, 55.0, 60.0, 55.0, 50.0, 45.0, 40.0, 45.0, 50.0),
-            'Low': (40.0, 45.0, 50.0, 45.0, 40.0, 35.0, 30.0, 35.0, 40.0),
+            "High": (50.0, 55.0, 60.0, 55.0, 50.0, 45.0, 40.0, 45.0, 50.0),
+            "Low": (40.0, 45.0, 50.0, 45.0, 40.0, 35.0, 30.0, 35.0, 40.0),
         }
 
         index = tuple(datetime(2023, 1, i) for i in range(1, 10))
@@ -210,7 +213,6 @@ class TestIsFarFromLevel(unittest.TestCase):
 
 
 class TestRelativeStrength(unittest.TestCase):
-
     def test_relative_strength(self):
         # Test data
         stock_close_prices = pd.Series((50, 55, 52, 48, 53))
@@ -227,7 +229,6 @@ class TestRelativeStrength(unittest.TestCase):
 
 
 class TestManfieldRelativeStrength(unittest.TestCase):
-
     def test_manfield_relative_strength(self):
         stock_close_prices = pd.Series((50, 55, 52, 48, 53))
         index_close_prices = pd.Series((1000, 1010, 1005, 990, 995))
@@ -236,15 +237,15 @@ class TestManfieldRelativeStrength(unittest.TestCase):
         expected = pd.Series((None, None, -0.7, -5.95, 4.17))
 
         # Calculate Mansfield Relative Strength
-        result = utils.manfieldRelativeStrength(stock_close_prices,
-                                                index_close_prices, 3)
+        result = utils.manfieldRelativeStrength(
+            stock_close_prices, index_close_prices, 3
+        )
 
         # Perform the assertion
         pd.testing.assert_series_equal(result, expected)
 
 
 class TestRandomChar(unittest.TestCase):
-
     def test_random_char(self):
         for length in (5, 10, 15):
             result = utils.randomChar(length)
