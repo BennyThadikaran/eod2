@@ -9,7 +9,6 @@ from typing import Any, Union, List, Tuple
 
 
 class DateEncoder(json.JSONEncoder):
-
     def default(self, o):
         if isinstance(o, datetime):
             return o.isoformat()
@@ -25,20 +24,20 @@ def writeJson(fPath: Path, data):
 
 
 def randomChar(length):
-    return ''.join(
-        random.choice(string.ascii_lowercase) for _ in range(length))
+    return "".join(random.choice(string.ascii_lowercase) for _ in range(length))
 
 
-def getDataFrame(fpath: Path,
-                 tf: str,
-                 period: int,
-                 column: Union[str, None] = None,
-                 customDict: Union[dict, None] = None,
-                 toDate: Union[str, None] = None) -> Any:
-    df: pd.DataFrame = pd.read_csv(fpath,
-                                   index_col='Date',
-                                   parse_dates=True,
-                                   na_filter=True)
+def getDataFrame(
+    fpath: Path,
+    tf: str,
+    period: int,
+    column: Union[str, None] = None,
+    customDict: Union[dict, None] = None,
+    toDate: Union[str, None] = None,
+) -> Any:
+    df: pd.DataFrame = pd.read_csv(
+        fpath, index_col="Date", parse_dates=True, na_filter=True
+    )
 
     if toDate:
         df = df[:toDate]
@@ -47,25 +46,25 @@ def getDataFrame(fpath: Path,
         dct: dict = customDict
     else:
         dct: dict = {
-            'Open': 'first',
-            'High': 'max',
-            'Low': 'min',
-            'Close': 'last',
-            'Volume': 'sum'
+            "Open": "first",
+            "High": "max",
+            "Low": "min",
+            "Close": "last",
+            "Volume": "sum",
         }
 
-    if tf == 'weekly':
+    if tf == "weekly":
         if column:
-            return df[column].resample('W').apply(dct[column])[-period:]
+            return df[column].resample("W").apply(dct[column])[-period:]
 
-        return df.resample('W').apply(dct)[-period:]
+        return df.resample("W").apply(dct)[-period:]
 
     return df[-period:] if column is None else df[column][-period:]
 
 
 def arg_parse_dict(dct: dict) -> list:
     """
-    Convert a dictionary of arguments and values into a list of command-line 
+    Convert a dictionary of arguments and values into a list of command-line
     arguments.
 
     Parameters:
@@ -89,7 +88,7 @@ def arg_parse_dict(dct: dict) -> list:
 
         arg = arg.replace("_", "-")
 
-        result.append(f'--{arg}')
+        result.append(f"--{arg}")
 
         if val is not True:
             if isinstance(val, list):
@@ -102,44 +101,47 @@ def arg_parse_dict(dct: dict) -> list:
 
 def getDeliveryLevels(df, config):
     # Average of traded volume
-    avgTrdQty = df['QTY_PER_TRADE'].rolling(config.DLV_AVG_LEN).mean().round(2)
+    avgTrdQty = df["QTY_PER_TRADE"].rolling(config.DLV_AVG_LEN).mean().round(2)
 
     # Average of delivery
-    avgDlvQty = df['DLV_QTY'].rolling(config.DLV_AVG_LEN).mean().round(2)
+    avgDlvQty = df["DLV_QTY"].rolling(config.DLV_AVG_LEN).mean().round(2)
 
     # above average delivery days
-    df['DQ'] = df['DLV_QTY'] / avgDlvQty
+    df["DQ"] = df["DLV_QTY"] / avgDlvQty
 
     # above average Traded volume days
-    df['TQ'] = df['QTY_PER_TRADE'] / avgTrdQty
+    df["TQ"] = df["QTY_PER_TRADE"] / avgTrdQty
 
     # get combination of above average traded volume and delivery days
-    df['IM_F'] = (df['TQ'] > 1.2) & (df['DQ'] > 1.2)
+    df["IM_F"] = (df["TQ"] > 1.2) & (df["DQ"] > 1.2)
 
     # see https://github.com/matplotlib/mplfinance/blob/master/examples/marketcolor_overrides.ipynb
-    df['MCOverrides'] = None
-    df['IM'] = float('nan')
+    df["MCOverrides"] = None
+    df["IM"] = float("nan")
 
     for idx in df.index:
-        dq, im = df.loc[idx, ['DQ', 'IM_F']]
+        dq, im = df.loc[idx, ["DQ", "IM_F"]]
 
         if im:
-            df.loc[idx, 'IM'] = df.loc[idx, 'Low'] * 0.99
+            df.loc[idx, "IM"] = df.loc[idx, "Low"] * 0.99
 
         if dq >= config.DLV_L3:
-            df.loc[idx, 'MCOverrides'] = config.PLOT_DLV_L1_COLOR
+            df.loc[idx, "MCOverrides"] = config.PLOT_DLV_L1_COLOR
         elif dq >= config.DLV_L2:
-            df.loc[idx, 'MCOverrides'] = config.PLOT_DLV_L2_COLOR
+            df.loc[idx, "MCOverrides"] = config.PLOT_DLV_L2_COLOR
         elif dq > config.DLV_L1:
-            df.loc[idx, 'MCOverrides'] = config.PLOT_DLV_L3_COLOR
+            df.loc[idx, "MCOverrides"] = config.PLOT_DLV_L3_COLOR
         else:
-            df.loc[idx, 'MCOverrides'] = config.PLOT_DLV_DEFAULT_COLOR
+            df.loc[idx, "MCOverrides"] = config.PLOT_DLV_DEFAULT_COLOR
 
 
-def isFarFromLevel(level: float, levels: List[Tuple[pd.DatetimeIndex, float]],
-                   mean_candle_size: float) -> bool:
-    '''Returns true if difference between the level and any of the price levels
-    is greater than the mean_candle_size.'''
+def isFarFromLevel(
+    level: float,
+    levels: List[Tuple[pd.DatetimeIndex, float]],
+    mean_candle_size: float,
+) -> bool:
+    """Returns true if difference between the level and any of the price levels
+    is greater than the mean_candle_size."""
     # Detection of price support and resistance levels in Python -Gianluca Malato
     # source: https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
     return sum([abs(level - x[1]) < mean_candle_size for x in levels]) == 0
@@ -147,9 +149,10 @@ def isFarFromLevel(level: float, levels: List[Tuple[pd.DatetimeIndex, float]],
 
 def getLevels(
     df: pd.DataFrame, mean_candle_size: float
-) -> List[Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex,
-                                                      float]]]:
-    '''
+) -> List[
+    Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex, float]]
+]:
+    """
     Identify potential support and resistance levels in a DataFrame.
 
     Parameters:
@@ -176,25 +179,27 @@ def getLevels(
     Note:
     - It is recommended to provide a DataFrame with sufficient historical price data for accurate level identification.
     - The function is designed for use in financial technical analysis.
-    '''
+    """
 
     levels = []
 
     # filter for rejection from top
     # 2 succesive highs followed by 2 succesive lower highs
-    local_max = df['High'][(df['High'].shift(1) < df['High'])
-                           & (df['High'].shift(2) < df['High'].shift(1)) &
-                           (df['High'].shift(-1) < df['High']) &
-                           (df['High'].shift(-2)
-                            < df['High'].shift(-1))].dropna()
+    local_max = df["High"][
+        (df["High"].shift(1) < df["High"])
+        & (df["High"].shift(2) < df["High"].shift(1))
+        & (df["High"].shift(-1) < df["High"])
+        & (df["High"].shift(-2) < df["High"].shift(-1))
+    ].dropna()
 
     # filter for rejection from bottom
     # 2 succesive highs followed by 2 succesive lower highs
-    local_min = df['Low'][(df['Low'].shift(1) > df['Low'])
-                          & (df['Low'].shift(2) > df['Low'].shift(1)) &
-                          (df['Low'].shift(-1) > df['Low']) &
-                          (df['Low'].shift(-2)
-                           > df['Low'].shift(-1))].dropna()
+    local_min = df["Low"][
+        (df["Low"].shift(1) > df["Low"])
+        & (df["Low"].shift(2) > df["Low"].shift(1))
+        & (df["Low"].shift(-1) > df["Low"])
+        & (df["Low"].shift(-2) > df["Low"].shift(-1))
+    ].dropna()
 
     for idx in local_max.index:
         level = local_max[idx]
@@ -236,8 +241,9 @@ def relativeStrength(close: pd.Series, index_close: pd.Series) -> pd.Series:
     return (close / index_close * 100).round(2)
 
 
-def manfieldRelativeStrength(close: pd.Series, index_close: pd.Series,
-                             period: int) -> pd.Series:
+def manfieldRelativeStrength(
+    close: pd.Series, index_close: pd.Series, period: int
+) -> pd.Series:
     rs = relativeStrength(close, index_close)
 
     sma_rs = rs.rolling(period).mean()

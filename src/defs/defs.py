@@ -55,7 +55,9 @@ config = Config()
 
 isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
 
-headerText = "Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
+headerText = (
+    "Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
+)
 
 splitRegex = re.compile(r"(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)")
 
@@ -121,7 +123,9 @@ def checkForHolidays(nse: NSE):
             meta["year"] = dates.dt.year
             hasLatestHolidays = True
 
-    isMuhurat = curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
+    isMuhurat = (
+        curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
+    )
 
     if isMuhurat:
         return False
@@ -154,12 +158,16 @@ def validateNseActionsFile(nse: NSE):
 
             try:
                 meta[f"{action}Actions"] = nse.actions(
-                    segment=segment, from_date=dates.dt, to_date=dates.dt + timedelta(8)
+                    segment=segment,
+                    from_date=dates.dt,
+                    to_date=dates.dt + timedelta(8),
                 )
             except Exception as e:
                 exit(f"{e!r}\nFailed to download {action} actions")
 
-            meta[f"{action}ActionsExpiry"] = (dates.dt + timedelta(7)).isoformat()
+            meta[f"{action}ActionsExpiry"] = (
+                dates.dt + timedelta(7)
+            ).isoformat()
         else:
             expiryDate = datetime.fromisoformat(meta[f"{action}ActionsExpiry"])
             newExpiry = (expiryDate + timedelta(7)).isoformat()
@@ -229,7 +237,9 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             if not DAILY_FILE.exists():
                 continue
 
-            dailyDf = pd.read_csv(DAILY_FILE, index_col="Date", parse_dates=True)
+            dailyDf = pd.read_csv(
+                DAILY_FILE, index_col="Date", parse_dates=True
+            )
 
             if dt not in dailyDf.index:
                 continue
@@ -308,7 +318,16 @@ def updateAmiBrokerRecords(nse: NSE):
 def toAmiBrokerFormat(file: Path):
     "Converts and saves bhavcopy into amibroker format"
 
-    cols = ["SYMBOL", "TIMESTAMP", "OPEN", "HIGH", "LOW", "CLOSE", "TOTTRDQTY", "ISIN"]
+    cols = [
+        "SYMBOL",
+        "TIMESTAMP",
+        "OPEN",
+        "HIGH",
+        "LOW",
+        "CLOSE",
+        "TOTTRDQTY",
+        "ISIN",
+    ]
 
     rcols = list(cols)
     rcols[1] = "DATE"
@@ -392,7 +411,9 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Union[Path, None]):
 
         if dlvDf is not None:
             if t.SYMBOL in dlvDf.index:
-                trdCnt, dq = dlvDf.loc[t.SYMBOL, [" NO_OF_TRADES", " DELIV_QTY"]]
+                trdCnt, dq = dlvDf.loc[
+                    t.SYMBOL, [" NO_OF_TRADES", " DELIV_QTY"]
+                ]
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
@@ -429,7 +450,9 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Union[Path, None]):
             try:
                 OLD_FILE.rename(SYM_FILE)
             except FileNotFoundError:
-                print(f"WARN: Renaming daily/{old}.csv to {new}.csv. No such file.")
+                print(
+                    f"WARN: Renaming daily/{old}.csv to {new}.csv. No such file."
+                )
 
             print(f"Name Changed: {old} to {new}")
 
@@ -495,17 +518,22 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
 
     df = pd.read_csv(file, index_col="Date", parse_dates=True, na_filter=False)
 
-    idx = df.index.get_loc(dates.dt)
+    last = None
 
-    last = df.iloc[idx:]
+    if dates.dt in df.index:
+        idx = df.index.get_loc(dates.dt)
 
-    df = df.iloc[:idx].copy()
+        last = df.iloc[idx:]
+
+        df = df.iloc[:idx].copy()
 
     for col in ("Open", "High", "Low", "Close"):
         # nearest 0.05 = round(nu / 0.05) * 0.05
         df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
-    df = pd.concat([df, last])
+    if last is not None:
+        df = pd.concat([df, last])
+
     return (df, file)
 
 
@@ -539,11 +567,16 @@ def updateIndexEOD(file: Path):
     df.to_csv(folder / file.name)
 
     indices = (
-        (DIR / "eod2_data" / "sector_watchlist.csv").read_text().strip().split("\n")
+        (DIR / "eod2_data" / "sector_watchlist.csv")
+        .read_text()
+        .strip()
+        .split("\n")
     )
 
     if any(config.ADDITIONAL_INDICES):
-        indices.extend([sym for sym in config.ADDITIONAL_INDICES if sym not in indices])
+        indices.extend(
+            [sym for sym in config.ADDITIONAL_INDICES if sym not in indices]
+        )
 
     cols = [
         "Open Index Value",
@@ -654,7 +687,9 @@ def rollback(folder: Path):
     print(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
-        df = pd.read_csv(file, index_col="Date", parse_dates=True, na_filter=False)
+        df = pd.read_csv(
+            file, index_col="Date", parse_dates=True, na_filter=False
+        )
 
         if dt in df.index:
             df = df.drop(dt)
