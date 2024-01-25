@@ -518,17 +518,22 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
 
     df = pd.read_csv(file, index_col="Date", parse_dates=True, na_filter=False)
 
-    idx = df.index.get_loc(dates.dt)
+    last = None
 
-    last = df.iloc[idx:]
+    if dates.dt in df.index:
+        idx = df.index.get_loc(dates.dt)
 
-    df = df.iloc[:idx].copy()
+        last = df.iloc[idx:]
+
+        df = df.iloc[:idx].copy()
 
     for col in ("Open", "High", "Low", "Close"):
         # nearest 0.05 = round(nu / 0.05) * 0.05
         df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
-    df = pd.concat([df, last])
+    if last is not None:
+        df = pd.concat([df, last])
+
     return (df, file)
 
 
