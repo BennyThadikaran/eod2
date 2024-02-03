@@ -599,6 +599,8 @@ def updateIndexEOD(file: Path):
 
     if pe >= 25 or pe <= 20:
         print(f"\033[1;32m### Alert: Nifty PE at {pe}! ###\033[0;94m")
+    else:
+        print(f"### Nifty PE at {pe} ###")
 
 
 def adjustNseStocks():
