@@ -6,7 +6,8 @@ import matplotlib.pyplot as plt
 from pathlib import Path
 from datetime import timedelta
 from matplotlib.collections import LineCollection
-from defs.DateTickFormatter import DateTickFormatter
+import matplotlib.dates as mdates
+import matplotlib.ticker as ticker
 from defs.utils import (
     arg_parse_dict,
     getDataFrame,
@@ -230,11 +231,35 @@ class Plotter:
 
         fig, axs = mpl.plot(df, **self.plot_args)
 
-        locator, formatter = DateTickFormatter(df.index).getLabels()
+        # A workaround using ConciseDateFormatter and AutoDateLocator
+        # with mplfinance
+        # See github issue https://github.com/matplotlib/mplfinance/issues/643
+
+        # Locator sets the major tick locations on xaxis
+        locator = mdates.AutoDateLocator(minticks=3, maxticks=7)
+
+        # Formatter set the tick labels for the xaxis
+        concise_formatter = mdates.ConciseDateFormatter(locator=locator)
+
+        # Extract the tick values from locator.
+        # These are matplotlib dates not python datetime
+        tick_mdates = locator.tick_values(df.index[0], df.index[-1])
+
+        # Extract the ticks labels from ConciseDateFormatter
+        labels = concise_formatter.format_ticks(tick_mdates)
+
+        ticks = self._get_tick_locs(tick_mdates, df.index)
+
+        # Initialise FixedFormatter and FixedLocator
+        # passing the tick labels and tick positions
+        fixed_formatter = ticker.FixedFormatter(labels)
+        fixed_locator = ticker.FixedLocator(ticks)
+
+        fixed_formatter.set_offset_string(concise_formatter.get_offset())
 
         for ax in axs:
-            ax.xaxis.set_major_locator(locator)
-            ax.xaxis.set_major_formatter(formatter)
+            ax.xaxis.set_major_locator(fixed_locator)
+            ax.xaxis.set_major_formatter(fixed_formatter)
             ax.format_coord = format_coords
 
         fig.canvas.mpl_connect("key_press_event", self._on_key_press)
@@ -921,3 +946,25 @@ class Plotter:
             return dlv_len + self.period
 
         return self.period
+
+    def _get_tick_locs(self, tick_mdates, dtix: pd.DatetimeIndex):
+        """Return the tick locs to be passed to Locator instance."""
+
+        ticks = []
+
+        # Convert the matplotlib dates to python datetime and iterate
+        for dt in mdates.num2date(tick_mdates):
+            # remove the timezone info to match the DataFrame index
+            dt = dt.replace(tzinfo=None)
+
+            # Get the index position if available
+            # else get the next available index position
+            idx = (
+                dtix.get_loc(dt)
+                if dt in dtix
+                else dtix.searchsorted(dt, side="right")
+            )
+            # store the tick positions to be displayed on chart
+            ticks.append(idx)
+
+        return ticks
