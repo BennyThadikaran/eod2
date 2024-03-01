@@ -114,6 +114,7 @@ def checkForHolidays(nse: NSE):
     # no holiday list or year has changed or today is a holiday
     if (
         dates.dt == datetime(2024, 1, 22)
+        or dates.dt == datetime(2024, 3, 2)
         or "holidays" not in meta
         or meta["year"] != dates.dt.year
         or (curDt in meta["holidays"] and not hasLatestHolidays)
