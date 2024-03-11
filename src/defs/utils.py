@@ -32,7 +32,6 @@ def getDataFrame(
     tf: str,
     period: int,
     column: Optional[str] = None,
-    customDict: Optional[dict] = None,
     toDate: Optional[str] = None,
 ) -> Any:
     df: pd.DataFrame = pd.read_csv(
@@ -42,16 +41,13 @@ def getDataFrame(
     if toDate:
         df = df[:toDate]
 
-    if customDict:
-        dct: dict = customDict
-    else:
-        dct: dict = {
-            "Open": "first",
-            "High": "max",
-            "Low": "min",
-            "Close": "last",
-            "Volume": "sum",
-        }
+    dct: dict = {
+        "Open": "first",
+        "High": "max",
+        "Low": "min",
+        "Close": "last",
+        "Volume": "sum",
+    }
 
     if tf == "weekly":
         if column:
