@@ -8,7 +8,7 @@ from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
-from typing import cast, Any, Dict, List
+from typing import cast, Any, Dict, List, Optional
 
 
 class Dates:
