@@ -19,6 +19,7 @@ from defs.utils import (
     relativeStrength,
     manfieldRelativeStrength,
 )
+from functools import lru_cache
 
 HELP = """                                           ## Help ##
 
@@ -728,6 +729,7 @@ class Plotter:
         if len(added_plots) > 0:
             self.plot_args["addplot"] = added_plots
 
+    @lru_cache(maxsize=6)
     def _prepData(self, sym):
         fpath = self.daily_dir / f"{sym.lower()}.csv"
 
