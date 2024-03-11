@@ -5,7 +5,7 @@ import random
 from datetime import datetime
 from pathlib import Path
 from tkinter import Tk
-from typing import Any, Union, List, Tuple
+from typing import Any, List, Tuple, Optional
 
 
 class DateEncoder(json.JSONEncoder):
@@ -31,9 +31,9 @@ def getDataFrame(
     fpath: Path,
     tf: str,
     period: int,
-    column: Union[str, None] = None,
-    customDict: Union[dict, None] = None,
-    toDate: Union[str, None] = None,
+    column: Optional[str] = None,
+    customDict: Optional[dict] = None,
+    toDate: Optional[str] = None,
 ) -> Any:
     df: pd.DataFrame = pd.read_csv(
         fpath, index_col="Date", parse_dates=True, na_filter=True

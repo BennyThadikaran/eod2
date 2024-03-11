@@ -8,7 +8,7 @@ from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
-from typing import cast, Any, Dict, Union, List
+from typing import cast, Any, Dict, List
 
 
 class Dates:
@@ -350,7 +350,7 @@ def toAmiBrokerFormat(file: Path):
     df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
 
 
-def updateNseEOD(bhavFile: Path, deliveryFile: Union[Path, None]):
+def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     """Update all stocks with latest price data from bhav copy"""
 
     isinUpdated = False
