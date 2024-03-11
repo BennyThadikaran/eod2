@@ -135,7 +135,10 @@ class TestGetDataFrameFunction(unittest.TestCase):
 
     def test_toDate(self):
         result = utils.getDataFrame(
-            Path(self.csv_path), tf="daily", period=2, toDate="2022-01-05"
+            Path(self.csv_path),
+            tf="daily",
+            period=2,
+            toDate=datetime(2022, 1, 5),
         )
 
         expected = pd.read_csv(
