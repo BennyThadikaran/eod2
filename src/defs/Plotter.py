@@ -11,7 +11,6 @@ import matplotlib.ticker as ticker
 from defs.utils import (
     arg_parse_dict,
     getDataFrame,
-    getScreenSize,
     getLevels,
     getDeliveryLevels,
     writeJson,
@@ -165,7 +164,7 @@ class Plotter:
             if hasattr(config, "PLOT_SIZE"):
                 self.plot_args["figsize"] = config.PLOT_SIZE
             else:
-                self.plot_args["figsize"] = getScreenSize()
+                self.plot_args["figsize"] = (14, 9)
 
             self.plot_args["figscale"] = 1
 

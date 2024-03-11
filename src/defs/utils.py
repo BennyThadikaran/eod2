@@ -4,7 +4,6 @@ import string
 import random
 from datetime import datetime
 from pathlib import Path
-from tkinter import Tk
 from typing import Any, List, Tuple, Optional
 
 
@@ -223,14 +222,14 @@ def getLevels(
     return alines
 
 
-def getScreenSize():
-    root = Tk()
-    root.withdraw()
-    mm = 25.4
-
-    width, height = root.winfo_screenmmwidth(), root.winfo_screenmmheight()
-
-    return (round(width / mm), round(height / mm))
+# def getScreenSize():
+#     root = Tk()
+#     root.withdraw()
+#     mm = 25.4
+#
+#     width, height = root.winfo_screenmmwidth(), root.winfo_screenmmheight()
+#
+#     return (round(width / mm), round(height / mm))
 
 
 def relativeStrength(close: pd.Series, index_close: pd.Series) -> pd.Series:
