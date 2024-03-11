@@ -11,7 +11,6 @@ import matplotlib.ticker as ticker
 from defs.utils import (
     arg_parse_dict,
     getDataFrame,
-    getScreenSize,
     getLevels,
     getDeliveryLevels,
     writeJson,
@@ -20,6 +19,7 @@ from defs.utils import (
     relativeStrength,
     manfieldRelativeStrength,
 )
+from functools import lru_cache
 
 HELP = """                                           ## Help ##
 
@@ -165,7 +165,7 @@ class Plotter:
             if hasattr(config, "PLOT_SIZE"):
                 self.plot_args["figsize"] = config.PLOT_SIZE
             else:
-                self.plot_args["figsize"] = getScreenSize()
+                self.plot_args["figsize"] = (14, 9)
 
             self.plot_args["figscale"] = 1
 
@@ -729,6 +729,7 @@ class Plotter:
         if len(added_plots) > 0:
             self.plot_args["addplot"] = added_plots
 
+    @lru_cache(maxsize=6)
     def _prepData(self, sym):
         fpath = self.daily_dir / f"{sym.lower()}.csv"
 
