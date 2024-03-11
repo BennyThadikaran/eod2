@@ -8,8 +8,8 @@ If you :heart: my work so far, please :star2: this repo.
 
 ### Notes
 
-- 'Daily' and 'Delivery' folders contain OHLC and delivery data for individual stocks.
-- A list of available indices can be found in 'src/eod2_data/sector_watchlist.csv'.
+- `src/eod2_data/daily` contain OHLC and delivery data for individual stocks.
+- A list of available indices can be found in `src/eod2_data/sector_watchlist.csv`.
 - **Stock data before 2005 may not be fully adjusted** as NSE does not provide adjustment data before this year.
 - Supports **Python version >= 3.8**
 
@@ -27,8 +27,8 @@ I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discu
 - Makes historical adjustments for splits and bonuses.
 - Keeps track of stock ISIN for changes in company/symbol code and applies changes.
 - Prints colored alerts when [NIFTY PE](https://www.samco.in/knowledge-center/articles/nifty-50-pe-ratio/) is below 20 and above 25.
-- Works in both Linux and Windows.
-- Robust and stable error handling mechanisms to protect data.
+- Works cross platform (Linux, Windows, Mac).
+- Robust error handling mechanisms to protect data.
 
 ### Plot beautiful charts with plot.py
 
@@ -38,11 +38,7 @@ I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discu
 
 ![plot.py screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/s--3hTZGzOB--/c_scale,f_auto,w_800/v1692987992/EOD2/tcs-weekly-stan_unvmgu.png)
 
-### Plot daily and weekly charts
-
-![plot.py nifty IT weekly chart](https://res.cloudinary.com/doyu4uovr/image/upload/s--NHP0l7n2--/c_scale,f_auto,w_800/v1692987992/EOD2/plot-nifty-it-weekly_czt8js.png)
-
-### Draw Trend and Trading lines
+### Draw Trend and Trading lines - Mouse and Keyboard Interaction
 
 ![Natcopharm with trend and trading lines](https://res.cloudinary.com/doyu4uovr/image/upload/s--mIk8G6sO--/c_scale,f_auto,w_800/v1694162379/EOD2/natcopharm_d_lines_fnys25.png)
 
