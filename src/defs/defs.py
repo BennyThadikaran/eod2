@@ -2,13 +2,14 @@ import sys
 import json
 import re
 import os
+import requests
 import numpy as np
 import pandas as pd
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
-from typing import cast, Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 
 class Dates:
@@ -84,6 +85,21 @@ def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     return {}
 
 
+def downloadSpecialSessions() -> Tuple[datetime, ...]:
+    base_url = "https://raw.githubusercontent.com/BennyThadikaran/eod2_data"
+
+    res = requests.get(f"{base_url}/main/special_sessions.txt")
+
+    if res.ok:
+        return tuple(
+            datetime.fromisoformat(x) for x in res.text.strip().split("\n")
+        )
+
+    raise ConnectionError(
+        f"special_sessions.txt download failed. {res.status_code}: {res.reason}"
+    )
+
+
 def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
     Saves and returns the holiday Object"""
@@ -101,7 +117,7 @@ def getHolidayList(nse: NSE):
     return data
 
 
-def checkForHolidays(nse: NSE):
+def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
     """Returns True if current date is a holiday.
     Exits the script if today is a holiday"""
 
@@ -111,11 +127,12 @@ def checkForHolidays(nse: NSE):
     curDt = dates.dt.strftime("%d-%b-%Y")
     isToday = curDt == dates.today.strftime("%d-%b-%Y")
 
+    if dates.dt in special_sessions:
+        return False
+
     # no holiday list or year has changed or today is a holiday
     if (
-        dates.dt == datetime(2024, 1, 22)
-        or dates.dt == datetime(2024, 3, 2)
-        or "holidays" not in meta
+        "holidays" not in meta
         or meta["year"] != dates.dt.year
         or (curDt in meta["holidays"] and not hasLatestHolidays)
     ):
