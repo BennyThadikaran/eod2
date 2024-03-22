@@ -117,7 +117,7 @@ def getHolidayList(nse: NSE):
     return data
 
 
-def checkForHolidays(nse: NSE):
+def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
     """Returns True if current date is a holiday.
     Exits the script if today is a holiday"""
 
@@ -127,11 +127,12 @@ def checkForHolidays(nse: NSE):
     curDt = dates.dt.strftime("%d-%b-%Y")
     isToday = curDt == dates.today.strftime("%d-%b-%Y")
 
+    if dates.dt in special_sessions:
+        return False
+
     # no holiday list or year has changed or today is a holiday
     if (
-        dates.dt == datetime(2024, 1, 22)
-        or dates.dt == datetime(2024, 3, 2)
-        or "holidays" not in meta
+        "holidays" not in meta
         or meta["year"] != dates.dt.year
         or (curDt in meta["holidays"] and not hasLatestHolidays)
     ):

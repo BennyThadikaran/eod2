@@ -86,7 +86,7 @@ class TestCheckForHolidays(unittest.TestCase):
 
         # Call the function
         with patch.object(defs, "meta", meta_obj):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, tuple())
 
         self.assertFalse(result)
         mock_get_holiday_list.assert_not_called()
@@ -101,7 +101,7 @@ class TestCheckForHolidays(unittest.TestCase):
 
         # Call the function
         with patch.object(defs, "meta", {"holidays": {}, "year": 2023}):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, tuple())
 
         self.assertTrue(result)
         mock_get_holiday_list.assert_not_called()
@@ -119,7 +119,7 @@ class TestCheckForHolidays(unittest.TestCase):
 
         # Call the function
         with patch.object(defs, "meta", {}):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, tuple())
 
         # Assertions
         self.assertFalse(result)
@@ -145,7 +145,7 @@ class TestCheckForHolidays(unittest.TestCase):
         mock_get_holiday_list.return_value = holiday_obj
 
         with patch.object(defs, "meta", meta_obj):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, tuple())
 
         self.assertTrue(result)
         mock_get_holiday_list.assert_called_once()
@@ -169,9 +169,22 @@ class TestCheckForHolidays(unittest.TestCase):
 
         with patch.object(defs, "meta", meta_obj):
             with self.assertRaises(SystemExit):
-                defs.checkForHolidays(mock_nse)
+                defs.checkForHolidays(mock_nse, tuple())
 
         mock_get_holiday_list.assert_called_once()
+
+    @patch.object(defs, "dates")
+    def test_is_special_session(self, _):
+        dt = datetime(2024, 3, 16)
+        defs.dates.dt = defs.dates.today = dt
+
+        # Mock NSE class
+        mock_nse = Mock()
+
+        # Call the function
+        result = defs.checkForHolidays(mock_nse, (dt,))
+
+        self.assertFalse(result)
 
 
 class TestValidateNseActionsFile(unittest.TestCase):

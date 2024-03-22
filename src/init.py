@@ -32,6 +32,9 @@ if args.version:
 if args.config:
     exit(str(defs.config))
 
+# download the latest special_sessions.txt from eod2_data repo
+special_sessions = defs.downloadSpecialSessions()
+
 nse = NSE(defs.DIR)
 
 if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
@@ -52,7 +55,7 @@ while True:
         nse.exit()
         exit()
 
-    if defs.checkForHolidays(nse):
+    if defs.checkForHolidays(nse, special_sessions):
         continue
 
     # Validate NSE actions file
