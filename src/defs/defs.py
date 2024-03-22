@@ -2,13 +2,14 @@ import sys
 import json
 import re
 import os
+import requests
 import numpy as np
 import pandas as pd
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
-from typing import cast, Any, Dict, List, Optional
+from typing import cast, Any, Dict, List, Optional, Tuple
 
 
 class Dates:
@@ -82,6 +83,21 @@ def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
                 return dct
 
     return {}
+
+
+def downloadSpecialSessions() -> Tuple[datetime, ...]:
+    base_url = "https://raw.githubusercontent.com/BennyThadikaran/eod2_data"
+
+    res = requests.get(f"{base_url}/main/special_sessions.txt")
+
+    if res.ok:
+        return tuple(
+            datetime.fromisoformat(x) for x in res.text.strip().split("\n")
+        )
+
+    raise ConnectionError(
+        f"special_sessions.txt download failed. {res.status_code}: {res.reason}"
+    )
 
 
 def getHolidayList(nse: NSE):
