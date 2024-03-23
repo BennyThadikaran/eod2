@@ -4,6 +4,7 @@ import re
 import os
 import requests
 import numpy as np
+from requests.exceptions import ChunkedEncodingError
 import pandas as pd
 from nse import NSE
 from pathlib import Path
@@ -321,6 +322,8 @@ def updateAmiBrokerRecords(nse: NSE):
                 bhavFile = nse.equityBhavcopy(dt)
             except (RuntimeError, FileNotFoundError):
                 continue
+            except ChunkedEncodingError as e:
+                exit(f"{e}\nPlease try again")
 
         toAmiBrokerFormat(bhavFile)
 
