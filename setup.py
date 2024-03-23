@@ -17,7 +17,6 @@ url = "https://github.com/BennyThadikaran/eod2_data/archive/main.zip"
 ZIP_FILE = DIR / "eod2_data.zip"
 FOLDER = DIR / "src" / "eod2_data"
 DAILY_FOLDER = FOLDER / "daily"
-DELIVERY_FOLDER = FOLDER / "delivery"
 
 # check if the folder has any files in it
 if any(FOLDER.iterdir()):
@@ -38,15 +37,12 @@ if not ZIP_FILE.is_file():
     exit("download failed")
 
 print("Download success.")
-# create the eod2_data, daily and delivery folder if not exists
+# create the eod2_data and daily folder if not exists
 if not FOLDER.exists():
     FOLDER.mkdir()
 
 if not DAILY_FOLDER.exists():
     DAILY_FOLDER.mkdir()
-
-if not DELIVERY_FOLDER.exists():
-    DELIVERY_FOLDER.mkdir()
 
 print("Extracting Zipfile to eod2_data")
 
