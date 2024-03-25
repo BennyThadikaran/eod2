@@ -58,7 +58,7 @@ config = Config()
 isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
 
 headerText = (
-    "Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
+    b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 )
 
 splitRegex = re.compile(r"(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)")
@@ -488,16 +488,19 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
     "Appends EOD stock data to end of file"
 
-    text = ""
+    text = b""
 
     if not symFile.is_file():
         text += headerText
 
     avgTrdCnt = "" if trdCnt == "" else round(volume / trdCnt, 2)
 
-    text += f"{dates.pandasDt},{open},{high},{low},{close},{volume},{trdCnt},{avgTrdCnt},{dq}\n"
+    text += bytes(
+        f"{dates.pandasDt},{open},{high},{low},{close},{volume},{trdCnt},{avgTrdCnt},{dq}\n",
+        encoding="utf-8",
+    )
 
-    with symFile.open("a") as f:
+    with symFile.open("ab") as f:
         f.write(text)
 
 
@@ -563,14 +566,17 @@ def updateIndice(sym, open, high, low, close, volume):
 
     file = DAILY_FOLDER / f"{sym.lower()}.csv"
 
-    text = ""
+    text = b""
 
     if not file.is_file():
         text += headerText
 
-    text += f"{dates.pandasDt},{open},{high},{low},{close},{volume},,,\n"
+    text += bytes(
+        f"{dates.pandasDt},{open},{high},{low},{close},{volume},,,\n",
+        encoding="utf-8",
+    )
 
-    with file.open("a") as f:
+    with file.open("ab") as f:
         f.write(text)
 
 
