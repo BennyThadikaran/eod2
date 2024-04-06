@@ -130,7 +130,7 @@ while True:
         defs.rollback(defs.DAILY_FOLDER)
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
-        defs.meta["last_update"] = defs.dates.lastUpdate
+        defs.meta["lastUpdate"] = defs.dates.lastUpdate
         writeJson(defs.META_FILE, defs.meta)
         nse.exit()
         exit()
