@@ -3,6 +3,7 @@ import json
 import re
 import os
 import requests
+import logging
 import numpy as np
 from requests.exceptions import ChunkedEncodingError
 import pandas as pd
@@ -11,6 +12,8 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
 from typing import cast, Any, Dict, List, Optional, Tuple
+
+logger = logging.getLogger("EOD2")
 
 
 class Dates:
@@ -29,11 +32,13 @@ class Dates:
         self.dt = self.dt + timedelta(1)
 
         if self.dt > curTime:
-            print("All Up To Date")
+            logger.info("All Up To Date")
             return False
 
         if self.dt.day == curTime.day and curTime.hour < 18:
-            print("All Up To Date. Check again after 7pm for today's EOD data")
+            logger.info(
+                "All Up To Date. Check again after 7pm for today's EOD data"
+            )
             return False
 
         self.pandasDt = self.dt.strftime("%Y-%m-%d")
@@ -77,6 +82,13 @@ if __name__ != "__main__":
         AMIBROKER_FOLDER.mkdir()
 
 
+def log_unhandled_exception(exc_type, exc_value, exc_traceback):
+    # Log the unhandled exception
+    logger.critical(
+        "Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+
 def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     for lst in holidays.values():
         for dct in lst:
@@ -107,13 +119,14 @@ def getHolidayList(nse: NSE):
     try:
         data = nse.holidays(type=nse.HOLIDAY_TRADING)
     except Exception as e:
-        exit(f"{e!r}\nFailed to download holidays")
+        logger.exception("Failed to download holidays", exc_info=e)
+        exit()
 
     # CM pertains to capital market or equity holidays
     data["CM"].append(getMuhuratHolidayInfo(data))
 
     data = {k["tradingDate"]: k["description"] for k in data["CM"]}
-    print("NSE Holiday list updated")
+    logger.info("NSE Holiday list updated")
 
     return data
 
@@ -154,10 +167,11 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
 
     if curDt in meta["holidays"]:
         if not isToday:
-            print(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
+            logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
             return True
 
-        exit(f'Market Holiday: {meta["holidays"][curDt]}')
+        logger.info(f'Market Holiday: {meta["holidays"][curDt]}')
+        exit()
 
     return False
 
@@ -173,7 +187,7 @@ def validateNseActionsFile(nse: NSE):
         segment = "sme" if action == "sme" else "equities"
 
         if f"{action}Actions" not in meta:
-            print(f"Downloading NSE {action.upper()} actions")
+            logger.info(f"Downloading NSE {action.upper()} actions")
 
             try:
                 meta[f"{action}Actions"] = nse.actions(
@@ -182,7 +196,10 @@ def validateNseActionsFile(nse: NSE):
                     to_date=dates.dt + timedelta(8),
                 )
             except Exception as e:
-                exit(f"{e!r}\nFailed to download {action} actions")
+                logger.exception(
+                    "Failed to download {action} actions", exc_info=e
+                )
+                exit()
 
             meta[f"{action}ActionsExpiry"] = (
                 dates.dt + timedelta(7)
@@ -195,7 +212,7 @@ def validateNseActionsFile(nse: NSE):
             if dates.dt < expiryDate:
                 continue
 
-            print(f"Updating NSE {action.upper()} actions")
+            logger.info(f"Updating NSE {action.upper()} actions")
 
             try:
                 meta[f"{action}Actions"] = nse.actions(
@@ -204,7 +221,10 @@ def validateNseActionsFile(nse: NSE):
                     to_date=expiryDate + timedelta(8),
                 )
             except Exception as e:
-                exit(f"{e!r}\nFailed to update {action} actions")
+                logger.exception(
+                    f"Failed to update {action} actions", exc_info=e
+                )
+                exit()
 
             meta[f"{action}ActionsExpiry"] = newExpiry
 
@@ -217,17 +237,17 @@ def updatePendingDeliveryData(nse: NSE, date: str):
     dt = datetime.fromisoformat(date)
     daysSinceFailure = (datetime.today() - dt).days
 
+    logger.info("Updating pending delivery reports.")
+
     try:
         FILE = nse.deliveryBhavcopy(dt)
     except (RuntimeError, Exception):
         if daysSinceFailure == 5:
-            print("Max Failed: Aborting Future attempts")
+            logger.warning("Max attempts reached: Aborting Future attempts")
             return True
 
-        print(f"{dt:%d %b}: Delivery report not yet updated.")
+        logger.info(f"{dt:%d %b}: Delivery report not yet updated.")
         return False
-
-    print(f"Updating delivery report dated {dt:%d %b %Y}:", end=" ", flush=True)
 
     try:
         df = pd.read_csv(FILE, index_col="SYMBOL")
@@ -278,13 +298,15 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             dailyDf.loc[dt, "DLV_QTY"] = dq
             dailyDf.to_csv(DAILY_FILE)
     except Exception as e:
-        print(repr(e))
+        logger.exception(
+            f"Error updating delivery report dated {dt:%d %b %Y}", exc_info=e
+        )
         FILE.unlink()
         return False
 
     meta["DLV_PENDING_DATES"].remove(date)
     FILE.unlink()
-    print("✓ Done")
+    logger.info(f"Updating delivery report dated {dt:%d %b %Y}: ✓ Done")
     return True
 
 
@@ -302,7 +324,7 @@ def updateAmiBrokerRecords(nse: NSE):
     dt = lastUpdate - timedelta(config.AMI_UPDATE_DAYS)
     totalDays = config.AMI_UPDATE_DAYS
 
-    print(
+    logger.info(
         f"Fetching bhavcopy for last {totalDays} days",
         "and converting to AmiBroker format.\n"
         "This is a one time process. It will take a few minutes.",
@@ -323,7 +345,8 @@ def updateAmiBrokerRecords(nse: NSE):
             except (RuntimeError, FileNotFoundError):
                 continue
             except ChunkedEncodingError as e:
-                exit(f"{e}\nPlease try again")
+                logger.exception("Please try again.", exc_info=e)
+                exit()
 
         toAmiBrokerFormat(bhavFile)
 
@@ -333,7 +356,7 @@ def updateAmiBrokerRecords(nse: NSE):
         pctComplete = int(daysComplete / totalDays * 100)
         print(f"{pctComplete} %", end="\r" * 5, flush=True)
 
-    print("\nDone")
+    logger.info("Amibroker file updated")
 
 
 def toAmiBrokerFormat(file: Path):
@@ -396,7 +419,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     ]
 
     if config.AMIBROKER:
-        print("Converting to AmiBroker format")
+        logger.info("Converting to AmiBroker format")
         toAmiBrokerFormat(bhavFile)
 
     if deliveryFile:
@@ -471,11 +494,11 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
             try:
                 OLD_FILE.rename(SYM_FILE)
             except FileNotFoundError:
-                print(
-                    f"WARN: Renaming daily/{old}.csv to {new}.csv. No such file."
+                logger.warning(
+                    f"Renaming daily/{old}.csv to {new}.csv. No such file."
                 )
 
-            print(f"Name Changed: {old} to {new}")
+            logger.info(f"Name Changed: {old} to {new}")
 
         updateNseSymbol(
             SYM_FILE, t.OPEN, t.HIGH, t.LOW, t.CLOSE, t.TOTTRDQTY, trdCnt, dq
@@ -511,7 +534,7 @@ def getSplit(sym, string):
     match = splitRegex.search(string)
 
     if match is None:
-        print(f"{sym}: Not Matched. {string}")
+        logger.warning(f"{sym}: Not Matched. {string}")
         return match
 
     return float(match.group(1)) / float(match.group(2))
@@ -524,7 +547,7 @@ def getBonus(sym, string):
     match = bonusRegex.search(string)
 
     if match is None:
-        print(f"{sym}: Not Matched. {string}")
+        logger.warning(f"{sym}: Not Matched. {string}")
         return match
 
     return 1 + int(match.group(1)) / int(match.group(2))
@@ -537,7 +560,7 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
     file = DAILY_FOLDER / f"{symbol.lower()}.csv"
 
     if not file.is_file():
-        print(f"{symbol}: File not found")
+        logger.warning(f"{symbol}: File not found")
         return
 
     df = pd.read_csv(file, index_col="Date", parse_dates=True, na_filter=False)
@@ -625,9 +648,9 @@ def updateIndexEOD(file: Path):
     pe = float(df.at["Nifty 50", "P/E"])
 
     if pe >= 25 or pe <= 20:
-        print(f"\033[1;32m### Alert: Nifty PE at {pe}! ###\033[0;94m")
+        logger.info(f"\033[1;32m### Alert: Nifty PE at {pe}! ###\033[0;94m")
     else:
-        print(f"### Nifty PE at {pe} ###")
+        logger.info(f"### Nifty PE at {pe} ###")
 
 
 def adjustNseStocks():
@@ -662,7 +685,7 @@ def adjustNseStocks():
 
                     dfCommits.append(makeAdjustment(sym, adjustmentFactor))
 
-                    print(f"{sym}: {purpose}")
+                    logger.info(f"{sym}: {purpose}")
 
                 if "bonus" in purpose and ex == dtStr:
                     adjustmentFactor = getBonus(sym, purpose)
@@ -672,7 +695,7 @@ def adjustNseStocks():
 
                     dfCommits.append(makeAdjustment(sym, adjustmentFactor))
 
-                    print(f"{sym}: {purpose}")
+                    logger.info(f"{sym}: {purpose}")
         except Exception as e:
             # discard all pd.DataFrames and raise error,
             # so changes can be rolled back
@@ -713,7 +736,7 @@ def rollback(folder: Path):
     pertaining to the current date"""
 
     dt = dates.pandasDt
-    print(f"Rolling back changes from {dt}: {folder}")
+    logger.info(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
         df = pd.read_csv(
@@ -724,7 +747,7 @@ def rollback(folder: Path):
             df = df.drop(dt)
             df.to_csv(file)
 
-    print("Rollback successful")
+    logger.info("Rollback successful")
 
 
 def cleanup(filesLst):
@@ -749,4 +772,4 @@ def cleanOutDated():
             file.unlink()
             count += 1
 
-    print(f"{count} files deleted")
+    logger.info(f"{count} files deleted")
