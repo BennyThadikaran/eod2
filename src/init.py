@@ -1,11 +1,10 @@
-from sys import platform
-import logging
+import sys, logging
 
 try:
     from nse import NSE
 except ModuleNotFoundError:
     # Inform user to install nse.
-    pip = "pip" if "win" in platform else "pip3"
+    pip = "pip" if "win" in sys.platform else "pip3"
 
     exit(f"EOD2 requires 'nse' package. Run '{pip} install -U nse'")
 
@@ -19,6 +18,9 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger("EOD2")
+
+# Set the sys.excepthook to the custom exception handler
+sys.excepthook = defs.log_unhandled_exception
 
 parser = ArgumentParser(prog="init.py")
 

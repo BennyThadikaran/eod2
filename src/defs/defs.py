@@ -82,6 +82,13 @@ if __name__ != "__main__":
         AMIBROKER_FOLDER.mkdir()
 
 
+def log_unhandled_exception(exc_type, exc_value, exc_traceback):
+    # Log the unhandled exception
+    logger.critical(
+        "Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback)
+    )
+
+
 def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     for lst in holidays.values():
         for dct in lst:
