@@ -1,16 +1,8 @@
 import sys, logging
-
-try:
-    from nse import NSE
-except ModuleNotFoundError:
-    # Inform user to install nse.
-    pip = "pip" if "win" in sys.platform else "pip3"
-
-    exit(f"EOD2 requires 'nse' package. Run '{pip} install -U nse'")
-
 from defs.utils import writeJson
 from defs import defs
 from argparse import ArgumentParser
+from nse import NSE
 
 logging.basicConfig(
     level=logging.INFO,
