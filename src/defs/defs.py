@@ -232,6 +232,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
 
     dt = datetime.fromisoformat(date)
     daysSinceFailure = (datetime.today() - dt).days
+    error_context = None
 
     logger.info("Updating pending delivery reports.")
 
@@ -267,6 +268,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
         ]
 
         for sym in df.index:
+            error_context = f"{sym} - {dt}"
             DAILY_FILE = DAILY_FOLDER / f"{sym.lower()}.csv"
 
             if not DAILY_FILE.exists():
@@ -295,7 +297,8 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             dailyDf.to_csv(DAILY_FILE)
     except Exception as e:
         logger.exception(
-            f"Error updating delivery report dated {dt:%d %b %Y}", exc_info=e
+            f"Error updating delivery report dated {dt:%d %b %Y} - {error_context}",
+            exc_info=e,
         )
         FILE.unlink()
         return False
@@ -667,6 +670,7 @@ def adjustNseStocks():
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
         dfCommits = []
+        error_context = None
 
         try:
             for act in meta[actions]:
@@ -682,6 +686,7 @@ def adjustNseStocks():
                     sym += "_sme"
 
                 if ("split" in purpose or "splt" in purpose) and ex == dtStr:
+                    error_context = f"{sym} - Split - {dtStr}"
                     adjustmentFactor = getSplit(sym, purpose)
 
                     if adjustmentFactor is None:
@@ -692,6 +697,7 @@ def adjustNseStocks():
                     logger.info(f"{sym}: {purpose}")
 
                 if "bonus" in purpose and ex == dtStr:
+                    error_context = f"{sym} - Bonus - {dtStr}"
                     adjustmentFactor = getBonus(sym, purpose)
 
                     if adjustmentFactor is None:
@@ -700,7 +706,9 @@ def adjustNseStocks():
                     dfCommits.append(makeAdjustment(sym, adjustmentFactor))
 
                     logger.info(f"{sym}: {purpose}")
+
         except Exception as e:
+            logging.critical(f"Adjustment Error - Context {error_context}")
             # discard all pd.DataFrames and raise error,
             # so changes can be rolled back
             dfCommits.clear()
