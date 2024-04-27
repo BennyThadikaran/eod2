@@ -63,13 +63,8 @@ class TestGetHolidayList(unittest.TestCase):
         exc = Exception("Download failed.")
         mock_nse.holidays.side_effect = exc
 
-        with self.assertRaises(SystemExit) as exit_exception:
+        with self.assertRaises(SystemExit):
             defs.getHolidayList(mock_nse)
-
-        self.assertEqual(
-            exit_exception.exception.code,
-            f"{exc!r}\nFailed to download holidays",
-        )
 
 
 class TestCheckForHolidays(unittest.TestCase):
@@ -227,13 +222,10 @@ class TestValidateNseActionsFile(unittest.TestCase):
         exc = Exception("Download Failed")
         mock_nse.actions.side_effect = exc
 
-        with self.assertRaises(SystemExit) as exit_exception:
+        with self.assertRaises(SystemExit):
             defs.validateNseActionsFile(mock_nse)
 
-        expected_exc = f"{exc!r}\nFailed to download equity actions"
-
         mock_nse.actions.assert_called_once()
-        self.assertEqual(exit_exception.exception.code, expected_exc)
 
     @patch.object(defs, "meta", {})
     @patch.object(defs, "dates")
@@ -285,13 +277,10 @@ class TestValidateNseActionsFile(unittest.TestCase):
         exc = Exception("Download Failed")
         mock_nse.actions.side_effect = exc
 
-        with self.assertRaises(SystemExit) as exit_exception:
+        with self.assertRaises(SystemExit):
             defs.validateNseActionsFile(mock_nse)
 
-        expected_exc = f"{exc!r}\nFailed to update equity actions"
-
         mock_nse.actions.assert_called_once()
-        self.assertEqual(exit_exception.exception.code, expected_exc)
 
     @patch.object(defs, "meta", {})
     @patch.object(defs, "dates")

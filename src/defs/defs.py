@@ -119,7 +119,7 @@ def getHolidayList(nse: NSE):
     try:
         data = nse.holidays(type=nse.HOLIDAY_TRADING)
     except Exception as e:
-        logger.exception("Failed to download holidays", exc_info=e)
+        logger.warning(f"Failed to download holidays - {e}")
         exit()
 
     # CM pertains to capital market or equity holidays
@@ -196,9 +196,7 @@ def validateNseActionsFile(nse: NSE):
                     to_date=dates.dt + timedelta(8),
                 )
             except Exception as e:
-                logger.exception(
-                    "Failed to download {action} actions", exc_info=e
-                )
+                logger.warning(f"Failed to download {action} actions - {e}")
                 exit()
 
             meta[f"{action}ActionsExpiry"] = (
@@ -221,9 +219,7 @@ def validateNseActionsFile(nse: NSE):
                     to_date=expiryDate + timedelta(8),
                 )
             except Exception as e:
-                logger.exception(
-                    f"Failed to update {action} actions", exc_info=e
-                )
+                logger.warning(f"Failed to update {action} actions - {e}")
                 exit()
 
             meta[f"{action}ActionsExpiry"] = newExpiry
@@ -236,6 +232,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
 
     dt = datetime.fromisoformat(date)
     daysSinceFailure = (datetime.today() - dt).days
+    error_context = None
 
     logger.info("Updating pending delivery reports.")
 
@@ -271,6 +268,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
         ]
 
         for sym in df.index:
+            error_context = f"{sym} - {dt}"
             DAILY_FILE = DAILY_FOLDER / f"{sym.lower()}.csv"
 
             if not DAILY_FILE.exists():
@@ -299,7 +297,8 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             dailyDf.to_csv(DAILY_FILE)
     except Exception as e:
         logger.exception(
-            f"Error updating delivery report dated {dt:%d %b %Y}", exc_info=e
+            f"Error updating delivery report dated {dt:%d %b %Y} - {error_context}",
+            exc_info=e,
         )
         FILE.unlink()
         return False
@@ -325,10 +324,10 @@ def updateAmiBrokerRecords(nse: NSE):
     totalDays = config.AMI_UPDATE_DAYS
 
     logger.info(
-        f"Fetching bhavcopy for last {totalDays} days",
-        "and converting to AmiBroker format.\n"
-        "This is a one time process. It will take a few minutes.",
+        f"Fetching bhavcopy for last {totalDays} days, to convert to AmiBroker format."
     )
+
+    logger.info("This is a one time process. It will take a few minutes.")
 
     while dt < lastUpdate:
         dt += timedelta(1)
@@ -345,7 +344,7 @@ def updateAmiBrokerRecords(nse: NSE):
             except (RuntimeError, FileNotFoundError):
                 continue
             except ChunkedEncodingError as e:
-                logger.exception("Please try again.", exc_info=e)
+                logger.warning(f"{e} - Please try again.")
                 exit()
 
         toAmiBrokerFormat(bhavFile)
@@ -395,6 +394,8 @@ def toAmiBrokerFormat(file: Path):
 
 def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     """Update all stocks with latest price data from bhav copy"""
+
+    logger.info("Starting Data Sync")
 
     isinUpdated = False
 
@@ -506,6 +507,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
     if isinUpdated:
         isin.to_csv(ISIN_FILE)
+
+    logger.info("EOD sync complete")
 
 
 def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
@@ -652,10 +655,14 @@ def updateIndexEOD(file: Path):
     else:
         logger.info(f"### Nifty PE at {pe} ###")
 
+    logger.info("Index sync complete.")
+
 
 def adjustNseStocks():
     """Iterates over NSE corporate actions searching for splits or bonus
     on current date and adjust the stock accordingly"""
+
+    logger.info("Making adjustments for splits and bonus")
 
     dtStr = dates.dt.strftime("%d-%b-%Y")
 
@@ -663,6 +670,7 @@ def adjustNseStocks():
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
         dfCommits = []
+        error_context = None
 
         try:
             for act in meta[actions]:
@@ -678,6 +686,7 @@ def adjustNseStocks():
                     sym += "_sme"
 
                 if ("split" in purpose or "splt" in purpose) and ex == dtStr:
+                    error_context = f"{sym} - Split - {dtStr}"
                     adjustmentFactor = getSplit(sym, purpose)
 
                     if adjustmentFactor is None:
@@ -688,6 +697,7 @@ def adjustNseStocks():
                     logger.info(f"{sym}: {purpose}")
 
                 if "bonus" in purpose and ex == dtStr:
+                    error_context = f"{sym} - Bonus - {dtStr}"
                     adjustmentFactor = getBonus(sym, purpose)
 
                     if adjustmentFactor is None:
@@ -696,7 +706,9 @@ def adjustNseStocks():
                     dfCommits.append(makeAdjustment(sym, adjustmentFactor))
 
                     logger.info(f"{sym}: {purpose}")
+
         except Exception as e:
+            logging.critical(f"Adjustment Error - Context {error_context}")
             # discard all pd.DataFrames and raise error,
             # so changes can be rolled back
             dfCommits.clear()
@@ -761,6 +773,8 @@ def cleanup(filesLst):
 
 def cleanOutDated():
     """Delete CSV files not updated in the last 365 days"""
+
+    logger.info("Cleaning up files")
 
     deadline = dates.today - timedelta(365)
     count = 0

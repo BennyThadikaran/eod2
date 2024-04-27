@@ -1,16 +1,8 @@
 import sys, logging
-
-try:
-    from nse import NSE
-except ModuleNotFoundError:
-    # Inform user to install nse.
-    pip = "pip" if "win" in sys.platform else "pip3"
-
-    exit(f"EOD2 requires 'nse' package. Run '{pip} install -U nse'")
-
 from defs.utils import writeJson
 from defs import defs
 from argparse import ArgumentParser
+from nse import NSE
 
 logging.basicConfig(
     level=logging.INFO,
@@ -93,7 +85,7 @@ while True:
 
         # On daily sync exit on error
         nse.exit()
-        logger.exception("Error downloading reports", exc_info=e)
+        logger.warning(e)
         exit()
 
     try:
@@ -107,19 +99,13 @@ while True:
         )
 
     try:
-        logger.info("Starting Data Sync")
-
         defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
-
-        logger.info("EOD sync complete")
 
         # INDEX sync
         defs.updateIndexEOD(INDEX_FILE)
-
-        logger.info("Index sync complete.")
     except Exception as e:
         # rollback
-        logger.exception(f"Error during data sync.", exc_info=e)
+        logger.exception("Error during data sync.", exc_info=e)
         defs.rollback(defs.DAILY_FOLDER)
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
@@ -131,13 +117,11 @@ while True:
     # No errors continue
 
     # Adjust Splits and bonus
-    logger.info("Makings adjustments for splits and bonus")
-
     try:
         defs.adjustNseStocks()
     except Exception as e:
         logger.exception(
-            f"Error while making adjustments.\nAll adjustments have been discarded.",
+            "Error while making adjustments.\nAll adjustments have been discarded.",
             exc_info=e,
         )
 
@@ -148,8 +132,6 @@ while True:
         writeJson(defs.META_FILE, defs.meta)
         nse.exit()
         exit()
-
-    logger.info("Cleaning up files")
 
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
     defs.cleanOutDated()
