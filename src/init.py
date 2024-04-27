@@ -105,7 +105,7 @@ while True:
         defs.updateIndexEOD(INDEX_FILE)
     except Exception as e:
         # rollback
-        logger.exception(f"Error during data sync.", exc_info=e)
+        logger.exception("Error during data sync.", exc_info=e)
         defs.rollback(defs.DAILY_FOLDER)
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
@@ -121,7 +121,7 @@ while True:
         defs.adjustNseStocks()
     except Exception as e:
         logger.exception(
-            f"Error while making adjustments.\nAll adjustments have been discarded.",
+            "Error while making adjustments.\nAll adjustments have been discarded.",
             exc_info=e,
         )
 
