@@ -119,7 +119,7 @@ def getHolidayList(nse: NSE):
     try:
         data = nse.holidays(type=nse.HOLIDAY_TRADING)
     except Exception as e:
-        logger.exception("Failed to download holidays", exc_info=e)
+        logger.warning(f"Failed to download holidays - {e}")
         exit()
 
     # CM pertains to capital market or equity holidays
@@ -196,9 +196,7 @@ def validateNseActionsFile(nse: NSE):
                     to_date=dates.dt + timedelta(8),
                 )
             except Exception as e:
-                logger.exception(
-                    "Failed to download {action} actions", exc_info=e
-                )
+                logger.warning(f"Failed to download {action} actions - {e}")
                 exit()
 
             meta[f"{action}ActionsExpiry"] = (
@@ -221,9 +219,7 @@ def validateNseActionsFile(nse: NSE):
                     to_date=expiryDate + timedelta(8),
                 )
             except Exception as e:
-                logger.exception(
-                    f"Failed to update {action} actions", exc_info=e
-                )
+                logger.warning(f"Failed to update {action} actions - {e}")
                 exit()
 
             meta[f"{action}ActionsExpiry"] = newExpiry
@@ -345,7 +341,7 @@ def updateAmiBrokerRecords(nse: NSE):
             except (RuntimeError, FileNotFoundError):
                 continue
             except ChunkedEncodingError as e:
-                logger.exception("Please try again.", exc_info=e)
+                logger.warning(f"{e} - Please try again.")
                 exit()
 
         toAmiBrokerFormat(bhavFile)
