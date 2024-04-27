@@ -396,6 +396,8 @@ def toAmiBrokerFormat(file: Path):
 def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     """Update all stocks with latest price data from bhav copy"""
 
+    logger.info("Starting Data Sync")
+
     isinUpdated = False
 
     df = pd.read_csv(bhavFile, index_col="ISIN")
@@ -506,6 +508,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
     if isinUpdated:
         isin.to_csv(ISIN_FILE)
+
+    logger.info("EOD sync complete")
 
 
 def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
@@ -652,10 +656,14 @@ def updateIndexEOD(file: Path):
     else:
         logger.info(f"### Nifty PE at {pe} ###")
 
+    logger.info("Index sync complete.")
+
 
 def adjustNseStocks():
     """Iterates over NSE corporate actions searching for splits or bonus
     on current date and adjust the stock accordingly"""
+
+    logger.info("Making adjustments for splits and bonus")
 
     dtStr = dates.dt.strftime("%d-%b-%Y")
 
@@ -761,6 +769,8 @@ def cleanup(filesLst):
 
 def cleanOutDated():
     """Delete CSV files not updated in the last 365 days"""
+
+    logger.info("Cleaning up files")
 
     deadline = dates.today - timedelta(365)
     count = 0

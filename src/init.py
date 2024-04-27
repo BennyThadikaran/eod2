@@ -99,16 +99,10 @@ while True:
         )
 
     try:
-        logger.info("Starting Data Sync")
-
         defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
-
-        logger.info("EOD sync complete")
 
         # INDEX sync
         defs.updateIndexEOD(INDEX_FILE)
-
-        logger.info("Index sync complete.")
     except Exception as e:
         # rollback
         logger.exception(f"Error during data sync.", exc_info=e)
@@ -123,8 +117,6 @@ while True:
     # No errors continue
 
     # Adjust Splits and bonus
-    logger.info("Makings adjustments for splits and bonus")
-
     try:
         defs.adjustNseStocks()
     except Exception as e:
@@ -140,8 +132,6 @@ while True:
         writeJson(defs.META_FILE, defs.meta)
         nse.exit()
         exit()
-
-    logger.info("Cleaning up files")
 
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
     defs.cleanOutDated()
