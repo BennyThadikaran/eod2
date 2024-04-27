@@ -324,10 +324,10 @@ def updateAmiBrokerRecords(nse: NSE):
     totalDays = config.AMI_UPDATE_DAYS
 
     logger.info(
-        f"Fetching bhavcopy for last {totalDays} days",
-        "and converting to AmiBroker format.\n"
-        "This is a one time process. It will take a few minutes.",
+        f"Fetching bhavcopy for last {totalDays} days, to convert to AmiBroker format."
     )
+
+    logger.info("This is a one time process. It will take a few minutes.")
 
     while dt < lastUpdate:
         dt += timedelta(1)
