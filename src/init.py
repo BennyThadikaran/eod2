@@ -85,7 +85,7 @@ while True:
 
         # On daily sync exit on error
         nse.exit()
-        logger.exception("Error downloading reports", exc_info=e)
+        logger.warning(e)
         exit()
 
     try:
