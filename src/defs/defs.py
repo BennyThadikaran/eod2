@@ -1,12 +1,8 @@
-import sys
-import json
-import re
-import os
-import requests
-import logging
+import sys, json, re, os, requests, logging, tzlocal
 import numpy as np
-from requests.exceptions import ChunkedEncodingError
 import pandas as pd
+from zoneinfo import ZoneInfo
+from requests.exceptions import ChunkedEncodingError
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
