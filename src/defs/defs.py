@@ -271,7 +271,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
                 continue
 
             dailyDf = pd.read_csv(
-                DAILY_FILE, index_col="Date", parse_dates=True
+                DAILY_FILE, index_col="Date", parse_dates=["Date"]
             )
 
             if dt not in dailyDf.index:
@@ -747,9 +747,7 @@ def rollback(folder: Path):
     logger.info(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
-        df = pd.read_csv(
-            file, index_col="Date", parse_dates=True, na_filter=False
-        )
+        df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
 
         if dt in df.index:
             df = df.drop(dt)
