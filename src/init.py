@@ -48,6 +48,8 @@ if "DLV_PENDING_DATES" not in defs.meta:
 if len(defs.meta["DLV_PENDING_DATES"]):
     pendingList = defs.meta["DLV_PENDING_DATES"].copy()
 
+    logger.info("Updating pending delivery reports.")
+
     for dateStr in pendingList:
         if defs.updatePendingDeliveryData(nse, dateStr):
             writeJson(defs.META_FILE, defs.meta)
@@ -75,12 +77,16 @@ while True:
     except (RuntimeError, Exception) as e:
         if defs.dates.dt.weekday() == 5:
             if defs.dates.dt != defs.dates.today:
+                logger.info(
+                    f'{defs.dates.dt:%a, %d %b %Y}: Market Closed\n{"-" * 52}'
+                )
+
                 # On Error, dont exit on Saturdays, if trying to sync past dates
                 continue
 
             # If NSE is closed and report unavailable, inform user
             logger.info(
-                "NSE is closed on Saturdays. If open, check availability on NSE"
+                "Market is closed on Saturdays. If open, check availability on NSE"
             )
 
         # On daily sync exit on error
