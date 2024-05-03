@@ -1,4 +1,4 @@
-import sys, json, re, os, requests, logging, tzlocal
+import sys, json, re, os, requests, logging
 import numpy as np
 import pandas as pd
 from zoneinfo import ZoneInfo
@@ -8,6 +8,13 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
 from typing import cast, Any, Dict, List, Optional, Tuple
+
+try:
+    import tzlocal
+except ModuleNotFoundError:
+    pip = "pip" if "win" in sys.platform else "pip3"
+    exit(f"tzlocal package is required\nRun: {pip} install tzlocal")
+
 
 logger = logging.getLogger("EOD2")
 tz_local = tzlocal.get_localzone()
