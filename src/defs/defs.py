@@ -1,34 +1,46 @@
-import sys
-import json
-import re
-import os
-import requests
-import logging
+import sys, json, re, os, requests, logging
 import numpy as np
-from requests.exceptions import ChunkedEncodingError
 import pandas as pd
+from zoneinfo import ZoneInfo
+from requests.exceptions import ChunkedEncodingError
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
 from typing import cast, Any, Dict, List, Optional, Tuple
 
+try:
+    import tzlocal
+except ModuleNotFoundError:
+    pip = "pip" if "win" in sys.platform else "pip3"
+    exit(f"tzlocal package is required\nRun: {pip} install tzlocal")
+
+
 logger = logging.getLogger("EOD2")
+tz_local = tzlocal.get_localzone()
+tz_IN = ZoneInfo("Asia/Kolkata")
 
 
 class Dates:
     "A class for date related functions in EOD2"
 
     def __init__(self, lastUpdate: str):
-        self.today = datetime.combine(datetime.today(), datetime.min.time())
-        self.dt = self.lastUpdate = datetime.fromisoformat(lastUpdate)
+
+        today = datetime.now(tz_IN)
+
+        self.today = datetime.combine(today, datetime.min.time())
+
+        dt = datetime.fromisoformat(lastUpdate).astimezone(tz_IN)
+
+        self.dt = self.lastUpdate = dt
+
         self.pandasDt = self.dt.strftime("%Y-%m-%d")
 
     def nextDate(self):
         """Set the next trading date and return True.
         If its a future date, return False"""
 
-        curTime = datetime.today()
+        curTime = datetime.now(tz_IN)
         self.dt = self.dt + timedelta(1)
 
         if self.dt > curTime:
@@ -36,8 +48,13 @@ class Dates:
             return False
 
         if self.dt.day == curTime.day and curTime.hour < 18:
+            # Display the users local time
+            local_time = curTime.replace(hour=19, minute=0).astimezone(tz_local)
+
+            t_str = local_time.strftime("%-I:%M%p")  # 7:00PM
+
             logger.info(
-                "All Up To Date. Check again after 7pm for today's EOD data"
+                f"All Up To Date. Check again after {t_str} for today's EOD data"
             )
             return False
 
@@ -105,7 +122,8 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
 
     if res.ok:
         return tuple(
-            datetime.fromisoformat(x) for x in res.text.strip().split("\n")
+            datetime.fromisoformat(x).astimezone(tz_IN)
+            for x in res.text.strip().split("\n")
         )
 
     raise ConnectionError(
@@ -203,7 +221,10 @@ def validateNseActionsFile(nse: NSE):
                 dates.dt + timedelta(7)
             ).isoformat()
         else:
-            expiryDate = datetime.fromisoformat(meta[f"{action}ActionsExpiry"])
+            expiryDate = datetime.fromisoformat(
+                meta[f"{action}ActionsExpiry"]
+            ).astimezone(tz_IN)
+
             newExpiry = (expiryDate + timedelta(7)).isoformat()
 
             # Update every 7 days from last download
@@ -231,10 +252,10 @@ def updatePendingDeliveryData(nse: NSE, date: str):
     """
 
     dt = datetime.fromisoformat(date)
-    daysSinceFailure = (datetime.today() - dt).days
+    daysSinceFailure = (datetime.now(tz_IN) - dt).days
     error_context = None
 
-    logger.info("Updating pending delivery reports.")
+    dt = dt.replace(tzinfo=None)
 
     try:
         FILE = nse.deliveryBhavcopy(dt)
@@ -275,7 +296,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
                 continue
 
             dailyDf = pd.read_csv(
-                DAILY_FILE, index_col="Date", parse_dates=True
+                DAILY_FILE, index_col="Date", parse_dates=["Date"]
             )
 
             if dt not in dailyDf.index:
@@ -566,12 +587,15 @@ def makeAdjustment(symbol: str, adjustmentFactor: float):
         logger.warning(f"{symbol}: File not found")
         return
 
-    df = pd.read_csv(file, index_col="Date", parse_dates=True, na_filter=False)
+    df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
 
     last = None
 
-    if dates.dt in df.index:
-        idx = df.index.get_loc(dates.dt)
+    # Remove timezone info as DataFrame index is not timezone aware
+    dt = dates.dt.replace(tzinfo=None)
+
+    if dt in df.index:
+        idx = df.index.get_loc(dt)
 
         last = df.iloc[idx:]
 
@@ -751,9 +775,7 @@ def rollback(folder: Path):
     logger.info(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
-        df = pd.read_csv(
-            file, index_col="Date", parse_dates=True, na_filter=False
-        )
+        df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
 
         if dt in df.index:
             df = df.drop(dt)

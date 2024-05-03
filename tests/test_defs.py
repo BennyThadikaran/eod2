@@ -3,9 +3,11 @@ from unittest.mock import Mock, patch
 from context import defs
 from datetime import datetime
 from pathlib import Path
+from zoneinfo import ZoneInfo
 import pandas as pd
 
 DIR = Path(__file__).parent / "test_data"
+tz_IN = ZoneInfo("Asia/Kolkata")
 
 
 class TestGetMuhuratHolidayInfo(unittest.TestCase):
@@ -232,9 +234,9 @@ class TestValidateNseActionsFile(unittest.TestCase):
     def test_expired_successful_request(self, _):
         """Actions data expired. Request for NSE actions successful"""
 
-        dt = datetime(2023, 1, 1)
-        expiry = datetime(2023, 1, 1).isoformat()
-        newExpiry = datetime(2023, 1, 8).isoformat()
+        dt = datetime(2023, 1, 1).astimezone(tz_IN)
+        expiry = datetime(2023, 1, 1).astimezone(tz_IN).isoformat()
+        newExpiry = datetime(2023, 1, 8).astimezone(tz_IN).isoformat()
 
         defs.dates.dt = defs.dates.today = dt
         defs.meta = {
@@ -260,8 +262,8 @@ class TestValidateNseActionsFile(unittest.TestCase):
     def test_expired_failed_request(self, _):
         """Actions data expired. Request for NSE actions fails"""
 
-        dt = datetime(2023, 1, 1)
-        expiry = datetime(2023, 1, 1).isoformat()
+        dt = datetime(2023, 1, 1).astimezone(tz_IN)
+        expiry = datetime(2023, 1, 1).astimezone(tz_IN).isoformat()
 
         defs.dates.dt = defs.dates.today = dt
         defs.meta = {
@@ -287,8 +289,8 @@ class TestValidateNseActionsFile(unittest.TestCase):
     def test_not_expired(self, _):
         """NSE actions data is fresh. No need to update"""
 
-        dt = datetime(2023, 1, 1)
-        expiry = datetime(2023, 1, 3).isoformat()
+        dt = datetime(2023, 1, 1).astimezone(tz_IN)
+        expiry = datetime(2023, 1, 3).astimezone(tz_IN).isoformat()
 
         defs.dates.dt = defs.dates.today = dt
         meta_obj = {
