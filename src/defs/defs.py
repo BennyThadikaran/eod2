@@ -16,7 +16,48 @@ except ModuleNotFoundError:
     exit(f"tzlocal package is required\nRun: {pip} install tzlocal")
 
 
-logger = logging.getLogger("EOD2")
+DIR = Path(__file__).parents[1]
+DAILY_FOLDER = DIR / "eod2_data" / "daily"
+ISIN_FILE = DIR / "eod2_data" / "isin.csv"
+AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
+
+
+def configure_logger(name: str) -> logging.Logger:
+    """Return a logger instance by name
+
+    Creates a file handler to log messages with level WARNING and above
+
+    Creates a stream handler to log messages with level INFO and above
+
+    Parameters:
+    name (str): Pass __name__ for module level logger
+    """
+
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+
+    stdout_handler = logging.StreamHandler()
+    stdout_handler.setLevel(logging.INFO)
+
+    stdout_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+
+    file_handler = logging.FileHandler(DIR / "error.log")
+    file_handler.setLevel(logging.WARNING)
+
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+        )
+    )
+
+    logger.addHandler(stdout_handler)
+    logger.addHandler(file_handler)
+
+    return logger
+
+
+logger = configure_logger(__name__)
+
 tz_local = tzlocal.get_localzone()
 tz_IN = ZoneInfo("Asia/Kolkata")
 
@@ -66,10 +107,6 @@ if "win" in sys.platform:
     # enable color support in Windows
     os.system("color")
 
-DIR = Path(__file__).parents[1]
-DAILY_FOLDER = DIR / "eod2_data" / "daily"
-ISIN_FILE = DIR / "eod2_data" / "isin.csv"
-AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
 
 META_FILE = DIR / "eod2_data" / "meta.json"
 
