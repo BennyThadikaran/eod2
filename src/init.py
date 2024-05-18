@@ -1,15 +1,11 @@
-import sys, logging
+import sys
 from defs.utils import writeJson
 from defs import defs
 from argparse import ArgumentParser
 from nse import NSE
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(levelname)s: %(message)s",
-)
 
-logger = logging.getLogger("EOD2")
+logger = defs.configure_logger(__name__)
 
 # Set the sys.excepthook to the custom exception handler
 sys.excepthook = defs.log_unhandled_exception
