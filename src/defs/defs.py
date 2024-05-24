@@ -6,13 +6,15 @@ import requests
 import logging
 import numpy as np
 import pandas as pd
+import importlib
 from zoneinfo import ZoneInfo
 from requests.exceptions import ChunkedEncodingError
 from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
-from typing import cast, Any, Dict, List, Optional, Tuple
+from typing import cast, Any, Dict, List, Optional, Tuple, Union, Type
+from types import ModuleType
 
 try:
     import tzlocal
@@ -139,6 +141,37 @@ dates = Dates(meta["lastUpdate"])
 if __name__ != "__main__":
     if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
         AMIBROKER_FOLDER.mkdir()
+
+
+def load_module(module_str: str) -> Union[ModuleType, Type]:
+    """
+    Load a module specified by the given string.
+
+    Arguments
+    module_str (str): Module filepath, optionally adding the class name
+        with format <filePath>:<className>
+
+    Raises:
+    ModuleNotFoundError: If module is not found
+    AttributeError: If class name is not found in module.
+
+    Returns: ModuleType
+    """
+
+    class_name = None
+    module_path = module_str
+
+    if ":" in module_str:
+        module_path, class_name = module_str.split(":")
+
+    module_path = Path(module_path).expanduser().resolve()
+
+    module = importlib.import_module(
+        module_path.stem,
+        package=str(module_path.parent),
+    )
+
+    return getattr(module, class_name) if class_name else module
 
 
 def log_unhandled_exception(exc_type, exc_value, exc_traceback):
