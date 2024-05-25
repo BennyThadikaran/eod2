@@ -352,6 +352,9 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             dailyDf.loc[dt, "QTY_PER_TRADE"] = avgTrdCnt
             dailyDf.loc[dt, "DLV_QTY"] = dq
             dailyDf.to_csv(DAILY_FILE)
+
+        if hook and hasattr(hook, "updatePendingDeliveryData"):
+            hook.updatePendingDeliveryData(df, dt)
     except Exception as e:
         logger.exception(
             f"Error updating delivery report dated {dt:%d %b %Y} - {error_context}",
@@ -586,6 +589,20 @@ def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
     with symFile.open("ab") as f:
         f.write(text)
 
+    if hook and hasattr(hook, "updateNseSymbol"):
+        hook.updateNseSymbol(
+            dates.dt,
+            symFile.stem,
+            open,
+            high,
+            low,
+            close,
+            volume,
+            trdCnt,
+            avgTrdCnt,
+            dq,
+        )
+
 
 def getSplit(sym, string):
     """Run a regex search for splits related corporate action and
@@ -613,7 +630,9 @@ def getBonus(sym, string):
     return 1 + int(match.group(1)) / int(match.group(2))
 
 
-def makeAdjustment(symbol: str, adjustmentFactor: float):
+def makeAdjustment(
+    symbol: str, adjustmentFactor: float
+) -> Optional[Tuple[pd.DataFrame, Path]]:
     """Makes adjustment to stock data prior to ex date,
     returning a tuple of pandas pd.DataFrame and filename"""
 
@@ -664,6 +683,9 @@ def updateIndice(sym, open, high, low, close, volume):
 
     with file.open("ab") as f:
         f.write(text)
+
+    if hook and hasattr(hook, "updateIndice"):
+        hook.updateIndice(dates.dt, sym, open, high, low, close, volume)
 
 
 def updateIndexEOD(file: Path):
@@ -729,7 +751,8 @@ def adjustNseStocks():
     for actions in ("equityActions", "smeActions"):
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
-        dfCommits = []
+        df_commits: List[Tuple[pd.DataFrame, Path]] = []
+        post_commits: List[Tuple[str, float]] = []
         error_context = None
 
         try:
@@ -752,9 +775,12 @@ def adjustNseStocks():
                     if adjustmentFactor is None:
                         continue
 
-                    dfCommits.append(makeAdjustment(sym, adjustmentFactor))
+                    commit = makeAdjustment(sym, adjustmentFactor)
 
-                    logger.info(f"{sym}: {purpose}")
+                    if commit:
+                        df_commits.append(commit)
+                        post_commits.append((sym, adjustmentFactor))
+                        logger.info(f"{sym}: {purpose}")
 
                 if "bonus" in purpose and ex == dtStr:
                     error_context = f"{sym} - Bonus - {dtStr}"
@@ -763,20 +789,26 @@ def adjustNseStocks():
                     if adjustmentFactor is None:
                         continue
 
-                    dfCommits.append(makeAdjustment(sym, adjustmentFactor))
+                    commit = makeAdjustment(sym, adjustmentFactor)
 
-                    logger.info(f"{sym}: {purpose}")
+                    if commit:
+                        df_commits.append(commit)
+                        post_commits.append((sym, adjustmentFactor))
+                        logger.info(f"{sym}: {purpose}")
 
         except Exception as e:
             logging.critical(f"Adjustment Error - Context {error_context}")
             # discard all pd.DataFrames and raise error,
             # so changes can be rolled back
-            dfCommits.clear()
+            df_commits.clear()
             raise e
 
         # commit changes
-        for df, file in dfCommits:
+        for df, file in df_commits:
             df.to_csv(file)
+
+        if hook and hasattr(hook, "makeAdjustment") and post_commits:
+            hook.makeAdjustment(dates.dt, post_commits)
 
 
 def getLastDate(file):
@@ -819,6 +851,9 @@ def rollback(folder: Path):
 
     logger.info("Rollback successful")
 
+    if hook and hasattr(hook, "on_error"):
+        hook.on_error()
+
 
 def cleanup(filesLst):
     """Remove files downloaded from nse"""
@@ -836,15 +871,20 @@ def cleanOutDated():
 
     deadline = dates.today - timedelta(365)
     count = 0
+    removed = []
 
     for file in DAILY_FOLDER.iterdir():
         lastUpdated = datetime.strptime(getLastDate(file), "%Y-%m-%d")
 
         if lastUpdated < deadline:
+            removed.append(file.stem)
             file.unlink()
             count += 1
 
     logger.info(f"{count} files deleted")
+
+    if hook and hasattr(hook, "cleanOutDated") and removed:
+        hook.cleanOutDated(removed)
 
 
 # Avoid side effects in case this file is directly executed
@@ -881,6 +921,11 @@ if __name__ != "__main__":
 
     if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
         AMIBROKER_FOLDER.mkdir()
+
+    hook = None  # INIT_HOOK
+
+    if config.INIT_HOOK:
+        hook = load_module(config.INIT_HOOK)
 
     isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
 

@@ -77,6 +77,7 @@ class Config:
 
     AMIBROKER = False
     AMI_UPDATE_DAYS = 365
+    INIT_HOOK = None
 
     # Delivery
     DLV_L1 = 1
