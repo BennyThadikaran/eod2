@@ -6,7 +6,7 @@ import requests
 import logging
 import numpy as np
 import pandas as pd
-import importlib
+import importlib.util
 from zoneinfo import ZoneInfo
 from requests.exceptions import ChunkedEncodingError
 from nse import NSE
@@ -166,10 +166,16 @@ def load_module(module_str: str) -> Union[ModuleType, Type]:
 
     module_path = Path(module_path).expanduser().resolve()
 
-    module = importlib.import_module(
-        module_path.stem,
-        package=str(module_path.parent),
-    )
+    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+
+    if not spec or not spec.loader:
+        raise ModuleNotFoundError(f"Could not load module {module_path.stem}")
+
+    module = importlib.util.module_from_spec(spec)
+
+    sys.modules[module_path.stem] = module
+
+    spec.loader.exec_module(module)
 
     return getattr(module, class_name) if class_name else module
 
