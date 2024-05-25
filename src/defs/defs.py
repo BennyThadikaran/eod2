@@ -123,7 +123,7 @@ class Dates:
             # Display the users local time
             local_time = curTime.replace(hour=19, minute=0).astimezone(tz_local)
 
-            t_str = local_time.strftime("%-I:%M%p")  # 7:00PM
+            t_str = local_time.strftime("%I:%M%p")  # 07:00PM
 
             logger.info(
                 f"All Up To Date. Check again after {t_str} for today's EOD data"
