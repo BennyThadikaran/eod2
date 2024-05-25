@@ -23,12 +23,6 @@ except ModuleNotFoundError:
     exit(f"tzlocal package is required\nRun: {pip} install tzlocal")
 
 
-DIR = Path(__file__).parents[1]
-DAILY_FOLDER = DIR / "eod2_data" / "daily"
-ISIN_FILE = DIR / "eod2_data" / "isin.csv"
-AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
-
-
 def configure_logger(name: str) -> logging.Logger:
     """Return a logger instance by name
 
@@ -63,10 +57,41 @@ def configure_logger(name: str) -> logging.Logger:
     return logger
 
 
-logger = configure_logger(__name__)
+def load_module(module_str: str) -> Union[ModuleType, Type]:
+    """
+    Load a module specified by the given string.
 
-tz_local = tzlocal.get_localzone()
-tz_IN = ZoneInfo("Asia/Kolkata")
+    Arguments
+    module_str (str): Module filepath, optionally adding the class name
+        with format <filePath>:<className>
+
+    Raises:
+    ModuleNotFoundError: If module is not found
+    AttributeError: If class name is not found in module.
+
+    Returns: ModuleType
+    """
+
+    class_name = None
+    module_path = module_str
+
+    if ":" in module_str:
+        module_path, class_name = module_str.split(":")
+
+    module_path = Path(module_path).expanduser().resolve()
+
+    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
+
+    if not spec or not spec.loader:
+        raise ModuleNotFoundError(f"Could not load module {module_path.stem}")
+
+    module = importlib.util.module_from_spec(spec)
+
+    sys.modules[module_path.stem] = module
+
+    spec.loader.exec_module(module)
+
+    return getattr(module, class_name) if class_name else module
 
 
 class Dates:
@@ -108,76 +133,6 @@ class Dates:
 
         self.pandasDt = self.dt.strftime("%Y-%m-%d")
         return True
-
-
-if "win" in sys.platform:
-    # enable color support in Windows
-    os.system("color")
-
-
-META_FILE = DIR / "eod2_data" / "meta.json"
-
-meta: Dict = json.loads(META_FILE.read_bytes())
-
-config = Config()
-
-isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
-
-headerText = (
-    b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
-)
-
-splitRegex = re.compile(r"(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)")
-
-bonusRegex = re.compile(r"(\d+) ?: ?(\d+)")
-
-hasLatestHolidays = False
-
-# initiate the dates class from utils.py
-dates = Dates(meta["lastUpdate"])
-
-# Avoid side effects in case this file is directly executed
-# instead of being imported
-if __name__ != "__main__":
-    if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
-        AMIBROKER_FOLDER.mkdir()
-
-
-def load_module(module_str: str) -> Union[ModuleType, Type]:
-    """
-    Load a module specified by the given string.
-
-    Arguments
-    module_str (str): Module filepath, optionally adding the class name
-        with format <filePath>:<className>
-
-    Raises:
-    ModuleNotFoundError: If module is not found
-    AttributeError: If class name is not found in module.
-
-    Returns: ModuleType
-    """
-
-    class_name = None
-    module_path = module_str
-
-    if ":" in module_str:
-        module_path, class_name = module_str.split(":")
-
-    module_path = Path(module_path).expanduser().resolve()
-
-    spec = importlib.util.spec_from_file_location(module_path.stem, module_path)
-
-    if not spec or not spec.loader:
-        raise ModuleNotFoundError(f"Could not load module {module_path.stem}")
-
-    module = importlib.util.module_from_spec(spec)
-
-    sys.modules[module_path.stem] = module
-
-    spec.loader.exec_module(module)
-
-    return getattr(module, class_name) if class_name else module
 
 
 def log_unhandled_exception(exc_type, exc_value, exc_traceback):
@@ -890,3 +845,44 @@ def cleanOutDated():
             count += 1
 
     logger.info(f"{count} files deleted")
+
+
+# Avoid side effects in case this file is directly executed
+# instead of being imported
+if __name__ != "__main__":
+    DIR = Path(__file__).parents[1]
+    DAILY_FOLDER = DIR / "eod2_data" / "daily"
+    ISIN_FILE = DIR / "eod2_data" / "isin.csv"
+    AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
+    META_FILE = DIR / "eod2_data" / "meta.json"
+
+    hasLatestHolidays = False
+
+    splitRegex = re.compile(r"(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)")
+
+    bonusRegex = re.compile(r"(\d+) ?: ?(\d+)")
+
+    headerText = (
+        b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
+    )
+
+    logger = configure_logger(__name__)
+
+    tz_local = tzlocal.get_localzone()
+    tz_IN = ZoneInfo("Asia/Kolkata")
+
+    if "win" in sys.platform:
+        # enable color support in Windows
+        os.system("color")
+
+    meta: Dict = json.loads(META_FILE.read_bytes())
+
+    config = Config()
+
+    if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
+        AMIBROKER_FOLDER.mkdir()
+
+    isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
+
+    # initiate the dates class from utils.py
+    dates = Dates(meta["lastUpdate"])
