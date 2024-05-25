@@ -14,7 +14,6 @@ from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
 from typing import cast, Any, Dict, List, Optional, Tuple, Union, Type
-from types import ModuleType
 
 try:
     import tzlocal
@@ -926,6 +925,10 @@ if __name__ != "__main__":
 
     if config.INIT_HOOK:
         hook = load_module(config.INIT_HOOK)
+
+        if isinstance(hook, Type):
+            # hook is a Class
+            hook = hook()
 
     isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
 
