@@ -75,8 +75,8 @@ def load_module(module_str: str) -> Union[ModuleType, Type]:
     class_name = None
     module_path = module_str
 
-    if ":" in module_str:
-        module_path, class_name = module_str.split(":")
+    if "|" in module_str:
+        module_path, class_name = module_str.split("|")
 
     module_path = Path(module_path).expanduser().resolve()
 
