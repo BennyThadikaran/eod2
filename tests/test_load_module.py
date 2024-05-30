@@ -35,7 +35,7 @@ class TestGetModule(unittest.TestCase):
     def test_with_class(self):
         """Load a module specifying the class. Returns the class"""
 
-        module = defs.load_module(f"{self.fname}:Test")
+        module = defs.load_module(f"{self.fname}|Test")
         self.assertIsInstance(module, type)
         self.assertEqual(module.__name__, "Test")
         self.assertEqual(module().foo(), "bar")
@@ -50,12 +50,12 @@ class TestGetModule(unittest.TestCase):
         """Passing a non existent class raises AttributeError"""
 
         with self.assertRaises(AttributeError):
-            defs.load_module(f"{self.fname}:NonexistentClass")
+            defs.load_module(f"{self.fname}|NonexistentClass")
 
     def test_loading_from_any_directory(self):
         """Module can be loaded from any directory even outside of project root"""
 
-        module = defs.load_module(f"{self.tmp_file}:Test")
+        module = defs.load_module(f"{self.tmp_file}|Test")
         self.assertIsInstance(module, type)
         self.assertEqual(module.__name__, "Test")
 
