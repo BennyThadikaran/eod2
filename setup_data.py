@@ -18,8 +18,10 @@ ZIP_FILE = DIR / "eod2_data.zip"
 FOLDER = DIR / "src" / "eod2_data"
 DAILY_FOLDER = FOLDER / "daily"
 
-# check if the folder has any files in it
-if any(FOLDER.iterdir()):
+if not FOLDER.exists():
+    FOLDER.mkdir()
+elif any(FOLDER.iterdir()):
+    # check if the folder has any files in it
     print("eod2_data folder has data. Renaming folder to eod2_data_backup.")
 
     # Rename the folder to protect files from being overwritten.
