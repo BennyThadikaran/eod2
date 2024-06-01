@@ -77,6 +77,7 @@ class Config:
 
     AMIBROKER = False
     AMI_UPDATE_DAYS = 365
+    INIT_HOOK = None
 
     # Delivery
     DLV_L1 = 1
@@ -137,7 +138,7 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = "5.2.2"
+    VERSION = "5.3.0"
 
     def toList(self, filename: str):
         return (DIR / "data" / filename).read_text().strip().split("\n")
