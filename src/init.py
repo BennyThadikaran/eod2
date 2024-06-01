@@ -135,6 +135,9 @@ while True:
         nse.exit()
         exit()
 
+    if defs.hook and hasattr(defs.hook, "on_complete"):
+        defs.hook.on_complete()
+
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
     defs.cleanOutDated()
 

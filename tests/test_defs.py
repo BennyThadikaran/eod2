@@ -9,6 +9,8 @@ import pandas as pd
 DIR = Path(__file__).parent / "test_data"
 tz_IN = ZoneInfo("Asia/Kolkata")
 
+defs.logging.disable(defs.logging.CRITICAL)
+
 
 class TestGetMuhuratHolidayInfo(unittest.TestCase):
     def test_matching_description(self):

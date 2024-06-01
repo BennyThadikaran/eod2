@@ -113,3 +113,7 @@ class Test_csv_loader(unittest.TestCase):
         )
 
         pd.testing.assert_frame_equal(df, expected_df)
+
+
+if __name__ == "__main__":
+    unittest.main()
