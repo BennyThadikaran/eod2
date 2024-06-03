@@ -829,10 +829,10 @@ def getLastDate(file):
             f.seek(0)
 
         # we have the last line
-        lastLine = f.readline().decode()
+        lastLine = f.readline()
 
-    # split the line (Date, O, H, L, C) and get the first item (Date)
-    return lastLine.split(",")[0]
+    # extract date being the first item separated by comma
+    return lastLine[: lastLine.find(b",")].decode()
 
 
 def rollback(folder: Path):
