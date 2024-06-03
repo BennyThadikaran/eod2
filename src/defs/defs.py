@@ -835,6 +835,41 @@ def getLastDate(file):
     return lastLine[: lastLine.find(b",")].decode()
 
 
+def deleteLastLineByDate(file: Path, date_str: str) -> bool:
+    """
+    Truncate the last line if line starts with date_str
+    """
+
+    # Get the file size
+    file_size = os.path.getsize(file)
+
+    if file_size == 0:
+        return False
+
+    date_bytes = bytes(date_str, encoding="utf-8")
+
+    # Open the file in read-only mode
+    with file.open("r+b") as f:
+
+        # Start searching from the end of the file
+        cur_pos = file_size - 2
+        f.seek(cur_pos)
+
+        # Search backward till the newline character is found
+        while f.read(1) != b"\n":
+            cur_pos -= 1
+
+            try:
+                f.seek(cur_pos)
+            except OSError:
+                break
+
+        if f.read().startswith(date_bytes):
+            f.truncate(cur_pos)
+            return True
+        return False
+
+
 def rollback(folder: Path):
     """Iterate over all files in folder and delete any lines
     pertaining to the current date"""
@@ -843,11 +878,7 @@ def rollback(folder: Path):
     logger.info(f"Rolling back changes from {dt}: {folder}")
 
     for file in folder.iterdir():
-        df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
-
-        if dt in df.index:
-            df = df.drop(dt)
-            df.to_csv(file)
+        deleteLastLineByDate(file, dt)
 
     logger.info("Rollback successful")
 
