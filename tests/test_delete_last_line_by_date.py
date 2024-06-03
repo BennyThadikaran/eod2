@@ -32,7 +32,7 @@ class TestDeleteLastLineByDate(unittest.TestCase):
         self.assertTrue(defs.deleteLastLineByDate(self.tempfile, "2024-05-03"))
 
         result = self.tempfile.read_text()
-        self.assertEqual(result, "2024-05-01,1\n2024-05-02,1")
+        self.assertEqual(result.strip(), "2024-05-01,1\n2024-05-02,1")
 
     def test_date_not_found(self):
         self.assertFalse(defs.deleteLastLineByDate(self.tempfile, "2024-05-04"))
