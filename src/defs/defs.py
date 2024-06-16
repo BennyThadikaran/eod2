@@ -154,16 +154,21 @@ def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
 def downloadSpecialSessions() -> Tuple[datetime, ...]:
     base_url = "https://raw.githubusercontent.com/BennyThadikaran/eod2_data"
 
-    res = requests.get(f"{base_url}/main/special_sessions.txt")
+    err_text = "special_sessions.txt download failed. Please try again later."
 
-    if res.ok:
-        return tuple(
-            datetime.fromisoformat(x).astimezone(tz_IN)
-            for x in res.text.strip().split("\n")
-        )
+    try:
+        res = requests.get(f"{base_url}/main/special_sessions.txt")
+    except Exception as e:
+        logger.exception(err_text, exc_info=e)
+        exit()
 
-    raise ConnectionError(
-        f"special_sessions.txt download failed. {res.status_code}: {res.reason}"
+    if not res.ok:
+        logger.exception(f"{err_text} {res.status_code}: {res.reason}")
+        exit()
+
+    return tuple(
+        datetime.fromisoformat(x).astimezone(tz_IN)
+        for x in res.text.strip().split("\n")
     )
 
 
