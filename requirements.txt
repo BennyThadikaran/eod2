@@ -1,6 +1,5 @@
-mplfinance>=0.12.*
-mthrottle>=0.0.2
-nse>=0.2.8,<2.0.0
-pandas>=2.*.*
-requests>=2.*.*
-tzlocal>=5.*
+mplfinance==0.12.10b0
+nse==1.0.0
+pandas==2.2.2
+requests==2.32.3
+tzlocal==5.2
