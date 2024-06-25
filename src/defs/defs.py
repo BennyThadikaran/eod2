@@ -13,14 +13,18 @@ from nse import NSE
 from pathlib import Path
 from datetime import datetime, timedelta
 from defs.Config import Config
-from typing import cast, Any, Dict, List, Optional, Tuple, Union, Type
+from typing import Dict, List, Optional, Tuple, Union, Type
 from types import ModuleType
+
+pip = "pip" if "win" in sys.platform else "pip3"
 
 try:
     import tzlocal
 except ModuleNotFoundError:
-    pip = "pip" if "win" in sys.platform else "pip3"
     exit(f"tzlocal package is required\nRun: {pip} install tzlocal")
+
+if not hasattr(NSE, "__version__"):
+    exit(f"nse package need to be updated\nRun: {pip} install -U nse")
 
 
 def configure_logger(name: str) -> logging.Logger:
@@ -400,8 +404,12 @@ def updateAmiBrokerRecords(nse: NSE):
         if dt.weekday() > 4:
             continue
 
-        dtStr = dt.strftime("%d%b%Y").upper()
-        bhavFile = DIR / "nseBhav" / str(dt.year) / f"cm{dtStr}bhav.csv"
+        bhavFile = (
+            DIR
+            / "nseBhav"
+            / str(dt.year)
+            / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
+        )
 
         if not bhavFile.exists():
             try:
@@ -426,34 +434,41 @@ def updateAmiBrokerRecords(nse: NSE):
 def toAmiBrokerFormat(file: Path):
     "Converts and saves bhavcopy into amibroker format"
 
-    cols = [
+    df = pd.read_csv(file, parse_dates=["TradDt"])
+
+    df = df[
+        (df["SctySrs"] == "EQ")
+        | (df["SctySrs"] == "BE")
+        | (df["SctySrs"] == "BZ")
+        | (df["SctySrs"] == "SM")
+        | (df["SctySrs"] == "ST")
+    ]
+
+    df = df.loc[
+        :,
+        [
+            "TckrSymb",
+            "TradDt",
+            "OpnPric",
+            "HghPric",
+            "LwPric",
+            "ClsPric",
+            "TtlTradgVol",
+            "ISIN",
+        ],
+    ]
+
+    df.columns = [
         "SYMBOL",
-        "TIMESTAMP",
+        "DATE",
         "OPEN",
         "HIGH",
         "LOW",
         "CLOSE",
-        "TOTTRDQTY",
+        "VOLUME",
         "ISIN",
     ]
 
-    rcols = list(cols)
-    rcols[1] = "DATE"
-    rcols[-2] = "VOLUME"
-
-    df = pd.read_csv(file, parse_dates=["TIMESTAMP"])
-
-    df = df[
-        (df["SERIES"] == "EQ")
-        | (df["SERIES"] == "BE")
-        | (df["SERIES"] == "BZ")
-        | (df["SERIES"] == "SM")
-        | (df["SERIES"] == "ST")
-    ]
-
-    df = df[cols]
-    df.columns = rcols
-    df["DATE"] = df["DATE"].dt.strftime("%Y%m%d")
     df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
 
 
@@ -476,12 +491,12 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
     # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
-    df: pd.DataFrame = df[
-        (df["SERIES"] == "EQ")
-        | (df["SERIES"] == "BE")
-        | (df["SERIES"] == "BZ")
-        | (df["SERIES"] == "SM")
-        | (df["SERIES"] == "ST")
+    df = df.loc[
+        (df["SctySrs"] == "EQ")
+        | (df["SctySrs"] == "BE")
+        | (df["SctySrs"] == "BZ")
+        | (df["SctySrs"] == "SM")
+        | (df["SctySrs"] == "ST")
     ]
 
     if config.AMIBROKER:
@@ -513,28 +528,26 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
     # iterate over each row as a tuple
     for t in df.itertuples():
-        t: Any = cast(Any, t)
-
         # ignore rights issue
-        if "-RE" in t.SYMBOL:
+        if "-RE" in t.TckrSymb:
             continue
 
         if dlvDf is not None:
-            if t.SYMBOL in dlvDf.index:
+            if t.TckrSymb in dlvDf.index:
                 trdCnt, dq = dlvDf.loc[
-                    t.SYMBOL, [" NO_OF_TRADES", " DELIV_QTY"]
+                    t.TckrSymb, [" NO_OF_TRADES", " DELIV_QTY"]
                 ]
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
-                dq = t.TOTTRDQTY if t.SERIES in ("BE", "BZ") else int(dq)
+                dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else int(dq)
             else:
                 trdCnt = dq = np.NAN
         else:
             trdCnt = dq = ""
 
-        prefix = "_sme" if t.SERIES in ("SM", "ST") else ""
-        SYM_FILE = DAILY_FOLDER / f"{t.SYMBOL.lower()}{prefix}.csv"
+        prefix = "_sme" if t.SctySrs in ("SM", "ST") else ""
+        SYM_FILE = DAILY_FOLDER / f"{t.TckrSymb.lower()}{prefix}.csv"
 
         # ISIN is a unique identifier for each stock symbol.
         # When a symbol name changes its ISIN remains the same
@@ -542,17 +555,17 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
         # updating file names accordingly
         if t.Index not in isin.index:
             isinUpdated = True
-            isin.at[t.Index, "SYMBOL"] = t.SYMBOL
+            isin.at[t.Index, "SYMBOL"] = t.TckrSymb
 
         # if symbol name does not match the symbol name under its ISIN
         # we rename the files in daily and delivery folder
-        if t.SYMBOL != isin.at[t.Index, "SYMBOL"]:
+        if t.TckrSymb != isin.at[t.Index, "SYMBOL"]:
             isinUpdated = True
             old = isin.at[t.Index, "SYMBOL"].lower()
 
-            new = t.SYMBOL.lower()
+            new = t.TckrSymb.lower()
 
-            isin.at[t.Index, "SYMBOL"] = t.SYMBOL
+            isin.at[t.Index, "SYMBOL"] = t.TckrSymb
 
             SYM_FILE = DAILY_FOLDER / f"{new}.csv"
             OLD_FILE = DAILY_FOLDER / f"{old}.csv"
@@ -567,7 +580,14 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
             logger.info(f"Name Changed: {old} to {new}")
 
         updateNseSymbol(
-            SYM_FILE, t.OPEN, t.HIGH, t.LOW, t.CLOSE, t.TOTTRDQTY, trdCnt, dq
+            SYM_FILE,
+            t.OpnPric,
+            t.HghPric,
+            t.LwPric,
+            t.ClsPric,
+            t.TtlTradgVol,
+            trdCnt,
+            dq,
         )
 
     if isinUpdated:
