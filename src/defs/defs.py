@@ -404,16 +404,13 @@ def updateAmiBrokerRecords(nse: NSE):
         if dt.weekday() > 4:
             continue
 
-        bhavFile = (
-            DIR
-            / "nseBhav"
-            / str(dt.year)
-            / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
-        )
+        bhavFolder = DIR / "nseBhav" / str(dt.year)
+        bhavFile = bhavFolder / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
 
         if not bhavFile.exists():
             try:
                 bhavFile = nse.equityBhavcopy(dt)
+                bhavFile.rename(bhavFolder / bhavFile.name)
             except (RuntimeError, FileNotFoundError):
                 continue
             except ChunkedEncodingError as e:
@@ -421,8 +418,6 @@ def updateAmiBrokerRecords(nse: NSE):
                 exit()
 
         toAmiBrokerFormat(bhavFile)
-
-        bhavFile.unlink()
 
         daysComplete = totalDays - (lastUpdate - dt).days
         pctComplete = int(daysComplete / totalDays * 100)
