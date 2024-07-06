@@ -809,7 +809,7 @@ class Plotter:
         else:
             start_dt = df.index[-plot_period] - timedelta(1)
 
-        df.loc[start_dt] = np.NAN
+        df.loc[start_dt] = np.nan
         df = df.sort_index()
 
         return df[start_dt:]
