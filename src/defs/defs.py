@@ -651,18 +651,24 @@ def getBonus(sym, string):
 
 
 def makeAdjustment(
-    symbol: str, adjustmentFactor: float
+    symbol: str,
+    adjustmentFactor: float,
+    prev_commit: Optional[dict[str, Union[pd.DataFrame, Path]]] = None,
 ) -> Optional[Tuple[pd.DataFrame, Path]]:
     """Makes adjustment to stock data prior to ex date,
     returning a tuple of pandas pd.DataFrame and filename"""
 
-    file = DAILY_FOLDER / f"{symbol.lower()}.csv"
+    if prev_commit:
+        file: Path = prev_commit["file"]
+        df: pd.DataFrame = prev_commit["df"]
+    else:
+        file = DAILY_FOLDER / f"{symbol.lower()}.csv"
 
-    if not file.is_file():
-        logger.warning(f"{symbol}: File not found")
-        return
+        if not file.is_file():
+            logger.warning(f"{symbol}: File not found")
+            return
 
-    df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
+        df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
 
     last = None
 
@@ -771,7 +777,7 @@ def adjustNseStocks():
     for actions in ("equityActions", "smeActions"):
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
-        df_commits: List[Tuple[pd.DataFrame, Path]] = []
+        df_commits: dict[str, dict[str, Union[pd.DataFrame, Path]]] = {}
         post_commits: List[Tuple[str, float]] = []
         error_context = None
 
@@ -795,10 +801,18 @@ def adjustNseStocks():
                     if adjustmentFactor is None:
                         continue
 
-                    commit = makeAdjustment(sym, adjustmentFactor)
+                    commit = makeAdjustment(
+                        sym, adjustmentFactor, df_commits.get(sym, None)
+                    )
 
                     if commit:
-                        df_commits.append(commit)
+                        df, file = commit
+
+                        if sym in df_commits:
+                            df_commits[sym]["df"] = df
+                        else:
+                            df_commits[sym] = {"file": file, "df": df}
+
                         post_commits.append((sym, adjustmentFactor))
                         logger.info(f"{sym}: {purpose}")
 
@@ -809,10 +823,18 @@ def adjustNseStocks():
                     if adjustmentFactor is None:
                         continue
 
-                    commit = makeAdjustment(sym, adjustmentFactor)
+                    commit = makeAdjustment(
+                        sym, adjustmentFactor, df_commits.get(sym, None)
+                    )
 
                     if commit:
-                        df_commits.append(commit)
+                        df, file = commit
+
+                        if sym in df_commits:
+                            df_commits[sym]["df"] = df
+                        else:
+                            df_commits[sym] = {"file": file, "df": df}
+
                         post_commits.append((sym, adjustmentFactor))
                         logger.info(f"{sym}: {purpose}")
 
@@ -824,11 +846,18 @@ def adjustNseStocks():
             raise e
 
         # commit changes
-        for df, file in df_commits:
+        for commit in df_commits.values():
+            file: Path = commit["file"]
+            df: pd.DataFrame = commit["df"]
+
             df.to_csv(file)
+
+        df_commits.clear()
 
         if hook and hasattr(hook, "makeAdjustment") and post_commits:
             hook.makeAdjustment(dates.dt, post_commits)
+
+        post_commits.clear()
 
 
 def getLastDate(file):
