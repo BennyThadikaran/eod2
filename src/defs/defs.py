@@ -537,7 +537,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
                 # so we use the volume
                 dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else int(dq)
             else:
-                trdCnt = dq = np.NAN
+                trdCnt = dq = np.nan
         else:
             trdCnt = dq = ""
 
