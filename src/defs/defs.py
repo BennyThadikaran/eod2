@@ -562,8 +562,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
             isin.at[t.Index, "SYMBOL"] = t.TckrSymb
 
-            SYM_FILE = DAILY_FOLDER / f"{new}.csv"
-            OLD_FILE = DAILY_FOLDER / f"{old}.csv"
+            SYM_FILE = DAILY_FOLDER / f"{new}{prefix}.csv"
+            OLD_FILE = DAILY_FOLDER / f"{old}{prefix}.csv"
 
             try:
                 OLD_FILE.rename(SYM_FILE)
