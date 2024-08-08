@@ -795,8 +795,10 @@ def adjustNseStocks():
                     sym += "_sme"
 
                 if ("split" in purpose or "splt" in purpose) and ex == dtStr:
+                    i = purpose.index("split" if "split" in purpose else "splt")
+
                     error_context = f"{sym} - Split - {dtStr}"
-                    adjustmentFactor = getSplit(sym, purpose)
+                    adjustmentFactor = getSplit(sym, purpose[i:])
 
                     if adjustmentFactor is None:
                         continue
@@ -816,7 +818,7 @@ def adjustNseStocks():
                         post_commits.append((sym, adjustmentFactor))
                         logger.info(f"{sym}: {purpose}")
 
-                if "bonus" in purpose and ex == dtStr:
+                if "bonus" in purpose and "deb" not in purpose and ex == dtStr:
                     error_context = f"{sym} - Bonus - {dtStr}"
                     adjustmentFactor = getBonus(sym, purpose)
 
@@ -846,9 +848,24 @@ def adjustNseStocks():
             raise e
 
         # commit changes
-        for commit in df_commits.values():
+        for sym, commit in df_commits.items():
             file: Path = commit["file"]
             df: pd.DataFrame = commit["df"]
+
+            dt = dates.dt.replace(tzinfo=None)
+            idx = df.index.get_loc(dt)
+
+            close = df.at[df.index[idx], "Close"]
+            prev_close = df.at[df.index[idx - 1], "Close"]
+
+            diff = close / prev_close
+
+            if diff > 1.5 or diff < 0.67:
+                context = f"Current Close {close}, Previous Close {prev_close}"
+
+                logger.warning(
+                    f"WARN: Possible adjustment failure in {sym}: {context}"
+                )
 
             df.to_csv(file)
 

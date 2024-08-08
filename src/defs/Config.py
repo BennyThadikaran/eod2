@@ -94,7 +94,7 @@ class Config:
     PLOT_PLUGINS = {}
     PLOT_DAYS = 160
     PLOT_WEEKS = 140
-    PLOT_M_RS_LEN_D = 60
+    PLOT_M_RS_LEN_D = 22
     PLOT_M_RS_LEN_W = 52
     PLOT_RS_INDEX = "nifty 50"
     MAGNET_MODE = True
@@ -138,7 +138,7 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = "6.0.4"
+    VERSION = "6.0.5"
 
     def toList(self, filename: str):
         return (DIR / "data" / filename).read_text().strip().split("\n")
