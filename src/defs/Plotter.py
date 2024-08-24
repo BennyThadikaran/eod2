@@ -16,6 +16,7 @@ from defs.utils import (
     getDataFrame,
     getDeliveryLevels,
     getLevels,
+    getLevels_v2,
     loadJson,
     manfieldRelativeStrength,
     randomChar,
