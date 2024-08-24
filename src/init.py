@@ -7,7 +7,7 @@ from nse import NSE
 from defs import defs
 from defs.utils import writeJson
 
-logger = defs.configure_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Set the sys.excepthook to the custom exception handler
 sys.excepthook = defs.log_unhandled_exception
