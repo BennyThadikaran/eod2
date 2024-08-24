@@ -1,11 +1,13 @@
+import logging
 import sys
-from defs.utils import writeJson
-from defs import defs
 from argparse import ArgumentParser
+
 from nse import NSE
 
+from defs import defs
+from defs.utils import writeJson
 
-logger = defs.configure_logger(__name__)
+logger = logging.getLogger(__name__)
 
 # Set the sys.excepthook to the custom exception handler
 sys.excepthook = defs.log_unhandled_exception
@@ -139,7 +141,9 @@ while True:
         defs.hook.on_complete()
 
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
-    defs.cleanOutDated()
+
+    if defs.dates.today == defs.dates.dt:
+        defs.cleanOutDated()
 
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
     writeJson(defs.META_FILE, defs.meta)

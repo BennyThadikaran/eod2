@@ -1,20 +1,22 @@
-import sys
+import importlib.util
 import json
-import re
-import os
-import requests
 import logging
+import os
+import re
+import sys
+from datetime import datetime, timedelta
+from pathlib import Path
+from types import ModuleType
+from typing import Dict, List, Optional, Tuple, Type, Union
+from zoneinfo import ZoneInfo
+
 import numpy as np
 import pandas as pd
-import importlib.util
-from zoneinfo import ZoneInfo
-from requests.exceptions import ChunkedEncodingError
+import requests
 from nse import NSE
-from pathlib import Path
-from datetime import datetime, timedelta
+from requests.exceptions import ChunkedEncodingError
+
 from defs.Config import Config
-from typing import Dict, List, Optional, Tuple, Union, Type
-from types import ModuleType
 
 pip = "pip" if "win" in sys.platform else "pip3"
 
@@ -27,38 +29,24 @@ if not hasattr(NSE, "__version__"):
     exit(f"nse package need to be updated\nRun: {pip} install -U nse")
 
 
-def configure_logger(name: str) -> logging.Logger:
+def configure_logger():
     """Return a logger instance by name
 
     Creates a file handler to log messages with level WARNING and above
 
     Creates a stream handler to log messages with level INFO and above
-
-    Parameters:
-    name (str): Pass __name__ for module level logger
     """
-
-    logger = logging.getLogger(name)
-    logger.setLevel(logging.INFO)
-
-    stdout_handler = logging.StreamHandler()
-    stdout_handler.setLevel(logging.INFO)
-
-    stdout_handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
-
+    stream_handler = logging.StreamHandler()
     file_handler = logging.FileHandler(DIR / "error.log")
+
     file_handler.setLevel(logging.WARNING)
 
-    file_handler.setFormatter(
-        logging.Formatter(
-            "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-        )
+    logging.basicConfig(
+        format="%(levelname)s: %(asctime)s - %(name)s - %(message)s",
+        datefmt="%d-%m-%Y %H:%M",
+        level=logging.INFO,
+        handlers=(stream_handler, file_handler),
     )
-
-    logger.addHandler(stdout_handler)
-    logger.addHandler(file_handler)
-
-    return logger
 
 
 def load_module(module_str: str) -> Union[ModuleType, Type]:
@@ -1003,7 +991,9 @@ if __name__ != "__main__":
         b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
     )
 
-    logger = configure_logger(__name__)
+    configure_logger()
+
+    logger = logging.getLogger(__name__)
 
     tz_local = tzlocal.get_localzone()
     tz_IN = ZoneInfo("Asia/Kolkata")

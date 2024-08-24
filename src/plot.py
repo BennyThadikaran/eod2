@@ -1,10 +1,11 @@
-from defs.Plotter import Plotter, processPlot
-from defs.utils import loadJson, writeJson
-from defs.Config import Config
-from defs.Plugin import Plugin
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
+
+from defs.Config import Config
+from defs.Plotter import Plotter, processPlot
+from defs.Plugin import Plugin
+from defs.utils import loadJson, writeJson
 
 DIR = Path(__file__).parent
 config = Config()
@@ -115,6 +116,12 @@ parser.add_argument(
 
 parser.add_argument(
     "--snr",
+    action="store_true",
+    help="Add Support and Resistance lines on chart",
+)
+
+parser.add_argument(
+    "--snr-v2",
     action="store_true",
     help="Add Support and Resistance lines on chart",
 )

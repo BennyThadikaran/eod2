@@ -1,12 +1,13 @@
+import io
 import json
 import os
-import io
-import pandas as pd
-import string
 import random
+import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Tuple, Optional
+from typing import Any, List, Optional, Tuple
+
+import pandas as pd
 
 
 class DateEncoder(json.JSONEncoder):
@@ -360,6 +361,61 @@ def getLevels(
         alines.append(seq)
 
     return alines
+
+
+def isFarFromLevel_v2(
+    level: float,
+    levels: List[Tuple[pd.Timestamp, float]],
+    mean_candle_size: float,
+):
+    """Returns true if difference between the level and any of the price levels
+    is greater than the mean_candle_size."""
+    # Detection of price support and resistance levels in Python -Gianluca Malato
+    # source: https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
+    return sum([abs(level - x[1]) < mean_candle_size for x in levels]) == 0
+
+
+def getLevels_v2(df: pd.DataFrame, mean_candle_size: float):
+
+    levels = []
+
+    highs_mask = (
+        (df.High.shift(1) < df.High)
+        & (df.High.shift(2) < df.High)
+        & (df.High.shift(3) < df.High)
+        & (df.High.shift(-1) < df.High)
+        & (df.High.shift(-2) < df.High)
+        & (df.High.shift(-3) < df.High)
+    )
+
+    lows_mask = (
+        (df.Low.shift(1) > df.Low)
+        & (df.Low.shift(2) > df.Low)
+        & (df.Low.shift(3) > df.Low)
+        & (df.Low.shift(-1) > df.Low)
+        & (df.Low.shift(-2) > df.Low)
+        & (df.Low.shift(-3) > df.Low)
+    )
+
+    # filter for rejection from top
+    # 2 succesive highs followed by 2 succesive lower highs
+    max = df["High"].loc[highs_mask].dropna()
+    min = df["Low"].loc[lows_mask].dropna()
+
+    max_min = pd.concat([max, min], axis=0)
+
+    max_min = max_min.loc[~max_min.index.duplicated()]
+
+    for i, lv in max_min.items():
+
+        touch_count = max_min.loc[
+            (max_min - lv).abs() < mean_candle_size
+        ].count()
+
+        if touch_count > 1 and isFarFromLevel_v2(lv, levels, mean_candle_size):
+            levels.append((i, lv))
+
+    return [((i, lv), (df.index[-1], lv)) for i, lv in levels]
 
 
 # def getScreenSize():
