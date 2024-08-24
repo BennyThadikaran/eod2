@@ -1,9 +1,11 @@
+import logging
 import sys
-from defs.utils import writeJson
-from defs import defs
 from argparse import ArgumentParser
+
 from nse import NSE
 
+from defs import defs
+from defs.utils import writeJson
 
 logger = defs.configure_logger(__name__)
 
