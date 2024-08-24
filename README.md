@@ -6,17 +6,10 @@ Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for
 
 If you :heart: my work so far, please :star2: this repo.
 
-## IMPORTANT
-
-Starting 8th July 2024, NSE will discontinue current equity bhavcopy in favor of new UDiFF format.
-
-EOD2 v6.0.0 has been updated with new changes. [Follow the update instructions](https://github.com/BennyThadikaran/eod2/wiki/Installation#updating-the-git-repo)
-
 ## Notes
 
 - `src/eod2_data/daily` contain OHLC and delivery data for individual stocks.
 - A list of available indices can be found in `src/eod2_data/sector_watchlist.csv`.
-- **Stock data before 2005 may not be fully adjusted** as NSE does not provide adjustment data before this year.
 - Supports **Python version >= 3.8**
 
 ## 👽 Installation, Usage, and Other Details - [See Wiki](https://github.com/BennyThadikaran/eod2/wiki)
