@@ -884,25 +884,29 @@ class Plotter:
         exit(f"Preset '{preset}' removed.")
 
     def _loadWatchList(self, watch):
-        if watch.upper() not in self.config.WATCH:
+        watch = watch.upper()
+        if watch not in self.config.WATCH:
             exit(f"Error: No watchlist named '{watch}'")
 
-        file = self.DIR / "data" / self.config.WATCH[watch.upper()]
+        file = Path(self.config.WATCH[watch]).expanduser()
 
         if not file.is_file():
+            print(self.config.WATCH[watch])
             exit(f"Error: File not found {file}")
 
         return file.read_text().strip("\n").split("\n")
 
-    def _addWatch(self, name, fName):
+    def _addWatch(self, name, fpath: str):
         data = loadJson(self.configPath) if self.configPath.is_file() else {}
 
         if "WATCH" not in data:
             data["WATCH"] = {}
 
-        data["WATCH"][name.upper()] = fName
+        fpath = str(Path(fpath).resolve())
+
+        data["WATCH"][name.upper()] = fpath
         writeJson(self.configPath, data)
-        exit(f"Added watchlist '{name}' with value '{fName}'")
+        exit(f"Added watchlist '{name}' with value '{fpath}'")
 
     def _removeWatch(self, name):
         if name.upper() not in getattr(self.config, "WATCH"):
