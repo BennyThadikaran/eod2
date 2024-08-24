@@ -641,10 +641,18 @@ class Plotter:
             )
 
         if self.args.snr:
-            mean_candle_size = (df["High"] - df["Low"]).mean()
+            mean_candle_size = (df["High"] - df["Low"]).median()
 
             self.plot_args["alines"] = {
                 "alines": getLevels(df, mean_candle_size),
+                "linewidths": 0.7,
+            }
+
+        if self.args.snr_v2:
+            mean_candle_size = (df["High"] - df["Low"]).median()
+
+            self.plot_args["alines"] = {
+                "alines": getLevels_v2(df, mean_candle_size),
                 "linewidths": 0.7,
             }
 
