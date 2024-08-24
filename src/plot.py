@@ -121,6 +121,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--snr-v2",
+    action="store_true",
+    help="Add Support and Resistance lines on chart",
+)
+
+parser.add_argument(
     "-r",
     "--resume",
     action="store_true",
