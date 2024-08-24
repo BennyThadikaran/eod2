@@ -1,10 +1,11 @@
-from defs.Plotter import Plotter, processPlot
-from defs.utils import loadJson, writeJson
-from defs.Config import Config
-from defs.Plugin import Plugin
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
+
+from defs.Config import Config
+from defs.Plotter import Plotter, processPlot
+from defs.Plugin import Plugin
+from defs.utils import loadJson, writeJson
 
 DIR = Path(__file__).parent
 config = Config()
