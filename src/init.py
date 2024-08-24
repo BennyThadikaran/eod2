@@ -141,7 +141,9 @@ while True:
         defs.hook.on_complete()
 
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
-    defs.cleanOutDated()
+
+    if defs.dates.today == defs.dates.dt:
+        defs.cleanOutDated()
 
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
     writeJson(defs.META_FILE, defs.meta)
