@@ -114,6 +114,8 @@ class Plotter:
         self.daily_dir = DIR / "eod2_data" / "daily"
         self.configPath = DIR / "defs" / "user.json"
 
+        self.key = None
+
         if args.preset and args.preset_save:
             exit(
                 "plot.py: error: argument --preset: not allowed with argument --preset_save"
@@ -154,7 +156,6 @@ class Plotter:
             "volume": args.volume,
             "xrotation": 0,
             "datetime_format": "%d %b %y",
-            "figscale": 2,
             "returnfig": True,
             "scale_padding": {
                 "left": 0.28,
@@ -293,6 +294,9 @@ class Plotter:
             self._loadLines(lines)
         else:
             self.lines = lines
+
+        # Open chart window in fullscreen mode by default
+        plt.get_current_fig_manager().full_screen_toggle()
 
         mpl.show(block=True)
 
