@@ -114,6 +114,8 @@ class Plotter:
         self.daily_dir = DIR / "eod2_data" / "daily"
         self.configPath = DIR / "defs" / "user.json"
 
+        self.key = None
+
         if args.preset and args.preset_save:
             exit(
                 "plot.py: error: argument --preset: not allowed with argument --preset_save"
