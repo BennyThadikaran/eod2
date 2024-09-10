@@ -13,20 +13,11 @@ from zoneinfo import ZoneInfo
 import numpy as np
 import pandas as pd
 import requests
+import tzlocal
 from nse import NSE
 from requests.exceptions import ChunkedEncodingError
 
 from defs.Config import Config
-
-pip = "pip" if "win" in sys.platform else "pip3"
-
-try:
-    import tzlocal
-except ModuleNotFoundError:
-    exit(f"tzlocal package is required\nRun: {pip} install tzlocal")
-
-if not hasattr(NSE, "__version__"):
-    exit(f"nse package need to be updated\nRun: {pip} install -U nse")
 
 
 def configure_logger():
