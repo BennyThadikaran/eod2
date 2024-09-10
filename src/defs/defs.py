@@ -575,8 +575,14 @@ def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
 
     text = b""
 
-    if not symFile.is_file():
-        text += headerText
+    if not symFile.exists():
+        sme_file = DAILY_FOLDER / f"{symFile.stem}_sme.csv"
+
+        if "_sme" not in symFile.name and sme_file.exists():
+            logger.info(f"{symFile.stem.upper()} switched from SME to EQ")
+            sme_file.rename(symFile)
+        else:
+            text += headerText
 
     avgTrdCnt = "" if trdCnt == "" else round(volume / trdCnt, 2)
 
