@@ -32,6 +32,13 @@ def configure_logger():
 
     file_handler.setLevel(logging.WARNING)
 
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(levelname)s: %(asctime)s - %(name)s - %(message)s - EOD2 v%(eod_v)s - NSE v%(nse_v)s - %(last_update)s",
+            defaults=meta_info,
+        )
+    )
+
     logging.basicConfig(
         format="%(levelname)s: %(asctime)s - %(name)s - %(message)s",
         datefmt="%d-%m-%Y %H:%M",
@@ -141,8 +148,10 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
 
     try:
         res = requests.get(f"{base_url}/main/special_sessions.txt")
-    except Exception as e:
-        logger.exception(err_text, exc_info=e)
+    except requests.exceptions.Timeout:
+        logger.exception(
+            "Network timeout while trying to download special_sessions. Please try again later."
+        )
         exit()
 
     if not res.ok:
@@ -285,7 +294,9 @@ def updatePendingDeliveryData(nse: NSE, date: str):
         FILE = nse.deliveryBhavcopy(dt)
     except (RuntimeError, Exception):
         if daysSinceFailure == 5:
-            logger.warning("Max attempts reached: Aborting Future attempts")
+            logger.warning(
+                f"Max attempts reached: Aborting Future attempts for report dated {dt}"
+            )
             return True
 
         logger.info(f"{dt:%d %b}: Delivery report not yet updated.")
@@ -616,7 +627,7 @@ def getSplit(sym, string):
     match = splitRegex.search(string)
 
     if match is None:
-        logger.warning(f"{sym}: Not Matched. {string}")
+        logger.warning(f"{sym}: Not Matched. {string} - {dates.dt}")
         return match
 
     return float(match.group(1)) / float(match.group(2))
@@ -629,7 +640,7 @@ def getBonus(sym, string):
     match = bonusRegex.search(string)
 
     if match is None:
-        logger.warning(f"{sym}: Not Matched. {string}")
+        logger.warning(f"{sym}: Not Matched. {string} - {dates.dt}")
         return match
 
     return 1 + int(match.group(1)) / int(match.group(2))
@@ -650,7 +661,7 @@ def makeAdjustment(
         file = DAILY_FOLDER / f"{symbol.lower()}.csv"
 
         if not file.is_file():
-            logger.warning(f"{symbol}: File not found")
+            logger.warning(f"{symbol}: File not found - {dates.dt}")
             return
 
         df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
@@ -662,6 +673,12 @@ def makeAdjustment(
 
     if dt in df.index:
         idx = df.index.get_loc(dt)
+
+        if isinstance(idx, slice):
+            logger.warning(
+                f"Duplicate dates detected on {symbol} making adjustment - {dates.dt}"
+            )
+            raise RuntimeError()
 
         last = df.iloc[idx:]
 
@@ -838,7 +855,14 @@ def adjustNseStocks():
             df: pd.DataFrame = commit["df"]
 
             dt = dates.dt.replace(tzinfo=None)
-            idx = df.index.get_loc(dt)
+
+            try:
+                idx = df.index.get_loc(dt)
+            except KeyError:
+                logger.warning(
+                    f"Unable to verify adjustment on {sym} - Please confirm manually. - {dates.dt}"
+                )
+                continue
 
             close = df.at[df.index[idx], "Close"]
             prev_close = df.at[df.index[idx - 1], "Close"]
@@ -849,7 +873,7 @@ def adjustNseStocks():
                 context = f"Current Close {close}, Previous Close {prev_close}"
 
                 logger.warning(
-                    f"WARN: Possible adjustment failure in {sym}: {context}"
+                    f"WARN: Possible adjustment failure in {sym}: {context} - {dates.dt}"
                 )
 
             df.to_csv(file)
@@ -988,7 +1012,6 @@ if __name__ != "__main__":
         b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
     )
 
-    configure_logger()
 
     logger = logging.getLogger(__name__)
 
@@ -1002,6 +1025,14 @@ if __name__ != "__main__":
     meta: Dict = json.loads(META_FILE.read_bytes())
 
     config = Config()
+
+    meta_info = dict(
+        eod_v=config.VERSION,
+        nse_v=NSE.__version__,
+        last_update=meta.get("lastUpdate", None),
+    )
+
+    configure_logger()
 
     if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
         AMIBROKER_FOLDER.mkdir()
