@@ -294,7 +294,9 @@ def updatePendingDeliveryData(nse: NSE, date: str):
         FILE = nse.deliveryBhavcopy(dt)
     except (RuntimeError, Exception):
         if daysSinceFailure == 5:
-            logger.warning("Max attempts reached: Aborting Future attempts")
+            logger.warning(
+                f"Max attempts reached: Aborting Future attempts for report dated {dt}"
+            )
             return True
 
         logger.info(f"{dt:%d %b}: Delivery report not yet updated.")
@@ -625,7 +627,7 @@ def getSplit(sym, string):
     match = splitRegex.search(string)
 
     if match is None:
-        logger.warning(f"{sym}: Not Matched. {string}")
+        logger.warning(f"{sym}: Not Matched. {string} - {dates.dt}")
         return match
 
     return float(match.group(1)) / float(match.group(2))
@@ -638,7 +640,7 @@ def getBonus(sym, string):
     match = bonusRegex.search(string)
 
     if match is None:
-        logger.warning(f"{sym}: Not Matched. {string}")
+        logger.warning(f"{sym}: Not Matched. {string} - {dates.dt}")
         return match
 
     return 1 + int(match.group(1)) / int(match.group(2))
@@ -659,7 +661,7 @@ def makeAdjustment(
         file = DAILY_FOLDER / f"{symbol.lower()}.csv"
 
         if not file.is_file():
-            logger.warning(f"{symbol}: File not found")
+            logger.warning(f"{symbol}: File not found - {dates.dt}")
             return
 
         df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
@@ -871,7 +873,7 @@ def adjustNseStocks():
                 context = f"Current Close {close}, Previous Close {prev_close}"
 
                 logger.warning(
-                    f"WARN: Possible adjustment failure in {sym}: {context}"
+                    f"WARN: Possible adjustment failure in {sym}: {context} - {dates.dt}"
                 )
 
             df.to_csv(file)
