@@ -670,6 +670,12 @@ def makeAdjustment(
     if dt in df.index:
         idx = df.index.get_loc(dt)
 
+        if isinstance(idx, slice):
+            logger.warning(
+                f"Duplicate dates detected on {symbol} making adjustment - {dates.dt}"
+            )
+            raise RuntimeError()
+
         last = df.iloc[idx:]
 
         df = df.iloc[:idx].copy()
