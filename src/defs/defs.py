@@ -32,6 +32,13 @@ def configure_logger():
 
     file_handler.setLevel(logging.WARNING)
 
+    file_handler.setFormatter(
+        logging.Formatter(
+            "%(levelname)s: %(asctime)s - %(name)s - %(message)s - EOD2 v%(eod_v)s - NSE v%(nse_v)s - %(last_update)s",
+            defaults=meta_info,
+        )
+    )
+
     logging.basicConfig(
         format="%(levelname)s: %(asctime)s - %(name)s - %(message)s",
         datefmt="%d-%m-%Y %H:%M",
@@ -995,7 +1002,6 @@ if __name__ != "__main__":
         b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
     )
 
-    configure_logger()
 
     logger = logging.getLogger(__name__)
 
@@ -1009,6 +1015,14 @@ if __name__ != "__main__":
     meta: Dict = json.loads(META_FILE.read_bytes())
 
     config = Config()
+
+    meta_info = dict(
+        eod_v=config.VERSION,
+        nse_v=NSE.__version__,
+        last_update=meta.get("lastUpdate", None),
+    )
+
+    configure_logger()
 
     if config.AMIBROKER and not AMIBROKER_FOLDER.exists():
         AMIBROKER_FOLDER.mkdir()
