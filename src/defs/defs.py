@@ -838,7 +838,14 @@ def adjustNseStocks():
             df: pd.DataFrame = commit["df"]
 
             dt = dates.dt.replace(tzinfo=None)
-            idx = df.index.get_loc(dt)
+
+            try:
+                idx = df.index.get_loc(dt)
+            except KeyError:
+                logger.warning(
+                    f"Unable to verify adjustment on {sym} - Please confirm manually. - {dates.dt}"
+                )
+                continue
 
             close = df.at[df.index[idx], "Close"]
             prev_close = df.at[df.index[idx - 1], "Close"]
