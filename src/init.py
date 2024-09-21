@@ -35,7 +35,13 @@ if args.config:
 # download the latest special_sessions.txt from eod2_data repo
 special_sessions = defs.downloadSpecialSessions()
 
-nse = NSE(defs.DIR)
+try:
+    nse = NSE(defs.DIR)
+except (TimeoutError, ConnectionError) as e:
+    logger.warning(
+        f"Network error connecting to NSE - Please try again later. - {e!r}"
+    )
+    exit()
 
 if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
     defs.updateAmiBrokerRecords(nse)
