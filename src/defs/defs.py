@@ -534,6 +534,11 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
         prefix = "_sme" if t.SctySrs in ("SM", "ST") else ""
         SYM_FILE = DAILY_FOLDER / f"{t.TckrSymb.lower()}{prefix}.csv"
 
+        if pd.isna(t.Index):
+            raise ValueError(
+                f"{t.TckrSymb} missing ISIN number. Please retry after few hours."
+            )
+
         # ISIN is a unique identifier for each stock symbol.
         # When a symbol name changes its ISIN remains the same
         # This allows for tracking changes in symbol names and
@@ -1011,7 +1016,6 @@ if __name__ != "__main__":
     headerText = (
         b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
     )
-
 
     logger = logging.getLogger(__name__)
 
