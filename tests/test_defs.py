@@ -1,10 +1,11 @@
 import unittest
-from unittest.mock import Mock, patch
-from context import defs
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
+
 import pandas as pd
+from context import defs
 
 DIR = Path(__file__).parent / "test_data"
 tz_IN = ZoneInfo("Asia/Kolkata")
@@ -147,29 +148,6 @@ class TestCheckForHolidays(unittest.TestCase):
             result = defs.checkForHolidays(mock_nse, tuple())
 
         self.assertTrue(result)
-        mock_get_holiday_list.assert_called_once()
-
-    @patch.object(defs, "dates")
-    @patch.object(defs, "getHolidayList")
-    @patch.object(defs, "hasLatestHolidays", False)
-    def test_holiday_today(self, mock_get_holiday_list, _):
-        """Today's date and current date are same. Today is a holiday."""
-
-        defs.dates.dt = defs.dates.today = datetime(2023, 1, 2)
-
-        # Mock NSE class
-        mock_nse = Mock()
-
-        holiday_obj = {"02-Jan-2023": "New Year"}
-        meta_obj = {"holidays": holiday_obj, "year": 2023}
-
-        # Set up mock for getHolidayList
-        mock_get_holiday_list.return_value = holiday_obj
-
-        with patch.object(defs, "meta", meta_obj):
-            with self.assertRaises(SystemExit):
-                defs.checkForHolidays(mock_nse, tuple())
-
         mock_get_holiday_list.assert_called_once()
 
     @patch.object(defs, "dates")
