@@ -190,7 +190,6 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
 
     # the current date for which data is being synced
     curDt = dates.dt.strftime("%d-%b-%Y")
-    isToday = curDt == dates.today.strftime("%d-%b-%Y")
 
     if dates.dt in special_sessions:
         return False
@@ -217,12 +216,8 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
         return True
 
     if curDt in meta["holidays"]:
-        if not isToday:
-            logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
-            return True
-
-        logger.info(f'Market Holiday: {meta["holidays"][curDt]}')
-        exit()
+        logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
+        return True
 
     return False
 

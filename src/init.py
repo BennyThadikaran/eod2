@@ -64,6 +64,8 @@ while True:
         exit()
 
     if defs.checkForHolidays(nse, special_sessions):
+        defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
+        writeJson(defs.META_FILE, defs.meta)
         continue
 
     # Validate NSE actions file
