@@ -190,7 +190,6 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
 
     # the current date for which data is being synced
     curDt = dates.dt.strftime("%d-%b-%Y")
-    isToday = curDt == dates.today.strftime("%d-%b-%Y")
 
     if dates.dt in special_sessions:
         return False
@@ -217,12 +216,8 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
         return True
 
     if curDt in meta["holidays"]:
-        if not isToday:
-            logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
-            return True
-
-        logger.info(f'Market Holiday: {meta["holidays"][curDt]}')
-        exit()
+        logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
+        return True
 
     return False
 
@@ -533,6 +528,11 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
         prefix = "_sme" if t.SctySrs in ("SM", "ST") else ""
         SYM_FILE = DAILY_FOLDER / f"{t.TckrSymb.lower()}{prefix}.csv"
+
+        if pd.isna(t.Index):
+            raise ValueError(
+                f"{t.TckrSymb} missing ISIN number. Please retry after few hours."
+            )
 
         # ISIN is a unique identifier for each stock symbol.
         # When a symbol name changes its ISIN remains the same
@@ -1011,7 +1011,6 @@ if __name__ != "__main__":
     headerText = (
         b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
     )
-
 
     logger = logging.getLogger(__name__)
 
