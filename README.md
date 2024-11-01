@@ -48,3 +48,9 @@ I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discu
 ### Analyse the delivery data with dget.py
 
 ![dget.py screenshot](https://res.cloudinary.com/doyu4uovr/image/upload/s--dJi3GbMN--/f_auto/v1692426345/EOD2/dget-basic_cy2bsp.png)
+
+### Other projects utilizing EOD2 Data
+
+[BennyThadikaran/RRG-Lite](https://github.com/BennyThadikaran/RRG-Lite) - RRG-Lite is a Python CLI tool for displaying Relative Rotational graph (RRG) charts.
+
+[BennyThadikaran/stock-pattern](https://github.com/BennyThadikaran/stock-pattern) - A python scanner to detect and plot stock chart patterns 
