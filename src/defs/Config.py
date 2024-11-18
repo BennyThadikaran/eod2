@@ -70,7 +70,6 @@ class Config:
     PLOT_ALINE_COLOR = "mediumseagreen"  # Arbitrary line (segment)
 
     WATCH = {"SECTORS": (DIR / "data/sectors.csv").resolve()}
-    ADDITIONAL_INDICES = []
     PRESET = {}
 
     def __init__(self) -> None:
