@@ -697,6 +697,9 @@ def makeAdjustment(
 def updateIndice(sym, open, high, low, close, volume):
     "Appends Index EOD data to end of file"
 
+    if '/' in sym:
+        sym = sym.replace('/', '-')
+
     file = DAILY_FOLDER / f"{sym.lower()}.csv"
 
     text = b""
@@ -729,18 +732,6 @@ def updateIndexEOD(file: Path):
 
     df.to_csv(folder / file.name)
 
-    indices = (
-        (DIR / "eod2_data" / "sector_watchlist.csv")
-        .read_text()
-        .strip()
-        .split("\n")
-    )
-
-    if any(config.ADDITIONAL_INDICES):
-        indices.extend(
-            [sym for sym in config.ADDITIONAL_INDICES if sym not in indices]
-        )
-
     cols = [
         "Open Index Value",
         "High Index Value",
@@ -753,7 +744,7 @@ def updateIndexEOD(file: Path):
     for col in cols:
         df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
 
-    for sym in indices:
+    for sym in df.index:
         open, high, low, close, volume = df.loc[sym, cols]
 
         updateIndice(sym, open, high, low, close, volume)
