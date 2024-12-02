@@ -697,8 +697,8 @@ def makeAdjustment(
 def updateIndice(sym, open, high, low, close, volume):
     "Appends Index EOD data to end of file"
 
-    if '/' in sym:
-        sym = sym.replace('/', '-')
+    if "/" in sym or ":" in sym:
+        sym = sym.replace("/", "-").replace(":", "-")
 
     file = DAILY_FOLDER / f"{sym.lower()}.csv"
 
