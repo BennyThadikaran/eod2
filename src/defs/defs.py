@@ -36,12 +36,20 @@ def configure_logger():
 
     file_handler.setLevel(logging.WARNING)
 
-    file_handler.setFormatter(
-        logging.Formatter(
-            "%(levelname)s: %(asctime)s - %(name)s - %(message)s - EOD2 v%(eod_v)s - NSE v%(nse_v)s - %(last_update)s",
-            defaults=meta_info,
+    try:
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(levelname)s: %(asctime)s - %(name)s - %(message)s - EOD2 v%(eod_v)s - NSE v%(nse_v)s - %(last_update)s",
+                defaults=meta_info,
+            )
         )
-    )
+    except TypeError:
+        # Python 3.8 and 3.9 - No support for defaults parameter.
+        file_handler.setFormatter(
+            logging.Formatter(
+                "%(levelname)s: %(asctime)s - %(name)s - %(message)s"
+            )
+        )
 
     logging.basicConfig(
         format="%(levelname)s: %(asctime)s - %(name)s - %(message)s",
