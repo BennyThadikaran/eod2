@@ -8,7 +8,11 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except ImportError:
+    from backports.zoneinfo import ZoneInfo
 
 import numpy as np
 import pandas as pd
