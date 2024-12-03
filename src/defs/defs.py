@@ -661,7 +661,7 @@ def getBonus(sym, string):
 def makeAdjustment(
     symbol: str,
     adjustmentFactor: float,
-    prev_commit: Optional[dict[str, Union[pd.DataFrame, Path]]] = None,
+    prev_commit: Optional[Dict[str, Union[pd.DataFrame, Path]]] = None,
 ) -> Optional[Tuple[pd.DataFrame, Path]]:
     """Makes adjustment to stock data prior to ex date,
     returning a tuple of pandas pd.DataFrame and filename"""
