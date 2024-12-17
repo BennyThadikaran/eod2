@@ -55,9 +55,13 @@ def getDataFrame(
 
     if tf == "weekly":
         if column:
-            return df[column].resample("W").apply(dct[column])[-period:]
+            return (
+                df[column]
+                .resample("W", label="left")
+                .apply(dct[column])[-period:]
+            )
 
-        return df.resample("W").apply(dct)[-period:]
+        return df.resample("W", label="left").apply(dct)[-period:]
 
     return df[-period:] if column is None else df[column][-period:]
 
