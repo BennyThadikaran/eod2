@@ -1,9 +1,10 @@
-from context import utils
-import unittest
-from pathlib import Path
-import pandas as pd
 import json
+import unittest
 from datetime import datetime
+from pathlib import Path
+
+import pandas as pd
+from context import utils
 
 
 class TestJsonFunctions(unittest.TestCase):
@@ -112,7 +113,7 @@ class TestGetDataFrameFunction(unittest.TestCase):
 
         expected = (
             pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")
-            .resample("W")
+            .resample("W", label="left")
             .apply(dct)[-2:]
         )
 
@@ -127,7 +128,7 @@ class TestGetDataFrameFunction(unittest.TestCase):
             pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[
                 "Close"
             ]
-            .resample("W")
+            .resample("W", label="left")
             .apply("last")[-2:]
         )
 
