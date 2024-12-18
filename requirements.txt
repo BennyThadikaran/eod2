@@ -1,6 +1,7 @@
 fast_csv_loader>=1.0.1
 mplfinance==0.12.10b0
 nse>=1.0.5
-pandas==2.0.3
+pandas==2.0.3; python_version == "3.8"
+pandas==2.2.2; python_version > "3.8"
 requests==2.32.3
 tzlocal==5.2
