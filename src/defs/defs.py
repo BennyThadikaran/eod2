@@ -574,7 +574,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
                     f"Renaming daily/{old}.csv to {new}.csv. No such file."
                 )
 
-            logger.info(f"Name Changed: {old} to {new}")
+            logger.warning(f"Name Changed: {old} to {new}")
 
         updateNseSymbol(
             SYM_FILE,
