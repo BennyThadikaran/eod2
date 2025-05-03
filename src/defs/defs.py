@@ -823,7 +823,12 @@ def adjustNseStocks():
                         post_commits.append((sym, adjustmentFactor))
                         logger.info(f"{sym}: {purpose}")
 
-                if "bonus" in purpose and "deb" not in purpose and ex == dtStr:
+                if (
+                    "bonus" in purpose
+                    and "deb" not in purpose
+                    and "pref" not in purpose
+                    and ex == dtStr
+                ):
                     error_context = f"{sym} - Bonus - {dtStr}"
                     adjustmentFactor = getBonus(sym, purpose)
 
