@@ -241,8 +241,8 @@ def validateNseActionsFile(nse: NSE):
     The actionsFile pertains to Bonus, Splits, dividends etc.
     """
 
-    for action in ("equity", "sme"):
-        segment = "sme" if action == "sme" else "equities"
+    for action in ("equity", "sme", "mf"):
+        segment = 'equities' if action == 'equity' else action
 
         if f"{action}Actions" not in meta:
             logger.info(f"Downloading NSE {action.upper()} actions")
@@ -779,7 +779,7 @@ def adjustNseStocks():
 
     dtStr = dates.dt.strftime("%d-%b-%Y")
 
-    for actions in ("equityActions", "smeActions"):
+    for actions in ("equityActions", "smeActions", "mfActions"):
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
         df_commits: dict[str, dict[str, Union[pd.DataFrame, Path]]] = {}
