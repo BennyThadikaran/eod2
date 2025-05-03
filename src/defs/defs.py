@@ -159,7 +159,7 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
     err_text = "special_sessions.txt download failed. Please try again later."
 
     try:
-        res = requests.get(f"{base_url}/main/special_sessions.txt")
+        res = requests.get(f"{base_url}/main/special_sessions.txt", timeout=30)
     except requests.exceptions.Timeout:
         logger.exception(
             "Network timeout while trying to download special_sessions. Please try again later."
