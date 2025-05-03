@@ -159,7 +159,7 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
     err_text = "special_sessions.txt download failed. Please try again later."
 
     try:
-        res = requests.get(f"{base_url}/main/special_sessions.txt")
+        res = requests.get(f"{base_url}/main/special_sessions.txt", timeout=30)
     except requests.exceptions.Timeout:
         logger.exception(
             "Network timeout while trying to download special_sessions. Please try again later."
@@ -241,8 +241,8 @@ def validateNseActionsFile(nse: NSE):
     The actionsFile pertains to Bonus, Splits, dividends etc.
     """
 
-    for action in ("equity", "sme"):
-        segment = "sme" if action == "sme" else "equities"
+    for action in ("equity", "sme", "mf"):
+        segment = 'equities' if action == 'equity' else action
 
         if f"{action}Actions" not in meta:
             logger.info(f"Downloading NSE {action.upper()} actions")
@@ -779,7 +779,7 @@ def adjustNseStocks():
 
     dtStr = dates.dt.strftime("%d-%b-%Y")
 
-    for actions in ("equityActions", "smeActions"):
+    for actions in ("equityActions", "smeActions", "mfActions"):
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
         df_commits: dict[str, dict[str, Union[pd.DataFrame, Path]]] = {}
@@ -823,7 +823,12 @@ def adjustNseStocks():
                         post_commits.append((sym, adjustmentFactor))
                         logger.info(f"{sym}: {purpose}")
 
-                if "bonus" in purpose and "deb" not in purpose and ex == dtStr:
+                if (
+                    "bonus" in purpose
+                    and "deb" not in purpose
+                    and "pref" not in purpose
+                    and ex == dtStr
+                ):
                     error_context = f"{sym} - Bonus - {dtStr}"
                     adjustmentFactor = getBonus(sym, purpose)
 
