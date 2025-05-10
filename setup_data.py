@@ -1,7 +1,11 @@
-from requests import session
 from pathlib import Path
-from zipfile import ZipFile
 from shutil import copyfileobj
+from zipfile import ZipFile
+
+try:
+    import httpx
+except ModuleNotFoundError:
+    exit(f"Please run `pip install -U nse[server]`")
 
 # ################################
 # This script is written for non git users,
@@ -27,12 +31,14 @@ elif any(FOLDER.iterdir()):
     # Rename the folder to protect files from being overwritten.
     FOLDER.rename("eod2_data_backup")
 
-with session() as s:
-    with s.get(url, stream=True, timeout=30) as r:
-        with open(ZIP_FILE, "wb") as f:
+with httpx.Client(
+    timeout=30, transport=httpx.HTTPTransport(http2=True, retries=2)
+) as session:
+    with session.stream("GET", url, follow_redirects=True) as r:
+        with ZIP_FILE.open("wb") as f:
             print(f"Downloading eod2_data from {url}")
             # 15 mb chunk size
-            for chunk in r.iter_content(chunk_size=15 * 1024 * 1024):
+            for chunk in r.iter_bytes(chunk_size=15 * 1024 * 1024):
                 f.write(chunk)
 
 if not ZIP_FILE.is_file():
