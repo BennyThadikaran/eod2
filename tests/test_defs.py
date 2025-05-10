@@ -5,6 +5,7 @@ from unittest.mock import Mock, patch
 from zoneinfo import ZoneInfo
 
 import pandas as pd
+
 from context import defs
 
 DIR = Path(__file__).parent / "test_data"
@@ -188,9 +189,11 @@ class TestValidateNseActionsFile(unittest.TestCase):
             "equityActionsExpiry": expiry,
             "smeActions": None,
             "smeActionsExpiry": expiry,
+            "mfActions": None,
+            "mfActionsExpiry": expiry,
         }
 
-        self.assertEqual(mock_nse.actions.call_count, 2)
+        self.assertEqual(mock_nse.actions.call_count, 3)
         self.assertEqual(defs.meta, expect)
 
     @patch.object(defs, "meta", {})
@@ -224,6 +227,8 @@ class TestValidateNseActionsFile(unittest.TestCase):
             "smeActions": None,
             "equityActionsExpiry": expiry,
             "smeActionsExpiry": expiry,
+            "mfActions": None,
+            "mfActionsExpiry": expiry,
         }
 
         # Mock NSE class
@@ -233,9 +238,10 @@ class TestValidateNseActionsFile(unittest.TestCase):
 
         defs.validateNseActionsFile(mock_nse)
 
-        self.assertEqual(mock_nse.actions.call_count, 2)
+        self.assertEqual(mock_nse.actions.call_count, 3)
         self.assertEqual(defs.meta["equityActionsExpiry"], newExpiry)
         self.assertEqual(defs.meta["smeActionsExpiry"], newExpiry)
+        self.assertEqual(defs.meta["mfActionsExpiry"], newExpiry)
 
     @patch.object(defs, "meta", {})
     @patch.object(defs, "dates")
@@ -264,31 +270,34 @@ class TestValidateNseActionsFile(unittest.TestCase):
 
         mock_nse.actions.assert_called_once()
 
-    @patch.object(defs, "meta", {})
-    @patch.object(defs, "dates")
-    def test_not_expired(self, _):
-        """NSE actions data is fresh. No need to update"""
 
-        dt = datetime(2023, 1, 1).astimezone(tz_IN)
-        expiry = datetime(2023, 1, 3).astimezone(tz_IN).isoformat()
+@patch.object(defs, "meta", {})
+@patch.object(defs, "dates")
+def test_not_expired(self, _):
+    """NSE actions data is fresh. No need to update"""
 
-        defs.dates.dt = defs.dates.today = dt
-        meta_obj = {
-            "equityActions": None,
-            "smeActions": None,
-            "equityActionsExpiry": expiry,
-            "smeActionsExpiry": expiry,
-        }
-        defs.meta = meta_obj
+    dt = datetime(2023, 1, 1).astimezone(tz_IN)
+    expiry = datetime(2023, 1, 3).astimezone(tz_IN).isoformat()
 
-        # Mock NSE class
-        mock_nse = Mock()
-        mock_nse.actions.return_value = None
+    defs.dates.dt = defs.dates.today = dt
+    meta_obj = {
+        "equityActions": None,
+        "smeActions": None,
+        "mfActions": None,
+        "equityActionsExpiry": expiry,
+        "smeActionsExpiry": expiry,
+        "mfActionsExpiry": expiry,
+    }
+    defs.meta = meta_obj
 
-        defs.validateNseActionsFile(mock_nse)
+    # Mock NSE class
+    mock_nse = Mock()
+    mock_nse.actions.return_value = None
 
-        mock_nse.actions.assert_not_called()
-        self.assertEqual(defs.meta, meta_obj)
+    defs.validateNseActionsFile(mock_nse)
+
+    mock_nse.actions.assert_not_called()
+    self.assertEqual(defs.meta, meta_obj)
 
 
 class TestUpdateNseEOD(unittest.TestCase):

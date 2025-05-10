@@ -14,12 +14,15 @@ try:
 except ImportError:
     from backports.zoneinfo import ZoneInfo
 
+try:
+    import httpx
+except ModuleNotFoundError:
+    exit(f"Please run `pip install -U nse[server]`")
+
 import numpy as np
 import pandas as pd
-import requests
 import tzlocal
 from nse import NSE
-from requests.exceptions import ChunkedEncodingError
 
 from defs.Config import Config
 
@@ -159,15 +162,15 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
     err_text = "special_sessions.txt download failed. Please try again later."
 
     try:
-        res = requests.get(f"{base_url}/main/special_sessions.txt", timeout=30)
-    except requests.exceptions.Timeout:
+        res = httpx.get(f"{base_url}/main/special_sessions.txt", timeout=30)
+    except httpx.ConnectTimeout:
         logger.exception(
             "Network timeout while trying to download special_sessions. Please try again later."
         )
         exit()
 
-    if not res.ok:
-        logger.exception(f"{err_text} {res.status_code}: {res.reason}")
+    if not res.status_code == httpx.codes.OK:
+        logger.exception(f"{err_text} {res.status_code}: {res.reason_phrase}")
         exit()
 
     return tuple(
@@ -242,7 +245,7 @@ def validateNseActionsFile(nse: NSE):
     """
 
     for action in ("equity", "sme", "mf"):
-        segment = 'equities' if action == 'equity' else action
+        segment = "equities" if action == "equity" else action
 
         if f"{action}Actions" not in meta:
             logger.info(f"Downloading NSE {action.upper()} actions")
@@ -410,7 +413,7 @@ def updateAmiBrokerRecords(nse: NSE):
                 bhavFile.rename(bhavFolder / bhavFile.name)
             except (RuntimeError, FileNotFoundError):
                 continue
-            except ChunkedEncodingError as e:
+            except Exception as e:
                 logger.warning(f"{e} - Please try again.")
                 exit()
 
