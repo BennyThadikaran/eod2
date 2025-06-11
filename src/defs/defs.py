@@ -19,7 +19,7 @@ except ImportError:
 try:
     import httpx
 except ModuleNotFoundError:
-    exit(f"Please run `pip install -U nse[server]`")
+    exit("Please run `pip install -U nse[server]`")
 
 import numpy as np
 import pandas as pd
@@ -246,6 +246,7 @@ def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     return {}
 
 
+@retry()
 def downloadSpecialSessions() -> Tuple[datetime, ...]:
     base_url = "https://raw.githubusercontent.com/BennyThadikaran/eod2_data"
 
@@ -253,11 +254,10 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
 
     try:
         res = httpx.get(f"{base_url}/main/special_sessions.txt", timeout=30)
-    except httpx.ConnectTimeout:
-        logger.exception(
-            "Network timeout while trying to download special_sessions. Please try again later."
-        )
-        exit()
+    except httpx.ConnectTimeout as e:
+        raise TimeoutError(e)
+    except httpx.ConnectError as e:
+        raise ConnectionError(e)
 
     if not res.status_code == httpx.codes.OK:
         logger.exception(f"{err_text} {res.status_code}: {res.reason_phrase}")
@@ -269,14 +269,11 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
     )
 
 
+@retry()
 def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
     Saves and returns the holiday Object"""
-    try:
-        data = nse.holidays(type=nse.HOLIDAY_TRADING)
-    except Exception as e:
-        logger.warning(f"Failed to download holidays - {e}")
-        exit()
+    data = nse.holidays(type=nse.HOLIDAY_TRADING)
 
     # CM pertains to capital market or equity holidays
     data["CM"].append(getMuhuratHolidayInfo(data))
@@ -327,6 +324,7 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
     return False
 
 
+@retry()
 def validateNseActionsFile(nse: NSE):
     """Check if the NSE Corporate actions() file exists.
     If exists, check if the file is older than 7 days.
@@ -340,15 +338,11 @@ def validateNseActionsFile(nse: NSE):
         if f"{action}Actions" not in meta:
             logger.info(f"Downloading NSE {action.upper()} actions")
 
-            try:
-                meta[f"{action}Actions"] = nse.actions(
-                    segment=segment,
-                    from_date=dates.dt,
-                    to_date=dates.dt + timedelta(8),
-                )
-            except Exception as e:
-                logger.warning(f"Failed to download {action} actions - {e}")
-                exit()
+            meta[f"{action}Actions"] = nse.actions(
+                segment=segment,
+                from_date=dates.dt,
+                to_date=dates.dt + timedelta(8),
+            )
 
             meta[f"{action}ActionsExpiry"] = (
                 dates.dt + timedelta(7)
@@ -366,15 +360,11 @@ def validateNseActionsFile(nse: NSE):
 
             logger.info(f"Updating NSE {action.upper()} actions")
 
-            try:
-                meta[f"{action}Actions"] = nse.actions(
-                    segment=segment,
-                    from_date=expiryDate,
-                    to_date=expiryDate + timedelta(8),
-                )
-            except Exception as e:
-                logger.warning(f"Failed to update {action} actions - {e}")
-                exit()
+            meta[f"{action}Actions"] = nse.actions(
+                segment=segment,
+                from_date=expiryDate,
+                to_date=expiryDate + timedelta(8),
+            )
 
             meta[f"{action}ActionsExpiry"] = newExpiry
 
