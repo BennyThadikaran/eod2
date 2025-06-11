@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import time
 import logging
 import os
 import re
@@ -156,6 +157,58 @@ def log_unhandled_exception(exc_type, exc_value, exc_traceback):
     logger.critical(
         "Unhandled exception", exc_info=(exc_type, exc_value, exc_traceback)
     )
+
+
+def retry(max_retries=10, base_wait=2, max_wait=10):
+    """
+    Decorator that retries a function or method with exponential backoff
+    in case of exceptions.
+
+    :param max_retries: The maximum number of retry attempts.
+    :type max_retries: int
+    :param base_wait: The initial delay in seconds before the first retry.
+    :type base_wait: float
+    :param max_wait: The maximum delay in seconds between retries.
+    :type max_wait: float
+
+    .. code::python
+
+        @retry(max_retries=5, base_wait=2, max_wait=60)
+        def your_function_or_method(*args, **kwargs):
+            # Your function or method logic goes here
+            pass
+
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            retries = 0
+
+            while retries < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except (TimeoutError, ConnectionError) as e:
+                    logger.info(f"Attempt {retries + 1} failed: {e}")
+
+                    # Calculate the wait time using exponential backoff
+                    wait = min(base_wait * (2**retries), max_wait)
+
+                    logger.info(f"Retrying in {wait} seconds...")
+                    time.sleep(wait)
+
+                    retries += 1
+                except Exception as e:
+                    logger.exception(f"An error occurred {e}")
+                    return
+
+            logger.exception(
+                f"Exceeded maximum retry attempts for {func.__name__}. Exiting."
+            )
+            exit(1)
+
+        return wrapper
+
+    return decorator
 
 
 def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
