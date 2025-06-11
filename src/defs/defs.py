@@ -51,9 +51,7 @@ def configure_logger():
     except TypeError:
         # Python 3.8 and 3.9 - No support for defaults parameter.
         file_handler.setFormatter(
-            logging.Formatter(
-                "%(levelname)s: %(asctime)s - %(name)s - %(message)s"
-            )
+            logging.Formatter("%(levelname)s: %(asctime)s - %(name)s - %(message)s")
         )
 
     logging.basicConfig(
@@ -116,7 +114,6 @@ class Dates:
     "A class for date related functions in EOD2"
 
     def __init__(self, lastUpdate: str):
-
         today = datetime.now(tz_IN)
 
         self.today = datetime.combine(today, datetime.min.time())
@@ -307,9 +304,7 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
             meta["year"] = dates.dt.year
             hasLatestHolidays = True
 
-    isMuhurat = (
-        curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
-    )
+    isMuhurat = curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
 
     if isMuhurat:
         return False
@@ -318,7 +313,7 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
         return True
 
     if curDt in meta["holidays"]:
-        logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
+        logger.info(f"{curDt} Market Holiday: {meta['holidays'][curDt]}")
         return True
 
     return False
@@ -344,9 +339,7 @@ def validateNseActionsFile(nse: NSE):
                 to_date=dates.dt + timedelta(8),
             )
 
-            meta[f"{action}ActionsExpiry"] = (
-                dates.dt + timedelta(7)
-            ).isoformat()
+            meta[f"{action}ActionsExpiry"] = (dates.dt + timedelta(7)).isoformat()
         else:
             expiryDate = datetime.fromisoformat(
                 meta[f"{action}ActionsExpiry"]
@@ -420,9 +413,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             if not DAILY_FILE.exists():
                 continue
 
-            dailyDf = pd.read_csv(
-                DAILY_FILE, index_col="Date", parse_dates=["Date"]
-            )
+            dailyDf = pd.read_csv(DAILY_FILE, index_col="Date", parse_dates=["Date"])
 
             if dt not in dailyDf.index:
                 continue
@@ -609,9 +600,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
         if dlvDf is not None:
             if t.TckrSymb in dlvDf.index:
-                trdCnt, dq = dlvDf.loc[
-                    t.TckrSymb, [" NO_OF_TRADES", " DELIV_QTY"]
-                ]
+                trdCnt, dq = dlvDf.loc[t.TckrSymb, [" NO_OF_TRADES", " DELIV_QTY"]]
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
@@ -653,9 +642,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
             try:
                 OLD_FILE.rename(SYM_FILE)
             except FileNotFoundError:
-                logger.warning(
-                    f"Renaming daily/{old}.csv to {new}.csv. No such file."
-                )
+                logger.warning(f"Renaming daily/{old}.csv to {new}.csv. No such file.")
 
             logger.warning(f"Name Changed: {old} to {new}")
 
@@ -1016,7 +1003,6 @@ def deleteLastLineByDate(file: Path, date_str: str) -> bool:
 
     # Open the file in read-only mode
     with file.open("r+b") as f:
-
         # Start searching from the end of the file
         cur_pos = file_size - 2
         f.seek(cur_pos)
@@ -1099,9 +1085,7 @@ if __name__ != "__main__":
 
     bonusRegex = re.compile(r"(\d+) ?: ?(\d+)")
 
-    headerText = (
-        b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
-    )
+    headerText = b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 
     logger = logging.getLogger(__name__)
 

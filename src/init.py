@@ -46,9 +46,7 @@ special_sessions = defs.downloadSpecialSessions()
 try:
     nse = NSE(defs.DIR, server=True)
 except (TimeoutError, ConnectionError) as e:
-    logger.warning(
-        f"Network error connecting to NSE - Please try again later. - {e!r}"
-    )
+    logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
     exit()
 
 if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
@@ -109,9 +107,7 @@ while True:
     except (RuntimeError, Exception) as e:
         if defs.dates.dt.weekday() == 5:
             if defs.dates.dt != defs.dates.today:
-                logger.info(
-                    f'{defs.dates.dt:%a, %d %b %Y}: Market Closed\n{"-" * 52}'
-                )
+                logger.info(f"{defs.dates.dt:%a, %d %b %Y}: Market Closed\n{'-' * 52}")
 
                 # On Error, dont exit on Saturdays, if trying to sync past dates
                 continue
@@ -185,4 +181,4 @@ while True:
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
     writeJson(defs.META_FILE, defs.meta)
 
-    logger.info(f'{defs.dates.dt:%d %b %Y}: Done\n{"-" * 52}')
+    logger.info(f"{defs.dates.dt:%d %b %Y}: Done\n{'-' * 52}")
