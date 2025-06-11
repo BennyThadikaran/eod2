@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
+import itertools
 
 try:
     from zoneinfo import ZoneInfo
@@ -209,6 +210,31 @@ def retry(max_retries=10, base_wait=2, max_wait=10):
         return wrapper
 
     return decorator
+
+
+@retry()
+def check_reports_update_status(nse) -> Dict[str, bool]:
+    """Check if all daily reports has been updated for NSE."""
+
+    result = {
+        "CM-UDIFF-BHAVCOPY-CSV": False,
+        "CM-BHAVDATA-FULL": False,
+        "INDEX-SNAPSHOT": False,
+    }
+
+    cm_data = nse.fetch_daily_reports_file_metadata(segment="CM")
+    index_data = nse.fetch_daily_reports_file_metadata(segment="INDEX")
+
+    if not (cm_data["CurrentDay"] or index_data["CurrentDay"]):
+        return result
+
+    for dct in itertools.chain(cm_data["CurrentDay"], index_data["CurrentDay"]):
+        key = dct["fileKey"]
+
+        if key in result:
+            result[key] = True
+
+    return result
 
 
 def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
