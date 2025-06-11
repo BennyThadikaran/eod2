@@ -7,8 +7,10 @@ from nse import NSE
 from defs import defs
 from defs.utils import writeJson
 
+
 logger = logging.getLogger(__name__)
 
+logging.getLogger("httpx").setLevel(logging.WARNING)
 
 if not defs.version_checker(NSE.__version__, major=1, minor=2, patch=4):
     logger.warning("Require NSE version 1.2.4. Run `pip install -U nse`")
@@ -80,6 +82,24 @@ while True:
     # Download all files and validate for errors
     logger.info("Downloading Files")
 
+    report_status = None
+
+    if defs.dates.dt == defs.dates.today:
+        report_status = defs.is_exchange_data_updated(nse)
+
+        if not report_status["CM-UDIFF-BHAVCOPY-CSV"]:
+            logger.warning("Equity Bhavcopy not yet updated.")
+            nse.exit()
+            exit()
+
+        if not report_status["INDEX-SNAPSHOT"]:
+            logger.warning("Indices report not yet updated.")
+            nse.exit()
+            exit()
+
+        if not report_status["CM-BHAVDATA-FULL"]:
+            logger.warning("Delivery Report Unavailable. Will retry in subsequent sync")
+
     try:
         # NSE bhav copy
         BHAV_FILE = nse.equityBhavcopy(defs.dates.dt)
@@ -106,15 +126,18 @@ while True:
         logger.warning(e)
         exit()
 
-    try:
-        # NSE delivery
-        DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
-    except (RuntimeError, Exception):
-        defs.meta["DLV_PENDING_DATES"].append(defs.dates.dt.isoformat())
+    if report_status and report_status["CM-BHAVDATA-FULL"]:
+        try:
+            # NSE delivery
+            DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
+        except (RuntimeError, Exception):
+            defs.meta["DLV_PENDING_DATES"].append(defs.dates.dt.isoformat())
+            DELIVERY_FILE = None
+            logger.warning("Delivery Report Unavailable. Will retry in subsequent sync")
+
+    else:
         DELIVERY_FILE = None
-        logger.warning(
-            "Delivery Report Unavailable. Will retry in subsequent sync"
-        )
+        defs.meta["DLV_PENDING_DATES"].append(defs.dates.dt.isoformat())
 
     try:
         defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
