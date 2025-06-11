@@ -9,6 +9,12 @@ from defs.utils import writeJson
 
 logger = logging.getLogger(__name__)
 
+
+if not defs.version_checker(NSE.__version__, major=1, minor=2, patch=4):
+    logger.warning("Require NSE version 1.2.4. Run `pip install -U nse`")
+    exit()
+
+
 # Set the sys.excepthook to the custom exception handler
 sys.excepthook = defs.log_unhandled_exception
 
