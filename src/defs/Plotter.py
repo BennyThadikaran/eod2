@@ -71,16 +71,14 @@ def format_coords(x, _):
 
     dt_str = f"{dt:%d %b %Y}".upper()
 
-    open, high, low, close, vol = df.loc[
-        dt, ["Open", "High", "Low", "Close", "Volume"]
-    ]
+    open, high, low, close, vol = df.loc[dt, ["Open", "High", "Low", "Close", "Volume"]]
 
     _str = f"{dt_str}{s}O: {open}{s}H: {high}{s}L: {low}{s}C: {close}{s}V: {vol:,.0f}"
 
     if "M_RS" in df.columns:
-        _str += f'{s}MRS: {df.loc[dt, "M_RS"]}'
+        _str += f"{s}MRS: {df.loc[dt, 'M_RS']}"
     elif "RS" in df.columns:
-        _str += f'{s}RS: {df.loc[dt, "RS"]}'
+        _str += f"{s}RS: {df.loc[dt, 'RS']}"
 
     return _str
 
@@ -437,20 +435,14 @@ class Plotter:
             self.main_ax.set_title("DRAW MODE", **self.title_args)
 
             self.events.append(
-                self.fig.canvas.mpl_connect(
-                    "key_release_event", self._on_key_release
-                )
+                self.fig.canvas.mpl_connect("key_release_event", self._on_key_release)
             )
 
             self.events.append(
-                self.fig.canvas.mpl_connect(
-                    "button_press_event", self._on_button_press
-                )
+                self.fig.canvas.mpl_connect("button_press_event", self._on_button_press)
             )
 
-            self.events.append(
-                self.fig.canvas.mpl_connect("pick_event", self._on_pick)
-            )
+            self.events.append(self.fig.canvas.mpl_connect("pick_event", self._on_pick))
 
     def _loadLines(self, lines):
         if df is None:
@@ -633,17 +625,15 @@ class Plotter:
         self.title = f"{sym.upper()} - {self.tf.capitalize()}"
 
         if meta is not None:
-            self.title += f' | {"  ".join(meta).upper()}'
+            self.title += f" | {'  '.join(meta).upper()}"
 
         self.plot_args["title"] = self.title
 
         self.plot_args["xlim"] = (0, df.shape[0] + 15)
 
         if self.args.save:
-            img_name = f'{sym.replace(" ", "-")}.png'
-            self.plot_args["savefig"] = dict(
-                fname=self.save_dir / img_name, dpi=300
-            )
+            img_name = f"{sym.replace(' ', '-')}.png"
+            self.plot_args["savefig"] = dict(fname=self.save_dir / img_name, dpi=300)
 
         if self.args.snr:
             mean_candle_size = (df["High"] - df["Low"]).median()
@@ -754,9 +744,7 @@ class Plotter:
             if not fpath.is_file():
                 return None
 
-        df = getDataFrame(
-            fpath, self.tf, self.max_period, toDate=self.args.date
-        )
+        df = getDataFrame(fpath, self.tf, self.max_period, toDate=self.args.date)
 
         df_len = df.shape[0]
 
@@ -773,9 +761,7 @@ class Plotter:
 
             # prevent crash if plot period is less than RS period
             if df_len < rs_period:
-                print(
-                    f"WARN: {sym.upper()} - Inadequate data to plot Mansfield RS."
-                )
+                print(f"WARN: {sym.upper()} - Inadequate data to plot Mansfield RS.")
             else:
                 df["M_RS"] = manfieldRelativeStrength(
                     df["Close"], self.idx_cl, rs_period
@@ -789,9 +775,7 @@ class Plotter:
                     )
                     continue
 
-                df[f"SMA_{period}"] = (
-                    df["Close"].rolling(period).mean().round(2)
-                )
+                df[f"SMA_{period}"] = df["Close"].rolling(period).mean().round(2)
 
         if self.args.ema:
             for period in self.args.ema:
@@ -803,9 +787,7 @@ class Plotter:
 
                 alpha = 2 / (period + 1)
 
-                df[f"EMA_{period}"] = (
-                    df["Close"].ewm(alpha=alpha).mean().round(2)
-                )
+                df[f"EMA_{period}"] = df["Close"].ewm(alpha=alpha).mean().round(2)
 
         if self.args.vol_sma:
             for period in self.args.vol_sma:
@@ -815,9 +797,7 @@ class Plotter:
                     )
                     continue
 
-                df[f"VMA_{period}"] = (
-                    df["Volume"].rolling(period).mean().round(2)
-                )
+                df[f"VMA_{period}"] = df["Volume"].rolling(period).mean().round(2)
 
         if self.tf == "weekly":
             start_dt = df.index[-plot_period] - timedelta(7)
@@ -980,9 +960,7 @@ class Plotter:
             # Get the index position if available
             # else get the next available index position
             idx = (
-                dtix.get_loc(dt)
-                if dt in dtix
-                else dtix.searchsorted(dt, side="right")
+                dtix.get_loc(dt) if dt in dtix else dtix.searchsorted(dt, side="right")
             )
             # store the tick positions to be displayed on chart
             ticks.append(idx)
