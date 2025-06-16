@@ -1,5 +1,6 @@
 import importlib.util
 import json
+import time
 import logging
 import os
 import re
@@ -8,6 +9,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
+import itertools
 
 try:
     from zoneinfo import ZoneInfo
@@ -17,7 +19,7 @@ except ImportError:
 try:
     import httpx
 except ModuleNotFoundError:
-    exit(f"Please run `pip install -U nse[server]`")
+    exit("Please run `pip install -U nse[server]`")
 
 import numpy as np
 import pandas as pd
@@ -49,9 +51,7 @@ def configure_logger():
     except TypeError:
         # Python 3.8 and 3.9 - No support for defaults parameter.
         file_handler.setFormatter(
-            logging.Formatter(
-                "%(levelname)s: %(asctime)s - %(name)s - %(message)s"
-            )
+            logging.Formatter("%(levelname)s: %(asctime)s - %(name)s - %(message)s")
         )
 
     logging.basicConfig(
@@ -60,6 +60,17 @@ def configure_logger():
         level=logging.INFO,
         handlers=(stream_handler, file_handler),
     )
+
+
+def version_checker(version: str, major: int, minor: int, patch: int) -> bool:
+    """
+    Return True if major and minor match, and patch is equal or higher.
+    """
+    v_major, v_minor, v_patch = map(int, version.split("."))
+
+    if v_major == major and v_minor == minor:
+        return v_patch >= patch
+    return False
 
 
 def load_module(module_str: str) -> Union[ModuleType, Type]:
@@ -103,7 +114,6 @@ class Dates:
     "A class for date related functions in EOD2"
 
     def __init__(self, lastUpdate: str):
-
         today = datetime.now(tz_IN)
 
         self.today = datetime.combine(today, datetime.min.time())
@@ -125,7 +135,7 @@ class Dates:
             logger.info("All Up To Date")
             return False
 
-        if self.dt.day == curTime.day and curTime.hour < 18:
+        if self.dt.day == curTime.day and curTime.hour < 16:
             # Display the users local time
             local_time = curTime.replace(hour=19, minute=0).astimezone(tz_local)
 
@@ -147,6 +157,88 @@ def log_unhandled_exception(exc_type, exc_value, exc_traceback):
     )
 
 
+def retry(max_retries=10, base_wait=2, max_wait=10):
+    """
+    Decorator that retries a function or method with exponential backoff
+    in case of exceptions.
+
+    :param max_retries: The maximum number of retry attempts.
+    :type max_retries: int
+    :param base_wait: The initial delay in seconds before the first retry.
+    :type base_wait: float
+    :param max_wait: The maximum delay in seconds between retries.
+    :type max_wait: float
+
+    .. code::python
+
+        @retry(max_retries=5, base_wait=2, max_wait=60)
+        def your_function_or_method(*args, **kwargs):
+            # Your function or method logic goes here
+            pass
+
+    """
+
+    def decorator(func):
+        def wrapper(*args, **kwargs):
+            retries = 0
+
+            while retries < max_retries:
+                try:
+                    return func(*args, **kwargs)
+                except (TimeoutError, ConnectionError) as e:
+                    logger.info(f"Attempt {retries + 1} failed: {e}")
+
+                    # Calculate the wait time using exponential backoff
+                    wait = min(base_wait * (2**retries), max_wait)
+
+                    logger.info(f"Retrying in {wait} seconds...")
+                    time.sleep(wait)
+
+                    retries += 1
+                except Exception as e:
+                    logger.exception(f"An error occurred {e}")
+                    exit(1)
+
+            logger.exception(
+                f"Exceeded maximum retry attempts for {func.__name__}. Exiting."
+            )
+            exit(1)
+
+        return wrapper
+
+    return decorator
+
+
+@retry()
+def check_reports_update_status(nse) -> Dict[str, bool]:
+    """Check if all daily reports has been updated for NSE."""
+
+    result = {
+        "CM-UDIFF-BHAVCOPY-CSV": False,
+        "CM-BHAVDATA-FULL": False,
+        "INDEX-SNAPSHOT": False,
+    }
+
+    cm_data = nse.fetch_daily_reports_file_metadata(segment="CM")
+    index_data = nse.fetch_daily_reports_file_metadata(segment="INDEX")
+
+    if not (cm_data["CurrentDay"] or index_data["CurrentDay"]):
+        return result
+
+    cm_report_date = datetime.strptime(cm_data["currentDate"], "%d-%b-%Y")
+
+    if cm_report_date != dates.today.replace(tzinfo=None):
+        exit("Market is closed today")
+
+    for dct in itertools.chain(cm_data["CurrentDay"], index_data["CurrentDay"]):
+        key = dct["fileKey"]
+
+        if key in result:
+            result[key] = True
+
+    return result
+
+
 def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     for lst in holidays.values():
         for dct in lst:
@@ -156,6 +248,7 @@ def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     return {}
 
 
+@retry()
 def downloadSpecialSessions() -> Tuple[datetime, ...]:
     base_url = "https://raw.githubusercontent.com/BennyThadikaran/eod2_data"
 
@@ -163,11 +256,10 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
 
     try:
         res = httpx.get(f"{base_url}/main/special_sessions.txt", timeout=30)
-    except httpx.ConnectTimeout:
-        logger.exception(
-            "Network timeout while trying to download special_sessions. Please try again later."
-        )
-        exit()
+    except httpx.ConnectTimeout as e:
+        raise TimeoutError(e)
+    except httpx.ConnectError as e:
+        raise ConnectionError(e)
 
     if not res.status_code == httpx.codes.OK:
         logger.exception(f"{err_text} {res.status_code}: {res.reason_phrase}")
@@ -179,14 +271,11 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
     )
 
 
+@retry()
 def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
     Saves and returns the holiday Object"""
-    try:
-        data = nse.holidays(type=nse.HOLIDAY_TRADING)
-    except Exception as e:
-        logger.warning(f"Failed to download holidays - {e}")
-        exit()
+    data = nse.holidays(type=nse.HOLIDAY_TRADING)
 
     # CM pertains to capital market or equity holidays
     data["CM"].append(getMuhuratHolidayInfo(data))
@@ -197,7 +286,7 @@ def getHolidayList(nse: NSE):
     return data
 
 
-def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
+def checkForHolidays(nse: NSE):
     """Returns True if current date is a holiday.
     Exits the script if today is a holiday"""
 
@@ -206,7 +295,9 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
     # the current date for which data is being synced
     curDt = dates.dt.strftime("%d-%b-%Y")
 
-    if dates.dt in special_sessions:
+    if dates.dt.replace(tzinfo=None) in tuple(
+        datetime.fromisoformat(x) for x in meta.get("special_sessions", [])
+    ):
         return False
 
     # no holiday list or year has changed or today is a holiday
@@ -220,9 +311,7 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
             meta["year"] = dates.dt.year
             hasLatestHolidays = True
 
-    isMuhurat = (
-        curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
-    )
+    isMuhurat = curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
 
     if isMuhurat:
         return False
@@ -231,12 +320,13 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
         return True
 
     if curDt in meta["holidays"]:
-        logger.info(f'{curDt} Market Holiday: {meta["holidays"][curDt]}')
+        logger.info(f"{curDt} Market Holiday: {meta['holidays'][curDt]}")
         return True
 
     return False
 
 
+@retry()
 def validateNseActionsFile(nse: NSE):
     """Check if the NSE Corporate actions() file exists.
     If exists, check if the file is older than 7 days.
@@ -250,19 +340,13 @@ def validateNseActionsFile(nse: NSE):
         if f"{action}Actions" not in meta:
             logger.info(f"Downloading NSE {action.upper()} actions")
 
-            try:
-                meta[f"{action}Actions"] = nse.actions(
-                    segment=segment,
-                    from_date=dates.dt,
-                    to_date=dates.dt + timedelta(8),
-                )
-            except Exception as e:
-                logger.warning(f"Failed to download {action} actions - {e}")
-                exit()
+            meta[f"{action}Actions"] = nse.actions(
+                segment=segment,
+                from_date=dates.dt,
+                to_date=dates.dt + timedelta(8),
+            )
 
-            meta[f"{action}ActionsExpiry"] = (
-                dates.dt + timedelta(7)
-            ).isoformat()
+            meta[f"{action}ActionsExpiry"] = (dates.dt + timedelta(7)).isoformat()
         else:
             expiryDate = datetime.fromisoformat(
                 meta[f"{action}ActionsExpiry"]
@@ -276,15 +360,11 @@ def validateNseActionsFile(nse: NSE):
 
             logger.info(f"Updating NSE {action.upper()} actions")
 
-            try:
-                meta[f"{action}Actions"] = nse.actions(
-                    segment=segment,
-                    from_date=expiryDate,
-                    to_date=expiryDate + timedelta(8),
-                )
-            except Exception as e:
-                logger.warning(f"Failed to update {action} actions - {e}")
-                exit()
+            meta[f"{action}Actions"] = nse.actions(
+                segment=segment,
+                from_date=expiryDate,
+                to_date=expiryDate + timedelta(8),
+            )
 
             meta[f"{action}ActionsExpiry"] = newExpiry
 
@@ -340,9 +420,7 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             if not DAILY_FILE.exists():
                 continue
 
-            dailyDf = pd.read_csv(
-                DAILY_FILE, index_col="Date", parse_dates=["Date"]
-            )
+            dailyDf = pd.read_csv(DAILY_FILE, index_col="Date", parse_dates=["Date"])
 
             if dt not in dailyDf.index:
                 continue
@@ -529,9 +607,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
         if dlvDf is not None:
             if t.TckrSymb in dlvDf.index:
-                trdCnt, dq = dlvDf.loc[
-                    t.TckrSymb, [" NO_OF_TRADES", " DELIV_QTY"]
-                ]
+                trdCnt, dq = dlvDf.loc[t.TckrSymb, [" NO_OF_TRADES", " DELIV_QTY"]]
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
@@ -573,9 +649,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
             try:
                 OLD_FILE.rename(SYM_FILE)
             except FileNotFoundError:
-                logger.warning(
-                    f"Renaming daily/{old}.csv to {new}.csv. No such file."
-                )
+                logger.warning(f"Renaming daily/{old}.csv to {new}.csv. No such file.")
 
             logger.warning(f"Name Changed: {old} to {new}")
 
@@ -633,6 +707,46 @@ def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
             avgTrdCnt,
             dq,
         )
+
+
+def check_special_sessions(nse: NSE) -> bool:
+    last_update = meta.get("special_sessions_last_update", None)
+
+    if last_update is None:
+        last_update = (dates.dt - timedelta(5)).replace(tzinfo=None)
+        meta["special_sessions_last_update"] = dates.today.date().isoformat()
+        meta["special_sessions"] = []
+    else:
+        last_update = datetime.fromisoformat(last_update)
+
+    circulars = nse.circulars(
+        dept_code="CMTR",
+        from_date=last_update,
+        to_date=dates.today.replace(tzinfo=None),
+    )
+    updated = False
+
+    for circular in circulars["data"]:
+        subject = circular["sub"]
+
+        if "Special Live" not in subject:
+            continue
+
+        res = dateRegex.search(circular)
+
+        if res:
+            dt = datetime.strptime(res.group(), "%A, %B %d, %Y").date().isoformat()
+            meta["special_sessions"].append(dt)
+
+            # Set to warning level for test period to log to error.log file
+            logger.warning(f"Special Live Trading Session on {res.group()}")
+            updated = True
+        else:
+            logger.warning(
+                f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
+            )
+
+    return updated
 
 
 def getSplit(sym, string):
@@ -936,7 +1050,6 @@ def deleteLastLineByDate(file: Path, date_str: str) -> bool:
 
     # Open the file in read-only mode
     with file.open("r+b") as f:
-
         # Start searching from the end of the file
         cur_pos = file_size - 2
         f.seek(cur_pos)
@@ -1012,6 +1125,7 @@ if __name__ != "__main__":
     ISIN_FILE = DIR / "eod2_data" / "isin.csv"
     AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
     META_FILE = DIR / "eod2_data" / "meta.json"
+    SPECIAL_SESSIONS_FILE = DIR / "eod2_data/special_sessions.txt"
 
     hasLatestHolidays = False
 
@@ -1019,9 +1133,9 @@ if __name__ != "__main__":
 
     bonusRegex = re.compile(r"(\d+) ?: ?(\d+)")
 
-    headerText = (
-        b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
-    )
+    dateRegex = re.compile(r"\b[A-Za-z]+, [A-Za-z]+ \d{2}, \d{4}\b")
+
+    headerText = b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 
     logger = logging.getLogger(__name__)
 
