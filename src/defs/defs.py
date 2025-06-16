@@ -286,7 +286,7 @@ def getHolidayList(nse: NSE):
     return data
 
 
-def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
+def checkForHolidays(nse: NSE):
     """Returns True if current date is a holiday.
     Exits the script if today is a holiday"""
 
@@ -295,7 +295,9 @@ def checkForHolidays(nse: NSE, special_sessions: Tuple[datetime, ...]):
     # the current date for which data is being synced
     curDt = dates.dt.strftime("%d-%b-%Y")
 
-    if dates.dt in special_sessions:
+    if dates.dt.replace(tzinfo=None) in tuple(
+        datetime.fromisoformat(x) for x in meta.get("special_sessions", [])
+    ):
         return False
 
     # no holiday list or year has changed or today is a holiday
@@ -707,6 +709,46 @@ def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
         )
 
 
+def check_special_sessions(nse: NSE) -> bool:
+    last_update = meta.get("special_sessions_last_update", None)
+
+    if last_update is None:
+        last_update = (dates.dt - timedelta(5)).replace(tzinfo=None)
+        meta["special_sessions_last_update"] = dates.today.date().isoformat()
+        meta["special_sessions"] = []
+    else:
+        last_update = datetime.fromisoformat(last_update)
+
+    circulars = nse.circulars(
+        dept_code="CMTR",
+        from_date=last_update,
+        to_date=dates.today.replace(tzinfo=None),
+    )
+    updated = False
+
+    for circular in circulars["data"]:
+        subject = circular["sub"]
+
+        if "Special Live" not in subject:
+            continue
+
+        res = dateRegex.search(circular)
+
+        if res:
+            dt = datetime.strptime(res.group(), "%A, %B %d, %Y").date().isoformat()
+            meta["special_sessions"].append(dt)
+
+            # Set to warning level for test period to log to error.log file
+            logger.warning(f"Special Live Trading Session on {res.group()}")
+            updated = True
+        else:
+            logger.warning(
+                f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
+            )
+
+    return updated
+
+
 def getSplit(sym, string):
     """Run a regex search for splits related corporate action and
     return the adjustment factor"""
@@ -1083,12 +1125,15 @@ if __name__ != "__main__":
     ISIN_FILE = DIR / "eod2_data" / "isin.csv"
     AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
     META_FILE = DIR / "eod2_data" / "meta.json"
+    SPECIAL_SESSIONS_FILE = DIR / "eod2_data/special_sessions.txt"
 
     hasLatestHolidays = False
 
     splitRegex = re.compile(r"(\d+\.?\d*)[\/\- a-z\.]+(\d+\.?\d*)")
 
     bonusRegex = re.compile(r"(\d+) ?: ?(\d+)")
+
+    dateRegex = re.compile(r"\b[A-Za-z]+, [A-Za-z]+ \d{2}, \d{4}\b")
 
     headerText = b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 

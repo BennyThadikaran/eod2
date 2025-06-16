@@ -40,14 +40,14 @@ if args.version:
 if args.config:
     exit(str(defs.config))
 
-# download the latest special_sessions.txt from eod2_data repo
-special_sessions = defs.downloadSpecialSessions()
-
 try:
     nse = NSE(defs.DIR, server=True)
 except (TimeoutError, ConnectionError) as e:
     logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
     exit()
+
+if defs.check_special_sessions(nse):
+    writeJson(defs.META_FILE, defs.meta)
 
 if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
     defs.updateAmiBrokerRecords(nse)
@@ -69,7 +69,7 @@ while True:
         nse.exit()
         exit()
 
-    if defs.checkForHolidays(nse, special_sessions):
+    if defs.checkForHolidays(nse):
         defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
         writeJson(defs.META_FILE, defs.meta)
         continue
