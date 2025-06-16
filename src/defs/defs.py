@@ -225,6 +225,11 @@ def check_reports_update_status(nse) -> Dict[str, bool]:
     if not (cm_data["CurrentDay"] or index_data["CurrentDay"]):
         return result
 
+    cm_report_date = datetime.strptime(cm_data["currentDate"], "%d-%b-%Y")
+
+    if cm_report_date != dates.today.replace(tzinfo=None):
+        exit("Market is closed today")
+
     for dct in itertools.chain(cm_data["CurrentDay"], index_data["CurrentDay"]):
         key = dct["fileKey"]
 
