@@ -135,7 +135,7 @@ class Dates:
             logger.info("All Up To Date")
             return False
 
-        if self.dt.day == curTime.day and curTime.hour < 18:
+        if self.dt.day == curTime.day and curTime.hour < 16:
             # Display the users local time
             local_time = curTime.replace(hour=19, minute=0).astimezone(tz_local)
 
