@@ -82,21 +82,22 @@ while True:
 
     report_status = None
 
-    if defs.dates.dt == defs.dates.today:
-        report_status = defs.is_exchange_data_updated(nse)
+    if defs.dates.dt.date() == defs.dates.today.date():
+        report_status = defs.check_reports_update_status(nse)
 
-        if not report_status["CM-UDIFF-BHAVCOPY-CSV"]:
-            logger.warning("Equity Bhavcopy not yet updated.")
-            nse.exit()
-            exit()
+        required_reports = {
+            "CM-UDIFF-BHAVCOPY-CSV": "Equity Bhavcopy not yet updated.",
+            "INDEX-SNAPSHOT": "Indices report not yet updated.",
+            "CM-BHAVDATA-FULL": "Delivery Report Unavailable. Will retry in subsequent sync",
+        }
 
-        if not report_status["INDEX-SNAPSHOT"]:
-            logger.warning("Indices report not yet updated.")
-            nse.exit()
-            exit()
+        for key, msg in required_reports.items():
+            if not report_status.get(key):
+                logger.warning(msg)
 
-        if not report_status["CM-BHAVDATA-FULL"]:
-            logger.warning("Delivery Report Unavailable. Will retry in subsequent sync")
+                if key != "CM-BHAVDATA-FULL":
+                    nse.exit()
+                    exit()
 
     try:
         # NSE bhav copy
@@ -122,7 +123,7 @@ while True:
         logger.warning(e)
         exit()
 
-    if report_status and report_status["CM-BHAVDATA-FULL"]:
+    if report_status is None or report_status["CM-BHAVDATA-FULL"]:
         try:
             # NSE delivery
             DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
