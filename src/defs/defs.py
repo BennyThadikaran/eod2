@@ -197,7 +197,7 @@ def retry(max_retries=10, base_wait=2, max_wait=10):
                     retries += 1
                 except Exception as e:
                     logger.exception(f"An error occurred {e}")
-                    return
+                    exit(1)
 
             logger.exception(
                 f"Exceeded maximum retry attempts for {func.__name__}. Exiting."
