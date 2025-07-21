@@ -492,7 +492,7 @@ def updateAmiBrokerRecords(nse: NSE):
         if not bhavFile.exists():
             try:
                 bhavFile = nse.equityBhavcopy(dt)
-                bhavFile.rename(bhavFolder / bhavFile.name)
+                bhavFile = bhavFile.rename(bhavFolder / bhavFile.name)
             except (RuntimeError, FileNotFoundError):
                 continue
             except Exception as e:
