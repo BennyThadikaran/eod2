@@ -483,6 +483,10 @@ def updateAmiBrokerRecords(nse: NSE):
             continue
 
         bhavFolder = DIR / "nseBhav" / str(dt.year)
+
+        if not bhavFolder.is_dir():
+            bhavFolder.mkdir(parents=True)
+
         bhavFile = bhavFolder / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
 
         if not bhavFile.exists():
