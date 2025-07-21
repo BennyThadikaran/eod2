@@ -483,12 +483,16 @@ def updateAmiBrokerRecords(nse: NSE):
             continue
 
         bhavFolder = DIR / "nseBhav" / str(dt.year)
+
+        if not bhavFolder.is_dir():
+            bhavFolder.mkdir(parents=True)
+
         bhavFile = bhavFolder / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
 
         if not bhavFile.exists():
             try:
                 bhavFile = nse.equityBhavcopy(dt)
-                bhavFile.rename(bhavFolder / bhavFile.name)
+                bhavFile = bhavFile.rename(bhavFolder / bhavFile.name)
             except (RuntimeError, FileNotFoundError):
                 continue
             except Exception as e:
