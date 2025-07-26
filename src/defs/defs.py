@@ -338,7 +338,7 @@ def validateNseActionsFile(nse: NSE):
         segment = "equities" if action == "equity" else action
 
         if f"{action}Actions" not in meta:
-            logger.info(f"Downloading NSE {action.upper()} actions")
+            logger.warning(f"Downloading NSE {action.upper()} actions")
 
             meta[f"{action}Actions"] = nse.actions(
                 segment=segment,
@@ -358,7 +358,7 @@ def validateNseActionsFile(nse: NSE):
             if dates.dt < expiryDate:
                 continue
 
-            logger.info(f"Updating NSE {action.upper()} actions")
+            logger.warning(f"Updating NSE {action.upper()} actions")
 
             meta[f"{action}Actions"] = nse.actions(
                 segment=segment,
@@ -969,7 +969,7 @@ def adjustNseStocks():
                             df_commits[sym] = {"file": file, "df": df}
 
                         post_commits.append((sym, adjustmentFactor))
-                        logger.info(f"{sym}: {purpose}")
+                        logger.warning(f"{sym}: {purpose}")
 
         except Exception as e:
             logging.critical(f"Adjustment Error - Context {error_context}")
