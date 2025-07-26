@@ -969,7 +969,7 @@ def adjustNseStocks():
                             df_commits[sym] = {"file": file, "df": df}
 
                         post_commits.append((sym, adjustmentFactor))
-                        logger.info(f"{sym}: {purpose}")
+                        logger.warning(f"{sym}: {purpose}")
 
         except Exception as e:
             logging.critical(f"Adjustment Error - Context {error_context}")
