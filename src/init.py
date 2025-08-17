@@ -2,6 +2,7 @@ import logging
 import sys
 from argparse import ArgumentParser
 
+from httpx import ConnectError
 from nse import NSE
 
 from defs import defs
@@ -42,7 +43,7 @@ if args.config:
 
 try:
     nse = NSE(defs.DIR, server=True)
-except (TimeoutError, ConnectionError) as e:
+except (TimeoutError, ConnectionError, ConnectError) as e:
     logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
     exit()
 
