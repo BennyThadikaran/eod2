@@ -921,9 +921,9 @@ def adjustNseStocks():
                     sym += "_sme"
 
                 if ("split" in purpose or "splt" in purpose) and ex == dtStr:
-                    i = purpose.index("split" if "split" in purpose else "splt")
-
                     error_context = f"{sym} - Split - {dtStr}"
+
+                    i = purpose.index("spl")
                     adjustmentFactor = getSplit(sym, purpose[i:])
 
                     if adjustmentFactor is None:
