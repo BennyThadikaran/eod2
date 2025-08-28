@@ -17,6 +17,18 @@ if not defs.version_checker(NSE.__version__, major=1, minor=2, patch=4):
     logger.warning("Require NSE version 1.2.4. Run `pip install -U nse`")
     exit()
 
+data_version = defs.meta.get("data-version", None)
+
+if data_version != defs.config.EXPECTED_DATA_VERSION:
+    if (defs.DIR.parent / ".git").exists():
+        print(
+            "eod2_data folder needs an update. Follow instructions at the below link to update:"
+        )
+        print(
+            "https://github.com/BennyThadikaran/eod2/wiki/Installation#updating-the-git-repo\n"
+        )
+    else:
+        print(f"Run `setup_data.py` to update")
 
 # Set the sys.excepthook to the custom exception handler
 sys.excepthook = defs.log_unhandled_exception
@@ -36,7 +48,9 @@ group.add_argument(
 args = parser.parse_args()
 
 if args.version:
-    exit(f"EOD2 init.py: version {defs.config.VERSION}")
+    exit(
+        f"EOD2 init.py: v{defs.config.VERSION} | eod2_data: v{defs.meta.get('data-version', None)}"
+    )
 
 if args.config:
     exit(str(defs.config))

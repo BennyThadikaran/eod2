@@ -85,6 +85,7 @@ class Config:
 
     # DO NOT EDIT BELOW
     VERSION = "8.1.3"
+    EXPECTED_DATA_VERSION = 1
 
     def toList(self, filename: str):
         return (DIR / "data" / filename).read_text().strip().split("\n")
