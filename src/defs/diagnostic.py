@@ -124,9 +124,11 @@ for file in daily.iterdir():
 
     for col in ("Open", "High", "Low", "Close", "Volume"):
         if df[col].hasnans:
-            hasNansList.append(
-                hasNansText.format(child.name.upper().ljust(15), col)
-            )
+            # Only indices have spaces in file names - bit of a cheat
+            # For indices we only check the Close values for Nan
+            if (" " in file.name) and col != "Close":
+                continue
+
             hasNansList.append(hasNansText.format(file.name.upper().ljust(15), col))
 
     # Catch duplicate entries in file
