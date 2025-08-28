@@ -927,6 +927,9 @@ def adjustNseStocks():
                     adjustmentFactor = getSplit(sym, purpose[i:])
 
                     if adjustmentFactor is None:
+                        logger.warning(
+                            f"Possible adjustment failure: SPLIT - {sym} - {purpose} - exDate: {dtStr}"
+                        )
                         continue
 
                     commit = makeAdjustment(
@@ -954,6 +957,9 @@ def adjustNseStocks():
                     adjustmentFactor = getBonus(sym, purpose)
 
                     if adjustmentFactor is None:
+                        logger.warning(
+                            f"Possible adjustment failure: BONUS - {sym} - {purpose} - exDate: {dtStr}"
+                        )
                         continue
 
                     commit = makeAdjustment(
