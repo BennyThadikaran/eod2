@@ -921,12 +921,15 @@ def adjustNseStocks():
                     sym += "_sme"
 
                 if ("split" in purpose or "splt" in purpose) and ex == dtStr:
-                    i = purpose.index("split" if "split" in purpose else "splt")
-
                     error_context = f"{sym} - Split - {dtStr}"
+
+                    i = purpose.index("spl")
                     adjustmentFactor = getSplit(sym, purpose[i:])
 
                     if adjustmentFactor is None:
+                        logger.warning(
+                            f"Possible adjustment failure: SPLIT - {sym} - {purpose} - exDate: {dtStr}"
+                        )
                         continue
 
                     commit = makeAdjustment(
@@ -944,16 +947,22 @@ def adjustNseStocks():
                         post_commits.append((sym, adjustmentFactor))
                         logger.info(f"{sym}: {purpose}")
 
-                if (
-                    "bonus" in purpose
-                    and "deb" not in purpose
-                    and "pref" not in purpose
-                    and ex == dtStr
-                ):
+                if "bonus" in purpose and ex == dtStr:
+                    if (
+                        "deb" in purpose
+                        or "pref" in purpose
+                        or "ncrps" in purpose
+                        or "dvr" in purpose
+                    ):
+                        continue
+
                     error_context = f"{sym} - Bonus - {dtStr}"
                     adjustmentFactor = getBonus(sym, purpose)
 
                     if adjustmentFactor is None:
+                        logger.warning(
+                            f"Possible adjustment failure: BONUS - {sym} - {purpose} - exDate: {dtStr}"
+                        )
                         continue
 
                     commit = makeAdjustment(

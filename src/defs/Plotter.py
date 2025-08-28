@@ -231,6 +231,10 @@ class Plotter:
         if self.args.save:
             return df
 
+        if df.Open.hasnans:
+            for col in ("Open", "High", "Low"):
+                df[col] = df[col].fillna(df.Close)
+
         fig, axs = mpl.plot(df, **self.plot_args)
 
         # A workaround using ConciseDateFormatter and AutoDateLocator
