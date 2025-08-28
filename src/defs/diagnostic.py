@@ -76,13 +76,9 @@ def printResult():
 
 daily = DIR / "eod2_data" / "daily"
 
-dtypeMismatchText = (
-    "{}: Column type Mismatch in {}. Expected float64 or int64. Got {}"
-)
+dtypeMismatchText = "{}: Column type Mismatch in {}. Expected float64 or int64. Got {}"
 columnMismatchText = "{}: Column Length Mismatch. Expect {} got {}"
-indexMismatchText = (
-    "{}: Pandas Index type Mismatch. Expect datetime64[ns] got {}"
-)
+indexMismatchText = "{}: Pandas Index type Mismatch. Expect datetime64[ns] got {}"
 hasNansText = "{}: Column {} has NAN values"
 
 for file in daily.iterdir():
