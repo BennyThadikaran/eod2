@@ -84,8 +84,8 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = "8.2.0"
-    EXPECTED_DATA_VERSION = 1
+    VERSION = "8.2.1"
+    EXPECTED_DATA_VERSION = 2
 
     def toList(self, filename: str):
         return (DIR / "data" / filename).read_text().strip().split("\n")

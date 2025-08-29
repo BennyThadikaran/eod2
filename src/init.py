@@ -21,14 +21,15 @@ data_version = defs.meta.get("data-version", None)
 
 if data_version != defs.config.EXPECTED_DATA_VERSION:
     if (defs.DIR.parent / ".git").exists():
-        print(
-            "eod2_data folder needs an update. Follow instructions at the below link to update:"
-        )
-        print(
-            "https://github.com/BennyThadikaran/eod2/wiki/Installation#updating-the-git-repo\n"
+        update_url = "https://github.com/BennyThadikaran/eod2/wiki/Installation#updating-the-git-repo\n"
+
+        logger.warning(
+            f"eod2_data folder needs an update.\n\nFollow instructions at below link to update\n{update_url}"
         )
     else:
-        print(f"Run `setup_data.py` to update")
+        logger.warning(
+            "eod2_data folder needs an update. Run `setup_data.py` to update"
+        )
 
 # Set the sys.excepthook to the custom exception handler
 sys.excepthook = defs.log_unhandled_exception
