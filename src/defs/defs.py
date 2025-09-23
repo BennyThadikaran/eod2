@@ -923,10 +923,18 @@ def adjustNseStocks():
                 if series in ("SM", "ST"):
                     sym += "_sme"
 
-                if ("split" in purpose or "splt" in purpose) and ex == dtStr:
-                    error_context = f"{sym} - Split - {dtStr}"
+                if (
+                    "split" in purpose
+                    or "splt" in purpose
+                    or "consolidation" in purpose
+                ) and ex == dtStr:
+                    if "consolidation" in purpose:
+                        error_context = f"{sym} - consolidation - {dtStr}"
+                        i = purpose.index("consolidation")
+                    else:
+                        error_context = f"{sym} - Split - {dtStr}"
+                        i = purpose.index("spl")
 
-                    i = purpose.index("spl")
                     adjustmentFactor = getSplit(sym, purpose[i:])
 
                     if adjustmentFactor is None:
