@@ -659,6 +659,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
         updateNseSymbol(
             SYM_FILE,
+            t.SctySrs,
             t.OpnPric,
             t.HghPric,
             t.LwPric,
@@ -674,7 +675,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     logger.info("EOD sync complete")
 
 
-def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
+def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCnt, dq):
     "Appends EOD stock data to end of file"
 
     text = b""
@@ -691,7 +692,7 @@ def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
     avgTrdCnt = "" if trdCnt == "" else round(volume / trdCnt, 2)
 
     text += bytes(
-        f"{dates.pandasDt},{open},{high},{low},{close},{volume},{trdCnt},{avgTrdCnt},{dq}\n",
+        f"{dates.pandasDt},{open},{high},{low},{close},{volume},{series},{trdCnt},{avgTrdCnt},{dq}\n",
         encoding="utf-8",
     )
 
@@ -702,6 +703,7 @@ def updateNseSymbol(symFile: Path, open, high, low, close, volume, trdCnt, dq):
         hook.updateNseSymbol(
             dates.dt,
             symFile.stem,
+            series,
             open,
             high,
             low,
@@ -827,7 +829,7 @@ def makeAdjustment(
     return (df, file)
 
 
-def updateIndice(sym, open, high, low, close, volume):
+def updateIndice(sym, open, high, low, close, volume, pe):
     "Appends Index EOD data to end of file"
 
     if "/" in sym or ":" in sym:
@@ -838,10 +840,10 @@ def updateIndice(sym, open, high, low, close, volume):
     text = b""
 
     if not file.is_file():
-        text += headerText
+        text += indexHeaderText
 
     text += bytes(
-        f"{dates.pandasDt},{open},{high},{low},{close},{volume},,,\n",
+        f"{dates.pandasDt},{open},{high},{low},{close},{volume},{pe},,,,\n",
         encoding="utf-8",
     )
 
@@ -871,16 +873,17 @@ def updateIndexEOD(file: Path):
         "Low Index Value",
         "Closing Index Value",
         "Volume",
+        "P/E",
     ]
 
-    # replace all '-' in columns with 0
+    # replace all '-' in columns with empty string
     for col in cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna(0)
+        df[col] = pd.to_numeric(df[col], errors="coerce").fillna("")
 
     for sym in df.index:
-        open, high, low, close, volume = df.loc[sym, cols]
+        open, high, low, close, volume, pe = df.loc[sym, cols]
 
-        updateIndice(sym, open, high, low, close, volume)
+        updateIndice(sym, open, high, low, close, volume, pe)
 
     pe = float(df.at["Nifty 50", "P/E"])
 
@@ -1148,7 +1151,11 @@ if __name__ != "__main__":
 
     dateRegex = re.compile(r"\b[A-Za-z]+, [A-Za-z]+ \d{2}, \d{4}\b")
 
-    headerText = b"Date,Open,High,Low,Close,Volume,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
+    headerText = (
+        b"Date,Open,High,Low,Close,Volume,Series,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
+    )
+
+    indexHeaderText = b"Date,Open,High,Low,Close,Volume,P/E,Series,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 
     logger = logging.getLogger(__name__)
 
