@@ -363,7 +363,8 @@ class TestUpdateNseEOD(unittest.TestCase):
             # (100, 100, 100, 100, 1000, 1000, 1000)
             # (200, 200, 200, 200, 2000, 2000, 2000)
             expected_args = (i * 100,) * 4 + (i * 1000,) * 3
-            self.assertEqual(args[1:], expected_args)
+            self.assertTrue(args[1] in ("EQ", "BE", "BZ", "SM", "ST"))
+            self.assertEqual(args[2:], expected_args)
 
 
 if __name__ == "__main__":

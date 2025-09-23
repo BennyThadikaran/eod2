@@ -82,6 +82,9 @@ indexMismatchText = "{}: Pandas Index type Mismatch. Expect datetime64[ns] got {
 hasNansText = "{}: Column {} has NAN values"
 
 for file in daily.iterdir():
+    # Only indices have spaces in file names - bit of a cheat
+    is_index_file = " " in file.name
+
     try:
         df = pd.read_csv(file, index_col="Date", parse_dates=True)
     except Exception as e:
@@ -102,15 +105,21 @@ for file in daily.iterdir():
 
     columns = df.columns
     colLength = len(columns)
+    expected_col_length = 10 if is_index_file else 9
 
     # Catch column length errors
-    if colLength != 8:
-        txt = columnMismatchText.format(file.name.upper().ljust(15), 5, colLength)
+    if colLength != expected_col_length:
+        txt = columnMismatchText.format(
+            file.name.upper().ljust(15), expected_col_length, colLength
+        )
 
         colMismatchList.append(txt)
 
     # Catch column dataType mismatch
     for col in df.columns:
+        if col == "Series":
+            continue
+
         if df[col].dtype not in ("float64", "int64"):
             txt = dtypeMismatchText.format(
                 file.name.upper().ljust(15), col, df[col].dtype
@@ -122,7 +131,7 @@ for file in daily.iterdir():
         if df[col].hasnans:
             # Only indices have spaces in file names - bit of a cheat
             # For indices we only check the Close values for Nan
-            if (" " in file.name) and col != "Close":
+            if is_index_file and col != "Close":
                 continue
 
             hasNansList.append(hasNansText.format(file.name.upper().ljust(15), col))
