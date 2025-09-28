@@ -801,8 +801,6 @@ def makeAdjustment(
 
         df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
 
-    last = None
-
     # Remove timezone info as DataFrame index is not timezone aware
     dt = dates.dt.replace(tzinfo=None)
 
@@ -818,13 +816,16 @@ def makeAdjustment(
         last = df.iloc[idx:]
 
         df = df.iloc[:idx].copy()
+    else:
+        last = df.loc[dt:]
+        df = df.loc[:dt].copy()
+        idx = df.index.get_loc(df.index[-1])
 
     for col in ("Open", "High", "Low", "Close"):
         # nearest 0.05 = round(nu / 0.05) * 0.05
         df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
-    if last is not None:
-        df = pd.concat([df, last])
+    df = pd.concat([df, last])
 
     return (df, file)
 
