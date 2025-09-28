@@ -1006,24 +1006,23 @@ def adjustNseStocks():
 
             dt = dates.dt.replace(tzinfo=None)
 
-            try:
+            if dt in df.index:
                 idx = df.index.get_loc(dt)
-            except KeyError:
+
+                close = df.at[df.index[idx], "Close"]
+                prev_close = df.at[df.index[idx - 1], "Close"]
+
+                diff = close / prev_close
+
+                if diff > 1.5 or diff < 0.67:
+                    context = f"Current Close {close}, Previous Close {prev_close}"
+
+                    logger.warning(
+                        f"WARN: Possible adjustment failure in {sym}: {context} - {dates.dt}"
+                    )
+            else:
                 logger.warning(
                     f"Unable to verify adjustment on {sym} - Please confirm manually. - {dates.dt}"
-                )
-                continue
-
-            close = df.at[df.index[idx], "Close"]
-            prev_close = df.at[df.index[idx - 1], "Close"]
-
-            diff = close / prev_close
-
-            if diff > 1.5 or diff < 0.67:
-                context = f"Current Close {close}, Previous Close {prev_close}"
-
-                logger.warning(
-                    f"WARN: Possible adjustment failure in {sym}: {context} - {dates.dt}"
                 )
 
             df.to_csv(file)
