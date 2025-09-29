@@ -801,8 +801,6 @@ def makeAdjustment(
 
         df = pd.read_csv(file, index_col="Date", parse_dates=["Date"])
 
-    last = None
-
     # Remove timezone info as DataFrame index is not timezone aware
     dt = dates.dt.replace(tzinfo=None)
 
@@ -818,13 +816,16 @@ def makeAdjustment(
         last = df.iloc[idx:]
 
         df = df.iloc[:idx].copy()
+    else:
+        last = df.loc[dt:]
+        df = df.loc[:dt].copy()
+        idx = df.index.get_loc(df.index[-1])
 
     for col in ("Open", "High", "Low", "Close"):
         # nearest 0.05 = round(nu / 0.05) * 0.05
         df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
-    if last is not None:
-        df = pd.concat([df, last])
+    df = pd.concat([df, last])
 
     return (df, file)
 
@@ -1005,24 +1006,23 @@ def adjustNseStocks():
 
             dt = dates.dt.replace(tzinfo=None)
 
-            try:
+            if dt in df.index:
                 idx = df.index.get_loc(dt)
-            except KeyError:
+
+                close = df.at[df.index[idx], "Close"]
+                prev_close = df.at[df.index[idx - 1], "Close"]
+
+                diff = close / prev_close
+
+                if diff > 1.5 or diff < 0.67:
+                    context = f"Current Close {close}, Previous Close {prev_close}"
+
+                    logger.warning(
+                        f"WARN: Possible adjustment failure in {sym}: {context} - {dates.dt}"
+                    )
+            else:
                 logger.warning(
                     f"Unable to verify adjustment on {sym} - Please confirm manually. - {dates.dt}"
-                )
-                continue
-
-            close = df.at[df.index[idx], "Close"]
-            prev_close = df.at[df.index[idx - 1], "Close"]
-
-            diff = close / prev_close
-
-            if diff > 1.5 or diff < 0.67:
-                context = f"Current Close {close}, Previous Close {prev_close}"
-
-                logger.warning(
-                    f"WARN: Possible adjustment failure in {sym}: {context} - {dates.dt}"
                 )
 
             df.to_csv(file)

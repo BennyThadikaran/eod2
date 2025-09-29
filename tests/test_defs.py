@@ -107,13 +107,16 @@ class TestCheckForHolidays(unittest.TestCase):
         self.assertTrue(result)
         mock_get_holiday_list.assert_not_called()
 
+    @patch.object(defs, "dates")
     @patch.object(defs, "getHolidayList")
     @patch.object(defs, "hasLatestHolidays", False)
-    def test_not_holiday(self, mock_get_holiday_list):
+    def test_not_holiday(self, mock_get_holiday_list, _):
         """Current date is not a holiday"""
 
         # Mock NSE class
         mock_nse = Mock()
+        defs.dates.dt = datetime(2023, 1, 2)
+        defs.dates.today = datetime(2023, 1, 2)
 
         # Set up mock for getHolidayList
         mock_get_holiday_list.return_value = {}
