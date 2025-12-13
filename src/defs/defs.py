@@ -715,6 +715,7 @@ def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCn
         )
 
 
+@retry()
 def check_special_sessions(nse: NSE) -> bool:
     last_update = meta.get("special_sessions_last_update", None)
 
