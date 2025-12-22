@@ -22,9 +22,7 @@ group.add_argument(
     help="Space separated list of stock symbols.",
 )
 
-group.add_argument(
-    "--watch", metavar="NAME", help="load a watchlist file by NAME."
-)
+group.add_argument("--watch", metavar="NAME", help="load a watchlist file by NAME.")
 
 group.add_argument(
     "--watch-add",
@@ -56,9 +54,7 @@ group.add_argument(
     "--ls", action="store_true", help="List available presets and watchlists."
 )
 
-parser.add_argument(
-    "-s", "--save", action="store_true", help="Save chart as png."
-)
+parser.add_argument("-s", "--save", action="store_true", help="Save chart as png.")
 
 parser.add_argument("-v", "--volume", action="store_true", help="Add Volume")
 
