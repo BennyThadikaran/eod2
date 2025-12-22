@@ -396,7 +396,7 @@ class Plotter:
                 self.main_ax.set_title("DRAW MODE", **self.title_args)
 
     def _on_key_press(self, event):
-        if event.key in ("n", "p", "q", "d", "h"):
+        if event.key in ("n", "p", "q", "d", "h", "a"):
             if event.key == "d":
                 return self._toggleDrawMode()
 

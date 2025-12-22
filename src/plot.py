@@ -173,8 +173,26 @@ if args.resume and hasattr(config, "PLOT_RESUME"):
     if resume["watch"] == args.watch:
         plotter.idx = resume["idx"]
 
+selected = set()
+
+
+def save_selected(selected: set):
+    if not selected:
+        return
+
+    save_file = DIR / "selections.csv"
+
+    print(f"Selections saved to: {save_file}")
+
+    save_file.write_text("\n".join(selected))
+
+
 while True:
-    if answer in ("n", "p"):
+    if answer == "a":
+        print(f"added {symList[plotter.idx - 1]}")
+        selected.add(symList[plotter.idx - 1])
+
+    if answer in ("n", "p", "a"):
         if plotter.idx == plotter.len:
             break
 
@@ -184,8 +202,9 @@ while True:
 
     answer = plotter.key
 
-    if answer == "n":
+    if answer in ("n", "a"):
         if plotter.idx == plotter.len:
+            save_selected(selected)
             exit("\nDone")
         plotter.idx += 1
 
@@ -204,6 +223,8 @@ while True:
 
             userObj["PLOT_RESUME"] = {"watch": args.watch, "idx": plotter.idx}
             writeJson(plotter.configPath, userObj)
+        save_selected(selected)
         exit("\nquiting")
 
+save_selected(selected)
 print("\nDone")
