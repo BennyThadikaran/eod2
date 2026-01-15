@@ -10,6 +10,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
 import itertools
+import dateutil
 
 try:
     from zoneinfo import ZoneInfo
@@ -735,10 +736,19 @@ def check_special_sessions(nse: NSE) -> bool:
     for circular in circulars["data"]:
         subject = circular["sub"]
 
-        if "Special Live" not in subject:
-            continue
+        if "Trading Holiday" in subject and "on account of" in subject:
+            # If holidays not in meta, it will be auto updated later
+            # Dont create a holiday object here
+            if "holidays" in meta:
+                try:
+                    dt = dateutil.parser.parse(subject, fuzzy=True)
+                except dateutil.parser.ParserError:
+                    logger.warning(
+                        f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
+                    )
+                    continue
 
-        res = dateRegex.search(circular)
+                meta["holidays"][dt.strftime("%d-%b-%Y")] = subject
 
         if res:
             dt = datetime.strptime(res.group(), "%A, %B %d, %Y").date().isoformat()
