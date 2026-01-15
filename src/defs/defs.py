@@ -721,7 +721,6 @@ def check_special_sessions(nse: NSE) -> bool:
 
     if last_update is None:
         last_update = (dates.dt - timedelta(5)).replace(tzinfo=None)
-        meta["special_sessions_last_update"] = dates.today.date().isoformat()
         meta["special_sessions"] = []
     else:
         last_update = datetime.fromisoformat(last_update)
@@ -753,6 +752,7 @@ def check_special_sessions(nse: NSE) -> bool:
                 f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
             )
 
+    meta["special_sessions_last_update"] = dates.today.date().isoformat()
     return updated
 
 
