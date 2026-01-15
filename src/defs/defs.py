@@ -10,6 +10,7 @@ from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
 import itertools
+import dateutil
 
 try:
     from zoneinfo import ZoneInfo
@@ -717,14 +718,13 @@ def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCn
 
 @retry()
 def check_special_sessions(nse: NSE) -> bool:
-    last_update = meta.get("special_sessions_last_update", None)
+    last_update_str = meta.get("special_sessions_last_update", None)
 
-    if last_update is None:
+    if last_update_str is None:
         last_update = (dates.dt - timedelta(5)).replace(tzinfo=None)
-        meta["special_sessions_last_update"] = dates.today.date().isoformat()
         meta["special_sessions"] = []
     else:
-        last_update = datetime.fromisoformat(last_update)
+        last_update = datetime.fromisoformat(last_update_str)
 
     circulars = nse.circulars(
         dept_code="CMTR",
@@ -736,23 +736,42 @@ def check_special_sessions(nse: NSE) -> bool:
     for circular in circulars["data"]:
         subject = circular["sub"]
 
+        if "Trading Holiday" in subject and "on account of" in subject:
+            # If holidays not in meta, it will be auto updated later
+            # Dont create a holiday object here
+            if "holidays" in meta:
+                try:
+                    dt = dateutil.parser.parse(subject, fuzzy=True)
+                except dateutil.parser.ParserError:
+                    logger.warning(
+                        f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
+                    )
+                    continue
+
+                meta["holidays"][dt.strftime("%d-%b-%Y")] = subject
+
+            logger.warning(f"Circular: {subject}")
+            continue
+
         if "Special Live" not in subject:
             continue
 
-        res = dateRegex.search(circular)
-
-        if res:
-            dt = datetime.strptime(res.group(), "%A, %B %d, %Y").date().isoformat()
-            meta["special_sessions"].append(dt)
-
-            # Set to warning level for test period to log to error.log file
-            logger.warning(f"Special Live Trading Session on {res.group()}")
-            updated = True
-        else:
+        try:
+            dt = dateutil.parser.parse(subject, fuzzy=True)
+        except dateutil.parser.ParserError:
             logger.warning(
                 f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
             )
+            continue
 
+        if dt not in meta["special_sessions"]:
+            meta["special_sessions"].append(dt)
+
+        # Set to warning level for test period to log to error.log file
+        logger.warning(f"Circular: {subject}")
+        updated = True
+
+    meta["special_sessions_last_update"] = dates.today.date().isoformat()
     return updated
 
 
@@ -824,7 +843,7 @@ def makeAdjustment(
 
     for col in ("Open", "High", "Low", "Close"):
         # nearest 0.05 = round(nu / 0.05) * 0.05
-        df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
+        df.loc[:, col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
     df = pd.concat([df, last])
 
@@ -880,7 +899,7 @@ def updateIndexEOD(file: Path):
 
     # replace all '-' in columns with empty string
     for col in cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna("")
+        df.loc[:, col] = pd.to_numeric(df[col], errors="coerce")
 
     for sym in df.index:
         open, high, low, close, volume, pe = df.loc[sym, cols]
