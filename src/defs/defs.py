@@ -824,7 +824,7 @@ def makeAdjustment(
 
     for col in ("Open", "High", "Low", "Close"):
         # nearest 0.05 = round(nu / 0.05) * 0.05
-        df[col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
+        df.loc[:, col] = ((df[col] / adjustmentFactor / 0.05).round() * 0.05).round(2)
 
     df = pd.concat([df, last])
 
@@ -880,7 +880,7 @@ def updateIndexEOD(file: Path):
 
     # replace all '-' in columns with empty string
     for col in cols:
-        df[col] = pd.to_numeric(df[col], errors="coerce").fillna("")
+        df.loc[:, col] = pd.to_numeric(df[col], errors="coerce")
 
     for sym in df.index:
         open, high, low, close, volume, pe = df.loc[sym, cols]
