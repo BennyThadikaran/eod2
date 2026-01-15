@@ -718,13 +718,13 @@ def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCn
 
 @retry()
 def check_special_sessions(nse: NSE) -> bool:
-    last_update = meta.get("special_sessions_last_update", None)
+    last_update_str = meta.get("special_sessions_last_update", None)
 
-    if last_update is None:
+    if last_update_str is None:
         last_update = (dates.dt - timedelta(5)).replace(tzinfo=None)
         meta["special_sessions"] = []
     else:
-        last_update = datetime.fromisoformat(last_update)
+        last_update = datetime.fromisoformat(last_update_str)
 
     circulars = nse.circulars(
         dept_code="CMTR",
@@ -750,17 +750,26 @@ def check_special_sessions(nse: NSE) -> bool:
 
                 meta["holidays"][dt.strftime("%d-%b-%Y")] = subject
 
-        if res:
-            dt = datetime.strptime(res.group(), "%A, %B %d, %Y").date().isoformat()
-            meta["special_sessions"].append(dt)
+            logger.warning(f"Circular: {subject}")
+            continue
 
-            # Set to warning level for test period to log to error.log file
-            logger.warning(f"Special Live Trading Session on {res.group()}")
-            updated = True
-        else:
+        if "Special Live" not in subject:
+            continue
+
+        try:
+            dt = dateutil.parser.parse(subject, fuzzy=True)
+        except dateutil.parser.ParserError:
             logger.warning(
                 f"Unable to parse date from circular dated {circular['cirDisplayDate']}: {circular['sub']}"
             )
+            continue
+
+        if dt not in meta["special_sessions"]:
+            meta["special_sessions"].append(dt)
+
+        # Set to warning level for test period to log to error.log file
+        logger.warning(f"Circular: {subject}")
+        updated = True
 
     meta["special_sessions_last_update"] = dates.today.date().isoformat()
     return updated
