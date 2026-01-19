@@ -84,7 +84,7 @@ class Config:
             self.__dict__.update(dct)
 
     # DO NOT EDIT BELOW
-    VERSION = "9.1.0"
+    VERSION = "9.1.1"
     EXPECTED_DATA_VERSION = 3.1
 
     def toList(self, filename: str):
