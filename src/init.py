@@ -13,7 +13,7 @@ logger = logging.getLogger(__name__)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-if not defs.version_checker(NSE.__version__, major=1, minor=2, patch=4):
+if not defs.is_version_compatible(NSE.__version__, major=1, minor=2, patch=4):
     logger.warning("Require NSE version 1.2.4. Run `pip install -U nse`")
     exit()
 

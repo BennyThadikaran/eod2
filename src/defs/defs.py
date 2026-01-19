@@ -63,7 +63,7 @@ def configure_logger():
     )
 
 
-def version_checker(version: str, major: int, minor: int, patch: int) -> bool:
+def is_version_compatible(version: str, major: int, minor: int, patch: int) -> bool:
     """
     Return True if major and minor match, and patch is equal or higher.
     """
