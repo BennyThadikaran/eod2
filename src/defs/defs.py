@@ -67,7 +67,7 @@ def version_checker(version: str, major: int, minor: int, patch: int) -> bool:
     """
     Return True if major and minor match, and patch is equal or higher.
     """
-    v_major, v_minor, v_patch = map(int, version.split("."))
+    v_major, v_minor, v_patch = map(int, version.split("-")[0].split("."))
 
     if v_major == major and v_minor == minor:
         return v_patch >= patch
