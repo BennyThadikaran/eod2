@@ -769,7 +769,7 @@ def check_special_sessions(nse: NSE) -> bool:
             logger.warning(f"Circular: {subject}")
             continue
 
-        if "Special Live" not in subject:
+        if "live trading session" not in subject:
             continue
 
         try:
