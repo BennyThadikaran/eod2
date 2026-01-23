@@ -750,9 +750,9 @@ def check_special_sessions(nse: NSE) -> bool:
     updated = False
 
     for circular in circulars["data"]:
-        subject = circular["sub"]
+        subject = circular["sub"].lower()
 
-        if "Trading Holiday" in subject and "on account of" in subject:
+        if "trading holiday" in subject and "on account of" in subject:
             # If holidays not in meta, it will be auto updated later
             # Dont create a holiday object here
             if "holidays" in meta:
