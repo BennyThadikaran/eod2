@@ -764,9 +764,11 @@ def check_special_sessions(nse: NSE) -> bool:
                     )
                     continue
 
-                meta["holidays"][dt.strftime("%d-%b-%Y")] = subject
+                dt_key = dt.strftime("%d-%b-%Y")
 
-            logger.warning(f"Circular: {subject}")
+                if dt_key not in meta["holidays"]:
+                    meta["holidays"][dt_key] = subject
+                    logger.warning(f"Circular: {subject}")
             continue
 
         if "live trading session" not in subject:
