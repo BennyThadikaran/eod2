@@ -750,9 +750,9 @@ def check_special_sessions(nse: NSE) -> bool:
     updated = False
 
     for circular in circulars["data"]:
-        subject = circular["sub"]
+        subject = circular["sub"].lower()
 
-        if "Trading Holiday" in subject and "on account of" in subject:
+        if "trading holiday" in subject and "on account of" in subject:
             # If holidays not in meta, it will be auto updated later
             # Dont create a holiday object here
             if "holidays" in meta:
@@ -764,12 +764,14 @@ def check_special_sessions(nse: NSE) -> bool:
                     )
                     continue
 
-                meta["holidays"][dt.strftime("%d-%b-%Y")] = subject
+                dt_key = dt.strftime("%d-%b-%Y")
 
-            logger.warning(f"Circular: {subject}")
+                if dt_key not in meta["holidays"]:
+                    meta["holidays"][dt_key] = subject
+                    logger.warning(f"Circular: {subject}")
             continue
 
-        if "Special Live" not in subject:
+        if "live trading session" not in subject:
             continue
 
         try:
@@ -780,8 +782,10 @@ def check_special_sessions(nse: NSE) -> bool:
             )
             continue
 
-        if dt not in meta["special_sessions"]:
-            meta["special_sessions"].append(dt)
+        iso_date = dt.isoformat()
+
+        if iso_date not in meta["special_sessions"]:
+            meta["special_sessions"].append(iso_date)
 
         # Set to warning level for test period to log to error.log file
         logger.warning(f"Circular: {subject}")
