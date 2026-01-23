@@ -780,8 +780,10 @@ def check_special_sessions(nse: NSE) -> bool:
             )
             continue
 
-        if dt not in meta["special_sessions"]:
-            meta["special_sessions"].append(dt)
+        iso_date = dt.isoformat()
+
+        if iso_date not in meta["special_sessions"]:
+            meta["special_sessions"].append(iso_date)
 
         # Set to warning level for test period to log to error.log file
         logger.warning(f"Circular: {subject}")
