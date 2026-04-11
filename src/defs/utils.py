@@ -3,7 +3,7 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Literal
 
 import pandas as pd
 
@@ -13,6 +13,14 @@ except ModuleNotFoundError:
     exit(
         "fast-csv-loader module is required. Run `pip install fast-csv-loader`"
     )
+
+ohlc_dct = dict(
+    Open="first",
+    High="max",
+    Low="min",
+    Close="last",
+    Volume="sum",
+)
 
 
 class DateEncoder(json.JSONEncoder):
@@ -36,34 +44,25 @@ def randomChar(length):
 
 def getDataFrame(
     fpath: Path,
-    tf: str,
     period: int,
-    column: Optional[str] = None,
+    tf: Literal["daily", "weekly"] = "daily",
+    columns: Optional[List[str]] = None,
     toDate: Optional[datetime] = None,
 ) -> Any:
     candle_count = period * 5 if tf == "weekly" else period
 
-    df = csv_loader(fpath, candle_count, end_date=toDate)
-
-    dct: dict = {
-        "Open": "first",
-        "High": "max",
-        "Low": "min",
-        "Close": "last",
-        "Volume": "sum",
-    }
+    df = csv_loader(fpath, candle_count, end_date=toDate, use_columns=columns)
 
     if tf == "weekly":
-        if column:
-            return (
-                df[column]
-                .resample("W", label="left")
-                .apply(dct[column])[-period:]
-            )
+        if columns:
+            # Guard against non existent keys and remove columns not required.
+            dct = {k: ohlc_dct[k] for k in columns if k in ohlc_dct}
+        else:
+            dct = ohlc_dct
 
         return df.resample("W", label="left").apply(dct)[-period:]
 
-    return df[-period:] if column is None else df[column][-period:]
+    return df[-period:]
 
 
 def arg_parse_dict(dct: dict) -> list:
