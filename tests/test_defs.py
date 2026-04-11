@@ -87,7 +87,7 @@ class TestCheckForHolidays(unittest.TestCase):
 
         # Call the function
         with patch.object(defs, "meta", meta_obj):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, defs.dates)
 
         self.assertFalse(result)
         mock_get_holiday_list.assert_not_called()
@@ -102,7 +102,7 @@ class TestCheckForHolidays(unittest.TestCase):
 
         # Call the function
         with patch.object(defs, "meta", {"holidays": {}, "year": 2023}):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, defs.dates)
 
         self.assertTrue(result)
         mock_get_holiday_list.assert_not_called()
@@ -123,7 +123,7 @@ class TestCheckForHolidays(unittest.TestCase):
 
         # Call the function
         with patch.object(defs, "meta", {}):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, defs.dates)
 
         # Assertions
         self.assertFalse(result)
@@ -149,7 +149,7 @@ class TestCheckForHolidays(unittest.TestCase):
         mock_get_holiday_list.return_value = holiday_obj
 
         with patch.object(defs, "meta", meta_obj):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, defs.dates)
 
         self.assertTrue(result)
         mock_get_holiday_list.assert_called_once()
@@ -163,7 +163,7 @@ class TestCheckForHolidays(unittest.TestCase):
         mock_nse = Mock()
 
         with patch.object(defs, "meta", {"special_sessions": [dt.isoformat()]}):
-            result = defs.checkForHolidays(mock_nse)
+            result = defs.checkForHolidays(mock_nse, defs.dates)
 
         self.assertFalse(result)
 
