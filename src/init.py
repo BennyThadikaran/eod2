@@ -83,7 +83,7 @@ while True:
         nse.exit()
         exit()
 
-    if defs.checkForHolidays(nse):
+    if defs.checkForHolidays(nse, defs.dates):
         defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
         writeJson(defs.META_FILE, defs.meta)
         continue
