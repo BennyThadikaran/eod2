@@ -12,6 +12,7 @@ from typing import Dict, List, Optional, Tuple, Type, Union
 from .dates import Dates
 import itertools
 import dateutil
+from .symbol_tracker import SymbolTracker
 
 try:
     from zoneinfo import ZoneInfo
@@ -635,6 +636,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
             logger.warning(f"Name Changed: {old} to {new}")
 
+        tracker.update(t.TckrSymb, t.Index, dates.dt.date())
+
         updateNseSymbol(
             SYM_FILE,
             t.SctySrs,
@@ -1151,6 +1154,7 @@ if __name__ != "__main__":
     AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
     META_FILE = DIR / "eod2_data" / "meta.json"
     SPECIAL_SESSIONS_FILE = DIR / "eod2_data/special_sessions.txt"
+    ISIN_SYMBOL_MAP_FILE = DIR / "eod2_data/isin_symbol_map.json"
 
     hasLatestHolidays = False
 
@@ -1203,3 +1207,5 @@ if __name__ != "__main__":
 
     # initiate the dates class from utils.py
     dates = Dates(meta["lastUpdate"])
+
+    tracker = SymbolTracker(data_file=ISIN_SYMBOL_MAP_FILE)
