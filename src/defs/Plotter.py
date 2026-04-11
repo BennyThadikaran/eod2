@@ -200,11 +200,11 @@ class Plotter:
 
             self.idx_cl = getDataFrame(
                 idx_path,
-                self.tf,
-                self.max_period,
-                "Close",
+                period=self.max_period,
+                tf=self.tf,
+                columns=["Date", "Close"],
                 toDate=self.args.date,
-            )
+            ).Close
 
     def plot(self, sym):
         global df
@@ -748,7 +748,12 @@ class Plotter:
             if not fpath.is_file():
                 return None
 
-        df = getDataFrame(fpath, self.tf, self.max_period, toDate=self.args.date)
+        df = getDataFrame(
+            fpath,
+            period=self.max_period,
+            tf=self.tf,
+            toDate=self.args.date,
+        )
 
         df_len = df.shape[0]
 
