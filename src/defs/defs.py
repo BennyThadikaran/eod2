@@ -264,16 +264,16 @@ def getHolidayList(nse: NSE):
     return data
 
 
-def checkForHolidays(nse: NSE):
+def checkForHolidays(nse: NSE, dates_cls: Dates):
     """Returns True if current date is a holiday.
     Exits the script if today is a holiday"""
 
     global hasLatestHolidays
 
     # the current date for which data is being synced
-    curDt = dates.dt.strftime("%d-%b-%Y")
+    curDt = dates_cls.dt.strftime("%d-%b-%Y")
 
-    if dates.dt.replace(tzinfo=None) in tuple(
+    if dates_cls.dt.replace(tzinfo=None) in tuple(
         datetime.fromisoformat(x) for x in meta.get("special_sessions", [])
     ):
         return False
@@ -281,12 +281,12 @@ def checkForHolidays(nse: NSE):
     # no holiday list or year has changed or today is a holiday
     if (
         "holidays" not in meta
-        or meta["year"] != dates.dt.year
+        or meta["year"] != dates_cls.dt.year
         or (curDt in meta["holidays"] and not hasLatestHolidays)
     ):
-        if dates.dt.year == dates.today.year:
+        if dates_cls.dt.year == dates_cls.today.year:
             meta["holidays"] = getHolidayList(nse)
-            meta["year"] = dates.dt.year
+            meta["year"] = dates_cls.dt.year
             hasLatestHolidays = True
 
     isMuhurat = curDt in meta["holidays"] and "Laxmi Pujan" in meta["holidays"][curDt]
@@ -294,7 +294,7 @@ def checkForHolidays(nse: NSE):
     if isMuhurat:
         return False
 
-    if dates.dt.weekday() == 6:
+    if dates_cls.dt.weekday() == 6:
         return True
 
     if curDt in meta["holidays"]:
