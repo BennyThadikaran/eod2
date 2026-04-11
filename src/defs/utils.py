@@ -10,9 +10,7 @@ import pandas as pd
 try:
     from fast_csv_loader import csv_loader
 except ModuleNotFoundError:
-    exit(
-        "fast-csv-loader module is required. Run `pip install fast-csv-loader`"
-    )
+    exit("fast-csv-loader module is required. Run `pip install fast-csv-loader`")
 
 ohlc_dct = dict(
     Open="first",
@@ -152,9 +150,7 @@ def isFarFromLevel(
 
 def getLevels(
     df: pd.DataFrame, mean_candle_size: float
-) -> List[
-    Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex, float]]
-]:
+) -> List[Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex, float]]]:
     """
     Identify potential support and resistance levels in a DataFrame.
 
@@ -274,10 +270,7 @@ def getLevels_v2(df: pd.DataFrame, mean_candle_size: float):
     max_min = max_min.loc[~max_min.index.duplicated()]
 
     for i, lv in max_min.items():
-
-        touch_count = max_min.loc[
-            (max_min - lv).abs() < mean_candle_size
-        ].count()
+        touch_count = max_min.loc[(max_min - lv).abs() < mean_candle_size].count()
 
         if touch_count > 1 and isFarFromLevel_v2(lv, levels, mean_candle_size):
             levels.append((i, lv))
