@@ -195,5 +195,6 @@ while True:
 
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
     writeJson(defs.META_FILE, defs.meta)
+    defs.ISIN_SYMBOL_MAP_FILE.write_text(defs.tracker.to_json())
 
     logger.info(f"{defs.dates.dt:%d %b %Y}: Done\n{'-' * 52}")
