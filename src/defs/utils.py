@@ -3,14 +3,13 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Literal
+from typing import Any, List, Optional, Tuple, Literal, Callable
 
 import pandas as pd
+import inspect
 
-try:
-    from fast_csv_loader import csv_loader
-except ModuleNotFoundError:
-    exit("fast-csv-loader module is required. Run `pip install fast-csv-loader`")
+from fast_csv_loader import csv_loader
+
 
 ohlc_dct = dict(
     Open="first",
@@ -26,6 +25,37 @@ class DateEncoder(json.JSONEncoder):
         if isinstance(o, datetime):
             return o.isoformat()
         return super().default(o)
+
+
+def has_parameters(func: Callable, *param_names: str) -> bool:
+    """
+    Check whether a function defines all specified parameters.
+
+    This utility inspects the function signature at runtime and verifies
+    that every provided parameter name exists in the function definition.
+    It is useful for feature detection when supporting multiple versions
+    of a dependency with evolving APIs.
+
+    Args:
+        func: The callable to inspect.
+        *param_names: One or more parameter names to check for.
+
+    Returns:
+        True if *all* specified parameters are present in the function
+        signature, False otherwise.
+
+    Notes:
+        - Returns False if the function signature cannot be inspected
+
+    Example:
+        >>> has_parameters(csv_loader, "use_columns", "chunk_size")
+        True
+    """
+    try:
+        sig = inspect.signature(func)
+        return all(name in sig.parameters for name in param_names)
+    except (ValueError, TypeError):
+        return False
 
 
 def loadJson(fPath: Path):
