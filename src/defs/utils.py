@@ -329,3 +329,10 @@ def manfieldRelativeStrength(
 
     sma_rs = rs.rolling(period).mean()
     return ((rs / sma_rs - 1) * 100).round(2)
+
+
+if __name__ != "__main__":
+    if not has_parameters(csv_loader, "use_columns"):
+        print("fast_csv_loader version 2.1.0 required")
+        print("Run `pip install -U fast_csv_loader`")
+        exit()
