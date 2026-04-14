@@ -94,9 +94,7 @@ class TestGetDataFrameFunction(unittest.TestCase):
     def test_default(self):
         result = utils.getDataFrame(self.csv_path, tf="daily", period=2)
 
-        expected = pd.read_csv(
-            self.csv_path, parse_dates=True, index_col="Date"
-        )[-2:]
+        expected = pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[-2:]
 
         pd.testing.assert_frame_equal(result, expected)
 
@@ -121,18 +119,21 @@ class TestGetDataFrameFunction(unittest.TestCase):
 
     def test_weekly_close_column(self):
         result = utils.getDataFrame(
-            Path(self.csv_path), tf="weekly", period=2, column="Close"
+            Path(self.csv_path), tf="weekly", period=2, columns=["Date", "Close"]
         )
 
         expected = (
-            pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[
-                "Close"
-            ]
+            pd.read_csv(
+                self.csv_path,
+                parse_dates=True,
+                index_col="Date",
+                usecols=pd.Index(["Date", "Close"]),
+            )
             .resample("W", label="left")
             .apply("last")[-2:]
         )
 
-        pd.testing.assert_series_equal(result, expected)
+        pd.testing.assert_frame_equal(result, expected)
 
     def test_toDate(self):
         result = utils.getDataFrame(
@@ -142,9 +143,9 @@ class TestGetDataFrameFunction(unittest.TestCase):
             toDate=datetime(2022, 1, 5),
         )
 
-        expected = pd.read_csv(
-            self.csv_path, parse_dates=True, index_col="Date"
-        )[:"2022-01-05"][-2:]
+        expected = pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[
+            :"2022-01-05"
+        ][-2:]
 
         pd.testing.assert_frame_equal(result, expected)
 

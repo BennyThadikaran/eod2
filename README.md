@@ -6,6 +6,30 @@ Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for
 
 If you :heart: my work so far, please :star2: this repo.
 
+## 🚀 Market Breadth Indicators - 14th Apr 2026
+
+EOD2 now includes a dedicated market breadth module that helps analyze overall market participation and underlying trend strength beyond individual stocks.
+See [plot_breadth.py ‐ Plot market breadth indicators](https://github.com/BennyThadikaran/eod2/wiki/plot_breadth.py-%E2%80%90-Plot-market-breadth-indicators) for usage.
+
+### Included Indicators
+
+- Advance-Decline Line
+- Percentage of stocks above 50-day and 200-day moving averages
+- McClellan Ratio-Adjusted Oscillator
+- Net 52-week cumulative highs
+
+### Tools Added
+
+- `market_breadth_sync.py`
+  Syncs breadth indicators on a daily basis
+
+- `plot_breadth.py`
+  Visualizes breadth indicators alongside broader market indices
+
+### Overview
+
+These indicators provide a clearer picture of market momentum and internal strength, helping identify whether market moves are broad-based or driven by a small set of stocks.
+
 ## Notes
 
 - `src/eod2_data/daily` contain OHLC and delivery data for individual stocks.

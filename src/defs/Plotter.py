@@ -200,11 +200,11 @@ class Plotter:
 
             self.idx_cl = getDataFrame(
                 idx_path,
-                self.tf,
-                self.max_period,
-                "Close",
+                period=self.max_period,
+                tf=self.tf,
+                columns=["Date", "Close"],
                 toDate=self.args.date,
-            )
+            ).Close
 
     def plot(self, sym):
         global df
@@ -748,14 +748,19 @@ class Plotter:
             if not fpath.is_file():
                 return None
 
-        df = getDataFrame(fpath, self.tf, self.max_period, toDate=self.args.date)
+        df = getDataFrame(
+            fpath,
+            period=self.max_period,
+            tf=self.tf,
+            toDate=self.args.date,
+        )
 
         df_len = df.shape[0]
 
         plot_period = min(df_len, self.period)
 
         if self.args.rs:
-            df["RS"] = relativeStrength(df["Close"], self.idx_cl)
+            df.loc[:, "RS"] = relativeStrength(df["Close"], self.idx_cl)
 
         if self.args.m_rs:
             if self.tf == "weekly":
@@ -767,7 +772,7 @@ class Plotter:
             if df_len < rs_period:
                 print(f"WARN: {sym.upper()} - Inadequate data to plot Mansfield RS.")
             else:
-                df["M_RS"] = manfieldRelativeStrength(
+                df.loc[:, "M_RS"] = manfieldRelativeStrength(
                     df["Close"], self.idx_cl, rs_period
                 )
 
@@ -779,7 +784,7 @@ class Plotter:
                     )
                     continue
 
-                df[f"SMA_{period}"] = df["Close"].rolling(period).mean().round(2)
+                df.loc[:, f"SMA_{period}"] = df.Close.rolling(period).mean().round(2)
 
         if self.args.ema:
             for period in self.args.ema:
@@ -791,7 +796,9 @@ class Plotter:
 
                 alpha = 2 / (period + 1)
 
-                df[f"EMA_{period}"] = df["Close"].ewm(alpha=alpha).mean().round(2)
+                df.loc[:, f"EMA_{period}"] = (
+                    df["Close"].ewm(alpha=alpha).mean().round(2)
+                )
 
         if self.args.vol_sma:
             for period in self.args.vol_sma:
@@ -801,7 +808,9 @@ class Plotter:
                     )
                     continue
 
-                df[f"VMA_{period}"] = df["Volume"].rolling(period).mean().round(2)
+                df.loc[:, f"VMA_{period}"] = (
+                    df["Volume"].rolling(period).mean().round(2)
+                )
 
         if self.tf == "weekly":
             start_dt = df.index[-plot_period] - timedelta(7)

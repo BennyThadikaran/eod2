@@ -3,16 +3,21 @@ import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Tuple
+from typing import Any, List, Optional, Tuple, Literal, Callable
 
 import pandas as pd
+import inspect
 
-try:
-    from fast_csv_loader import csv_loader
-except ModuleNotFoundError:
-    exit(
-        "fast-csv-loader module is required. Run `pip install fast-csv-loader`"
-    )
+from fast_csv_loader import csv_loader
+
+
+ohlc_dct = dict(
+    Open="first",
+    High="max",
+    Low="min",
+    Close="last",
+    Volume="sum",
+)
 
 
 class DateEncoder(json.JSONEncoder):
@@ -20,6 +25,37 @@ class DateEncoder(json.JSONEncoder):
         if isinstance(o, datetime):
             return o.isoformat()
         return super().default(o)
+
+
+def has_parameters(func: Callable, *param_names: str) -> bool:
+    """
+    Check whether a function defines all specified parameters.
+
+    This utility inspects the function signature at runtime and verifies
+    that every provided parameter name exists in the function definition.
+    It is useful for feature detection when supporting multiple versions
+    of a dependency with evolving APIs.
+
+    Args:
+        func: The callable to inspect.
+        *param_names: One or more parameter names to check for.
+
+    Returns:
+        True if *all* specified parameters are present in the function
+        signature, False otherwise.
+
+    Notes:
+        - Returns False if the function signature cannot be inspected
+
+    Example:
+        >>> has_parameters(csv_loader, "use_columns", "chunk_size")
+        True
+    """
+    try:
+        sig = inspect.signature(func)
+        return all(name in sig.parameters for name in param_names)
+    except (ValueError, TypeError):
+        return False
 
 
 def loadJson(fPath: Path):
@@ -36,34 +72,25 @@ def randomChar(length):
 
 def getDataFrame(
     fpath: Path,
-    tf: str,
     period: int,
-    column: Optional[str] = None,
+    tf: Literal["daily", "weekly"] = "daily",
+    columns: Optional[List[str]] = None,
     toDate: Optional[datetime] = None,
 ) -> Any:
     candle_count = period * 5 if tf == "weekly" else period
 
-    df = csv_loader(fpath, candle_count, end_date=toDate)
-
-    dct: dict = {
-        "Open": "first",
-        "High": "max",
-        "Low": "min",
-        "Close": "last",
-        "Volume": "sum",
-    }
+    df = csv_loader(fpath, candle_count, end_date=toDate, use_columns=columns)
 
     if tf == "weekly":
-        if column:
-            return (
-                df[column]
-                .resample("W", label="left")
-                .apply(dct[column])[-period:]
-            )
+        if columns:
+            # Guard against non existent keys and remove columns not required.
+            dct = {k: ohlc_dct[k] for k in columns if k in ohlc_dct}
+        else:
+            dct = ohlc_dct
 
         return df.resample("W", label="left").apply(dct)[-period:]
 
-    return df[-period:] if column is None else df[column][-period:]
+    return df[-period:]
 
 
 def arg_parse_dict(dct: dict) -> list:
@@ -153,9 +180,7 @@ def isFarFromLevel(
 
 def getLevels(
     df: pd.DataFrame, mean_candle_size: float
-) -> List[
-    Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex, float]]
-]:
+) -> List[Tuple[Tuple[pd.DatetimeIndex, float], Tuple[pd.DatetimeIndex, float]]]:
     """
     Identify potential support and resistance levels in a DataFrame.
 
@@ -275,10 +300,7 @@ def getLevels_v2(df: pd.DataFrame, mean_candle_size: float):
     max_min = max_min.loc[~max_min.index.duplicated()]
 
     for i, lv in max_min.items():
-
-        touch_count = max_min.loc[
-            (max_min - lv).abs() < mean_candle_size
-        ].count()
+        touch_count = max_min.loc[(max_min - lv).abs() < mean_candle_size].count()
 
         if touch_count > 1 and isFarFromLevel_v2(lv, levels, mean_candle_size):
             levels.append((i, lv))
@@ -307,3 +329,10 @@ def manfieldRelativeStrength(
 
     sma_rs = rs.rolling(period).mean()
     return ((rs / sma_rs - 1) * 100).round(2)
+
+
+if __name__ != "__main__":
+    if not has_parameters(csv_loader, "use_columns"):
+        print("fast_csv_loader version 2.1.0 required")
+        print("Run `pip install -U fast_csv_loader`")
+        exit()
