@@ -5,7 +5,7 @@ from zipfile import ZipFile
 try:
     import httpx
 except ModuleNotFoundError:
-    exit(f"Please run `pip install -U nse[server]`")
+    exit("Please run 'pip install nse[server]==1.2.9'`")
 
 # ################################
 # This script is written for non git users,
