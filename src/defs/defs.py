@@ -483,7 +483,7 @@ def updateAmiBrokerRecords(nse: NSE):
 
         daysComplete = totalDays - (lastUpdate - dt).days
         pctComplete = int(daysComplete / totalDays * 100)
-        print(f"{pctComplete} %", end="\r" * 5, flush=True)
+        print(f"{pctComplete} %", end="\r", flush=True)
 
     logger.info("Amibroker file updated")
 
