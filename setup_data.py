@@ -1,11 +1,7 @@
 from pathlib import Path
 from shutil import copyfileobj
 from zipfile import ZipFile
-
-try:
-    import httpx
-except ModuleNotFoundError:
-    exit("Please run 'pip install nse[server]==1.2.9'`")
+from urllib.request import urlopen
 
 # ################################
 # This script is written for non git users,
@@ -31,15 +27,15 @@ elif any(FOLDER.iterdir()):
     # Rename the folder to protect files from being overwritten.
     FOLDER.rename("eod2_data_backup")
 
-with httpx.Client(
-    timeout=30, transport=httpx.HTTPTransport(http2=True, retries=2)
-) as session:
-    with session.stream("GET", url, follow_redirects=True) as r:
-        with ZIP_FILE.open("wb") as f:
-            print(f"Downloading eod2_data from {url}")
-            # 15 mb chunk size
-            for chunk in r.iter_bytes(chunk_size=15 * 1024 * 1024):
-                f.write(chunk)
+chunk_size = 15 * 1024 * 1024  # 15 MB
+
+with urlopen(url, timeout=30) as response:
+    with ZIP_FILE.open("wb") as f:
+        while True:
+            chunk = response.read(chunk_size)
+            if not chunk:
+                break
+            f.write(chunk)
 
 if not ZIP_FILE.is_file():
     exit("download failed")

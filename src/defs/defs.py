@@ -29,7 +29,7 @@ import pandas as pd
 import tzlocal
 from nse import NSE
 
-from defs.Config import Config
+from defs.config import config
 
 
 def configure_logger():
@@ -1180,8 +1180,6 @@ if __name__ != "__main__":
         os.system("color")
 
     meta: Dict = json.loads(META_FILE.read_bytes())
-
-    config = Config()
 
     meta_info = dict(
         eod_v=config.VERSION,

@@ -2,7 +2,7 @@ from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
 
-from defs.Config import Config
+from defs.config import config
 from defs.Plotter import Plotter, processPlot
 from defs.Plugin import Plugin
 from defs.utils import loadJson, writeJson
@@ -12,7 +12,6 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 DIR = Path(__file__).parent
-config = Config()
 plugin = Plugin()
 
 parser = ArgumentParser(prog="plot.py")
