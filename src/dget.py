@@ -1,5 +1,5 @@
 from argparse import ArgumentParser
-from defs.Config import Config
+from defs.config import config
 from defs.utils import writeJson, loadJson
 from pathlib import Path
 from sys import platform
@@ -123,8 +123,6 @@ group.add_argument(
 group.add_argument("-l", "--lookup", metavar="SYM", help="Symbol to lookup")
 
 args = parser.parse_args()
-
-config = Config()
 
 DIR = Path(__file__).parent
 configPath = DIR / "defs" / "user.json"
