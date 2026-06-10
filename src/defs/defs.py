@@ -22,7 +22,7 @@ except ImportError:
 try:
     import httpx
 except ModuleNotFoundError:
-    exit("Please run `pip install -U nse[server]`")
+    exit("Please run `pip install 'nse[server]==1.2.9'`")
 
 import numpy as np
 import pandas as pd
