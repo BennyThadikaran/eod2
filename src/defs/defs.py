@@ -1171,7 +1171,7 @@ if __name__ != "__main__":
 
     indexHeaderText = b"Date,Open,High,Low,Close,Volume,P/E,Series,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 
-    logger = logging.getLogger(__name__)
+    logger = logging.getLogger("EOD")
 
     tz_local = tzlocal.get_localzone()
     tz_IN = ZoneInfo("Asia/Kolkata")
