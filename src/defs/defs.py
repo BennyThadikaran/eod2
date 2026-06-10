@@ -207,7 +207,8 @@ def check_reports_update_status(nse) -> Dict[str, bool]:
     cm_report_date = datetime.strptime(cm_data["currentDate"], "%d-%b-%Y")
 
     if cm_report_date != dates.today.replace(tzinfo=None):
-        exit("Market is closed today")
+        logger.info("Market is closed today")
+        exit(0)
 
     for dct in itertools.chain(cm_data["CurrentDay"], index_data["CurrentDay"]):
         key = dct["fileKey"]
@@ -242,7 +243,7 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
 
     if not res.status_code == httpx.codes.OK:
         logger.exception(f"{err_text} {res.status_code}: {res.reason_phrase}")
-        exit()
+        exit(1)
 
     return tuple(
         datetime.fromisoformat(x).astimezone(tz_IN)
@@ -476,7 +477,7 @@ def updateAmiBrokerRecords(nse: NSE):
                 continue
             except Exception as e:
                 logger.warning(f"{e} - Please try again.")
-                exit()
+                exit(1)
 
         toAmiBrokerFormat(bhavFile)
 
