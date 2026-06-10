@@ -45,9 +45,7 @@ def lookup(sym):
         df["QTY_PER_TRADE"].rolling(config.DGET_AVG_DAYS).mean().round(2)
     )
 
-    df["AVG_DLV_QTY"] = (
-        df["DLV_QTY"].rolling(config.DGET_AVG_DAYS).mean().round(2)
-    )
+    df["AVG_DLV_QTY"] = df["DLV_QTY"].rolling(config.DGET_AVG_DAYS).mean().round(2)
 
     df["AVG_VOL"] = df["Volume"].rolling(config.DGET_AVG_DAYS).mean().round(2)
 
@@ -57,16 +55,13 @@ def lookup(sym):
 
     df["IM"] = True
     df["IM"] = df["IM"].where(
-        (df["QTY_PER_TRADE"] > df["AVG_TRD_QTY"])
-        & (df["DLV_QTY"] > df["AVG_DLV_QTY"]),
+        (df["QTY_PER_TRADE"] > df["AVG_TRD_QTY"]) & (df["DLV_QTY"] > df["AVG_DLV_QTY"]),
         "",
     )
 
     df["DQ"] = df["DQ"].apply(c.num)
     df["TQ"] = df["TQ"].apply(c.num)
-    df["IM"] = df["IM"].apply(
-        lambda v: f'{c.ORANGE}{"$$" if v else "-"}{c.ENDC}'
-    )
+    df["IM"] = df["IM"].apply(lambda v: f"{c.ORANGE}{'$$' if v else '-'}{c.ENDC}")
     df["VOL"] = df["VOL"].apply(c.num)
 
     df = df[-config.DGET_DAYS :][["DQ", "TQ", "IM", "VOL"]]
@@ -75,13 +70,11 @@ def lookup(sym):
         f"""{c.WHITE}Units represent average multiples. 1x 2x etc. < 1: below average.
 DQ: Delivery qty  TQ: Qty per trade  IM: Institutional Money [Above average DQ and TQ]{c.ENDC}\n"""
     )
-    print(
-        f'{c.WHITE}DATE{" " * 10}DQ{" " * 5}TQ{" " * 5}VOL{" " * 4}IM{c.ENDC}'
-    )
+    print(f"{c.WHITE}DATE{' ' * 10}DQ{' ' * 5}TQ{' ' * 5}VOL{' ' * 4}IM{c.ENDC}")
 
     for Index, DQ, TQ, IM, VOL in df[::-1].itertuples():
         print(
-            f'{c.CYAN}{Index.strftime("%d %b %Y").ljust(13)}{c.ENDC}',
+            f"{c.CYAN}{Index.strftime('%d %b %Y').ljust(13)}{c.ENDC}",
             DQ.ljust(17).ljust(17),
             TQ.ljust(17),
             VOL.ljust(17),
@@ -101,9 +94,7 @@ group.add_argument(
     help="Space separated list of stock symbols",
 )
 
-group.add_argument(
-    "--watch", metavar="NAME", help="load a watchlist file by NAME."
-)
+group.add_argument("--watch", metavar="NAME", help="load a watchlist file by NAME.")
 
 group.add_argument(
     "--watch-add",
@@ -112,13 +103,9 @@ group.add_argument(
     help="Add a watchlist by NAME and FILENAME",
 )
 
-group.add_argument(
-    "--watch-rm", metavar="NAME", help="Remove a watchlist by NAME"
-)
+group.add_argument("--watch-rm", metavar="NAME", help="Remove a watchlist by NAME")
 
-group.add_argument(
-    "--ls", action="store_true", help="List available watchlists."
-)
+group.add_argument("--ls", action="store_true", help="List available watchlists.")
 
 group.add_argument("-l", "--lookup", metavar="SYM", help="Symbol to lookup")
 
@@ -138,7 +125,7 @@ if args.watch_add:
 
     data = loadJson(configPath) if configPath.is_file() else {}
 
-    if not "WATCH" in data:
+    if "WATCH" not in data:
         data["WATCH"] = {}
 
     data["WATCH"][name.upper()] = fName
@@ -146,11 +133,11 @@ if args.watch_add:
     exit(f"Added watchlist '{name}' with value '{fName}'")
 
 if args.watch_rm:
-    if not args.watch_rm.upper() in getattr(config, "WATCH"):
+    if args.watch_rm.upper() not in getattr(config, "WATCH"):
         exit(f"Error: No watchlist named: '{args.watch_rm}'")
 
     if not configPath.is_file():
-        exit(f"No config file")
+        exit("No config file")
 
     data = loadJson(configPath)
 
@@ -164,10 +151,10 @@ if args.ls:
         exit("Nothing to list")
 
     lst = [i.lower() for i in config.WATCH.keys()]
-    exit(f'Watchlists: {",".join(lst)}')
+    exit(f"Watchlists: {','.join(lst)}")
 
 if args.watch:
-    if not args.watch.upper() in config.WATCH:
+    if args.watch.upper() not in config.WATCH:
         exit(f"Error: No watchlist named '{args.watch}'")
 
     file = DIR / "data" / config.WATCH[args.watch.upper()]
@@ -190,9 +177,7 @@ else:
     heading += f"{c.WHITE}{watch_name}{c.ENDC}\n"
 
     # Heading text
-    heading += (
-        f'{c.WHITE}SCRIP{" " * 8}DQ{" " * 9}TQ{" " * 9}VOL{" " * 5}IM{c.ENDC}\n'
-    )
+    heading += f"{c.WHITE}SCRIP{' ' * 8}DQ{' ' * 9}TQ{' ' * 9}VOL{' ' * 5}IM{c.ENDC}\n"
 
     txt = ""
 
@@ -204,9 +189,7 @@ else:
             continue
 
         # Create Dataframe of last 30 days
-        df = read_csv(fpath, index_col="Date", parse_dates=True)[
-            -config.DLV_AVG_LEN :
-        ]
+        df = read_csv(fpath, index_col="Date", parse_dates=True)[-config.DLV_AVG_LEN :]
 
         if df["DLV_QTY"].dropna().empty:
             print(f"No delivery data: {sym.upper()}")
@@ -231,7 +214,7 @@ else:
         tq = round(tradeQty / avgQty, 2)
         dq = round(dlvQty / avgDlvQty, 2)
         vol = round(volume / avgVol, 2)
-        im = f'{c.ORANGE}{"$$" if dq > 1.2 and tq > 1.2 else "-"}{c.ENDC}'
+        im = f"{c.ORANGE}{'$$' if dq > 1.2 and tq > 1.2 else '-'}{c.ENDC}"
 
         txt += "{} {} {} {} {}\n".format(
             c.CYAN + sym[:15].upper().ljust(12),
