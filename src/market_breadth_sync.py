@@ -77,7 +77,7 @@ def extract_pr_zip(zip_file) -> Optional[pd.DataFrame]:
             return mcap
 
 
-logger = logging.getLogger(__name__)
+logger = logging.getLogger("MKT BREADTH")
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 

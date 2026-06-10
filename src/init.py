@@ -15,7 +15,7 @@ logging.getLogger("httpx").setLevel(logging.WARNING)
 
 if not defs.is_version_compatible(NSE.__version__, major=1, minor=2, patch=4):
     logger.warning("Require NSE version 1.2.*. Run `pip install 'nse[server]==1.2.9'`")
-    exit()
+    exit(1)
 
 data_version = defs.meta.get("data-version", None)
 
@@ -47,18 +47,20 @@ group.add_argument(
 args = parser.parse_args()
 
 if args.version:
-    exit(
+    print(
         f"EOD2 init.py: v{defs.config.VERSION} | eod2_data: v{defs.meta.get('data-version', None)}"
     )
+    exit(0)
 
 if args.config:
-    exit(str(defs.config))
+    print(str(defs.config))
+    exit(0)
 
 try:
     nse = NSE(defs.DIR, server=True)
 except (TimeoutError, ConnectionError, ConnectError) as e:
     logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
-    exit()
+    exit(1)
 
 if defs.check_special_sessions(nse):
     writeJson(defs.META_FILE, defs.meta)
@@ -81,7 +83,7 @@ if len(defs.meta["DLV_PENDING_DATES"]):
 while True:
     if not defs.dates.nextDate():
         nse.exit()
-        exit()
+        exit(0)
 
     if defs.checkForHolidays(nse, defs.dates):
         defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
@@ -111,7 +113,7 @@ while True:
 
                 if key != "CM-BHAVDATA-FULL":
                     nse.exit()
-                    exit()
+                    exit(1)
 
     try:
         # NSE bhav copy
@@ -135,7 +137,7 @@ while True:
         # On daily sync exit on error
         nse.exit()
         logger.warning(e)
-        exit()
+        exit(1)
 
     if report_status is None or report_status["CM-BHAVDATA-FULL"]:
         try:
@@ -164,7 +166,7 @@ while True:
         defs.meta["lastUpdate"] = defs.dates.lastUpdate
         writeJson(defs.META_FILE, defs.meta)
         nse.exit()
-        exit()
+        exit(1)
 
     # No errors continue
 
@@ -183,7 +185,7 @@ while True:
         defs.meta["lastUpdate"] = defs.dates.lastUpdate
         writeJson(defs.META_FILE, defs.meta)
         nse.exit()
-        exit()
+        exit(1)
 
     if defs.hook and hasattr(defs.hook, "on_complete"):
         defs.hook.on_complete()
