@@ -9,6 +9,12 @@ from defs.Plugin import Plugin
 from defs.utils import loadJson, writeJson
 
 if __name__ == "__main__":
+    warnings.warn(
+        "plot.py is deprecated and will be removed in a future version. "
+        "Please use chart.py instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
     warnings.simplefilter(action="ignore", category=FutureWarning)
 
     DIR = Path(__file__).parent
