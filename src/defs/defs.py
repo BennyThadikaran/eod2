@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import importlib.util
 import itertools
 import json
@@ -906,7 +908,7 @@ def adjustNseStocks():
     for actions in ("equityActions", "smeActions", "mfActions"):
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
-        df_commits: dict[str, dict[str, Union[pd.DataFrame, Path]]] = {}
+        df_commits: Dict[str, Dict[str, Union[pd.DataFrame, Path]]] = {}
         post_commits: List[Tuple[str, float]] = []
         error_context = None
 

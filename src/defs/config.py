@@ -1,7 +1,9 @@
+from __future__ import annotations
+
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Dict, Literal, Optional, Tuple
+from typing import Any, Literal
 
 DIR = Path(__file__).parents[1]
 
@@ -88,7 +90,7 @@ class Config:
     EXPECTED_DATA_VERSION: float = 3.3
 
     @classmethod
-    def load(cls) -> "Config":
+    def load(cls) -> Config:
         """Create Config and apply user.json overrides."""
         cfg = cls()
 
