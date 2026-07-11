@@ -117,6 +117,19 @@ class PlotCoordinator:
 
             # prevent cached dataframes from being mutated
             df = df.copy()
+
+            # If Open prices is missing or set to NaN, set open, high and low to Close
+            # Usually happens with some indices
+            if df.Open.isna().any():
+                if not visited:
+                    print(
+                        f"WARN: {title} - Missing Open, High, Low data. Plotting line chart"
+                    )
+                plot_args["type"] = "line"
+
+                for col in ["Open", "High", "Low"]:
+                    df[col] = df[col].fillna(df["Close"])
+
             # Enrich with indicators
             df = self.indicator_pipeline.enrich(title, df, visited)
 
