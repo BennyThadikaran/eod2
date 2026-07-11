@@ -1,6 +1,6 @@
-fast-csv-loader==2.2.1
+fast-csv-loader==2.2.2
 mplfinance==0.12.10b0
-nse[server]==3.1.1
+nse[server]==3.1.2
 pandas==2.0.3; python_version == "3.8"
 pandas==2.2.2; python_version > "3.8" and python_version < "3.13"
 pandas==2.2.3; python_version >= "3.13" and python_version < "3.14"
