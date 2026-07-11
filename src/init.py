@@ -8,7 +8,6 @@ from nse import NSE
 from defs import defs
 from defs.utils import writeJson
 
-
 logger = logging.getLogger(__name__)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)

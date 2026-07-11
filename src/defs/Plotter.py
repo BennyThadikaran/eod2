@@ -299,7 +299,6 @@ class Plotter:
 
         # Open chart window in fullscreen mode by default
         plt.get_current_fig_manager().full_screen_toggle()
-
         mpl.show(block=True)
 
         if "addplot" in self.plot_args:
@@ -494,7 +493,6 @@ class Plotter:
 
     def _add_hline(self, axes, y, url=None):
         """Draw a horizontal that extends both sides"""
-
         if url is None:
             # increment only if its newly drawn line
             self.lines[self.tf]["length"] += 1
@@ -508,7 +506,6 @@ class Plotter:
 
     def _add_tline(self, axes, coords, url=None):
         """Draw trendlines passing through 2 points"""
-
         if df is None:
             return
 
@@ -531,7 +528,6 @@ class Plotter:
 
     def _add_aline(self, axes, coords, url=None):
         """Draw arbitary lines connecting 2 points"""
-
         if df is None:
             return
 
@@ -962,7 +958,6 @@ class Plotter:
 
     def _get_tick_locs(self, tick_mdates, dtix: pd.DatetimeIndex):
         """Return the tick locs to be passed to Locator instance."""
-
         ticks = []
 
         # Convert the matplotlib dates to python datetime and iterate

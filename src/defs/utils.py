@@ -1,15 +1,13 @@
+import inspect
 import json
 import random
 import string
 from datetime import datetime
 from pathlib import Path
-from typing import Any, List, Optional, Tuple, Literal, Callable
+from typing import Any, Callable, List, Literal, Optional, Tuple
 
 import pandas as pd
-import inspect
-
 from fast_csv_loader import csv_loader
-
 
 ohlc_dct = dict(
     Open="first",
@@ -113,7 +111,6 @@ def arg_parse_dict(dct: dict) -> list:
     command_line_args = arg_parse_dict(args)
     ```
     """
-
     result = []
 
     for arg, val in dct.items():
@@ -175,7 +172,8 @@ def isFarFromLevel(
     mean_candle_size: float,
 ) -> bool:
     """Returns true if difference between the level and any of the price levels
-    is greater than the mean_candle_size."""
+    is greater than the mean_candle_size.
+    """
     # Detection of price support and resistance levels in Python -Gianluca Malato
     # source: https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
     return sum([abs(level - x[1]) < mean_candle_size for x in levels]) == 0
@@ -212,7 +210,6 @@ def getLevels(
     - It is recommended to provide a DataFrame with sufficient historical price data for accurate level identification.
     - The function is designed for use in financial technical analysis.
     """
-
     levels = []
 
     # filter for rejection from top

@@ -1,17 +1,17 @@
+import json
 import logging
+import zipfile
+from datetime import datetime
+from pathlib import Path
+from typing import Optional
 
+import pandas as pd
 from httpx import ConnectError
 from nse import NSE
-from pathlib import Path
-import json
-import zipfile
-from typing import Optional
-import pandas as pd
-from datetime import datetime
 
 from defs.dates import Dates
-from defs.utils import writeJson, getDataFrame
 from defs.defs import checkForHolidays
+from defs.utils import getDataFrame, writeJson
 
 
 def ema(price, period, prev_ema):

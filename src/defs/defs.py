@@ -1,17 +1,19 @@
 import importlib.util
+import itertools
 import json
-import time
 import logging
 import os
 import re
 import sys
+import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
-from .dates import Dates
-import itertools
+
 import dateutil
+
+from .dates import Dates
 from .symbol_tracker import SymbolTracker
 
 try:
@@ -106,7 +108,6 @@ def load_module(module_str: str) -> Union[ModuleType, Type]:
 
     Returns: ModuleType
     """
-
     class_name = None
     module_path = module_str
 
@@ -191,7 +192,6 @@ def retry(max_retries=10, base_wait=2, max_wait=10):
 @retry()
 def check_reports_update_status(nse) -> Dict[str, bool]:
     """Check if all daily reports has been updated for NSE."""
-
     result = {
         "CM-UDIFF-BHAVCOPY-CSV": False,
         "CM-BHAVDATA-FULL": False,
@@ -254,7 +254,8 @@ def downloadSpecialSessions() -> Tuple[datetime, ...]:
 @retry()
 def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
-    Saves and returns the holiday Object"""
+    Saves and returns the holiday Object
+    """
     data = nse.holidays(type=nse.HOLIDAY_TRADING)
 
     # CM pertains to capital market or equity holidays
@@ -268,8 +269,8 @@ def getHolidayList(nse: NSE):
 
 def checkForHolidays(nse: NSE, dates_cls: Dates):
     """Returns True if current date is a holiday.
-    Exits the script if today is a holiday"""
-
+    Exits the script if today is a holiday
+    """
     global hasLatestHolidays
 
     # the current date for which data is being synced
@@ -313,7 +314,6 @@ def validateNseActionsFile(nse: NSE):
     Else request actions for the next 8 days from current date.
     The actionsFile pertains to Bonus, Splits, dividends etc.
     """
-
     for action in ("equity", "sme", "mf"):
         segment = "equities" if action == "equity" else action
 
@@ -353,7 +353,6 @@ def updatePendingDeliveryData(nse: NSE, date: str):
     """Return True on successful file update or max failed attempts
     else False on failed attempt
     """
-
     dt = datetime.fromisoformat(date)
     daysSinceFailure = (datetime.now(tz_IN) - dt).days
     error_context = None
@@ -437,15 +436,14 @@ def updatePendingDeliveryData(nse: NSE, date: str):
 
 
 def isAmiBrokerFolderUpdated():
-    "Returns true if the folder has files"
-
+    """Returns true if the folder has files"""
     return any(AMIBROKER_FOLDER.iterdir())
 
 
 def updateAmiBrokerRecords(nse: NSE):
     """Downloads and updates the amibroker files upto the number of days
-    set in Config.AMI_UPDATE_DAYS"""
-
+    set in Config.AMI_UPDATE_DAYS
+    """
     lastUpdate = datetime.fromisoformat(meta["lastUpdate"]) + timedelta(1)
     dt = lastUpdate - timedelta(config.AMI_UPDATE_DAYS)
     totalDays = config.AMI_UPDATE_DAYS
@@ -489,8 +487,7 @@ def updateAmiBrokerRecords(nse: NSE):
 
 
 def toAmiBrokerFormat(file: Path):
-    "Converts and saves bhavcopy into amibroker format"
-
+    """Converts and saves bhavcopy into amibroker format"""
     df = pd.read_csv(file, parse_dates=["TradDt"])
 
     df = df[
@@ -531,7 +528,6 @@ def toAmiBrokerFormat(file: Path):
 
 def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     """Update all stocks with latest price data from bhav copy"""
-
     logger.info("Starting Data Sync")
 
     isinUpdated = False
@@ -658,8 +654,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
 
 def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCnt, dq):
-    "Appends EOD stock data to end of file"
-
+    """Appends EOD stock data to end of file"""
     text = b""
 
     if not symFile.exists():
@@ -699,7 +694,7 @@ def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCn
 
 @retry()
 def check_special_sessions(nse: NSE) -> bool:
-    last_update_str = meta.get("special_sessions_last_update", None)
+    last_update_str = meta.get("special_sessions_last_update")
 
     if last_update_str is None:
         last_update = (dates.dt - timedelta(5)).replace(tzinfo=None)
@@ -762,8 +757,8 @@ def check_special_sessions(nse: NSE) -> bool:
 
 def getSplit(sym, string):
     """Run a regex search for splits related corporate action and
-    return the adjustment factor"""
-
+    return the adjustment factor
+    """
     match = splitRegex.search(string)
 
     if match is None:
@@ -775,8 +770,8 @@ def getSplit(sym, string):
 
 def getBonus(sym, string):
     """Run a regex search for bonus related corporate action and
-    return the adjustment factor"""
-
+    return the adjustment factor
+    """
     match = bonusRegex.search(string)
 
     if match is None:
@@ -792,8 +787,8 @@ def makeAdjustment(
     prev_commit: Optional[Dict[str, Union[pd.DataFrame, Path]]] = None,
 ) -> Optional[Tuple[pd.DataFrame, Path]]:
     """Makes adjustment to stock data prior to ex date,
-    returning a tuple of pandas pd.DataFrame and filename"""
-
+    returning a tuple of pandas pd.DataFrame and filename
+    """
     if prev_commit:
         file: Path = prev_commit["file"]
         df: pd.DataFrame = prev_commit["df"]
@@ -836,8 +831,7 @@ def makeAdjustment(
 
 
 def updateIndice(sym, open, high, low, close, volume, pe):
-    "Appends Index EOD data to end of file"
-
+    """Appends Index EOD data to end of file"""
     if "/" in sym or ":" in sym:
         sym = sym.replace("/", "-").replace(":", "-")
 
@@ -862,8 +856,8 @@ def updateIndice(sym, open, high, low, close, volume, pe):
 
 def updateIndexEOD(file: Path):
     """Iterates over each symbol in NSE indices reports and
-    update EOD data to respective csv file"""
-
+    update EOD data to respective csv file
+    """
     folder = DIR / "nseIndices" / str(dates.dt.year)
 
     if not folder.is_dir():
@@ -903,8 +897,8 @@ def updateIndexEOD(file: Path):
 
 def adjustNseStocks():
     """Iterates over NSE corporate actions searching for splits or bonus
-    on current date and adjust the stock accordingly"""
-
+    on current date and adjust the stock accordingly
+    """
     logger.info("Making adjustments for splits and bonus")
 
     dtStr = dates.dt.strftime("%d-%b-%Y")
@@ -949,9 +943,7 @@ def adjustNseStocks():
                         )
                         continue
 
-                    commit = makeAdjustment(
-                        sym, adjustmentFactor, df_commits.get(sym, None)
-                    )
+                    commit = makeAdjustment(sym, adjustmentFactor, df_commits.get(sym))
 
                     if commit:
                         df, file = commit
@@ -982,9 +974,7 @@ def adjustNseStocks():
                         )
                         continue
 
-                    commit = makeAdjustment(
-                        sym, adjustmentFactor, df_commits.get(sym, None)
-                    )
+                    commit = makeAdjustment(sym, adjustmentFactor, df_commits.get(sym))
 
                     if commit:
                         df, file = commit
@@ -1041,8 +1031,7 @@ def adjustNseStocks():
 
 
 def getLastDate(file):
-    "Get the last updated date for a stock csv file"
-
+    """Get the last updated date for a stock csv file"""
     # source: https://stackoverflow.com/a/68413780
     with open(file, "rb") as f:
         try:
@@ -1068,7 +1057,6 @@ def deleteLastLineByDate(file: Path, date_str: str) -> bool:
     """
     Truncate the last line if line starts with date_str
     """
-
     # Get the file size
     file_size = os.path.getsize(file)
 
@@ -1100,8 +1088,8 @@ def deleteLastLineByDate(file: Path, date_str: str) -> bool:
 
 def rollback(folder: Path):
     """Iterate over all files in folder and delete any lines
-    pertaining to the current date"""
-
+    pertaining to the current date
+    """
     dt = dates.pandasDt
     logger.info(f"Rolling back changes from {dt}: {folder}")
 
@@ -1116,7 +1104,6 @@ def rollback(folder: Path):
 
 def cleanup(filesLst):
     """Remove files downloaded from nse"""
-
     for file in filesLst:
         if file is None:
             continue
@@ -1125,7 +1112,6 @@ def cleanup(filesLst):
 
 def cleanOutDated():
     """Delete CSV files not updated in the last 365 days"""
-
     logger.info("Cleaning up files")
 
     deadline = dates.today - timedelta(365)
@@ -1185,7 +1171,7 @@ if __name__ != "__main__":
     meta_info = dict(
         eod_v=config.VERSION,
         nse_v=NSE.__version__,
-        last_update=meta.get("lastUpdate", None),
+        last_update=meta.get("lastUpdate"),
     )
 
     configure_logger()

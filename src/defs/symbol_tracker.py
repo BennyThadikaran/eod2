@@ -1,7 +1,7 @@
-from typing import List, Dict, Optional, TypedDict, Literal, cast
+import json
 from datetime import date
 from pathlib import Path
-import json
+from typing import Dict, List, Literal, Optional, TypedDict, cast
 
 
 class SymbolHistory(TypedDict):

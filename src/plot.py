@@ -1,3 +1,4 @@
+import warnings
 from argparse import ArgumentParser
 from datetime import datetime
 from pathlib import Path
@@ -6,7 +7,6 @@ from defs.config import config
 from defs.Plotter import Plotter, processPlot
 from defs.Plugin import Plugin
 from defs.utils import loadJson, writeJson
-import warnings
 
 if __name__ == "__main__":
     warnings.simplefilter(action="ignore", category=FutureWarning)
