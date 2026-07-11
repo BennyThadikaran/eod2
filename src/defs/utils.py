@@ -58,12 +58,15 @@ def has_parameters(func: Callable, *param_names: str) -> bool:
         return False
 
 
-def loadJson(fPath: Path):
-    return json.loads(fPath.read_bytes())
+def loadJson(fpath: Path):
+    return json.loads(fpath.read_text(encoding="utf-8-sig"))
 
 
-def writeJson(fPath: Path, data):
-    fPath.write_text(json.dumps(data, indent=3, cls=DateEncoder))
+def writeJson(fpath: Path, data):
+    fpath.write_text(
+        json.dumps(data, indent=2, cls=DateEncoder),
+        encoding="utf-8",
+    )
 
 
 def randomChar(length):
