@@ -1,5 +1,7 @@
-from datetime import datetime, timedelta
+from __future__ import annotations
+
 import logging
+from datetime import datetime, timedelta
 
 try:
     from zoneinfo import ZoneInfo
@@ -15,7 +17,7 @@ tz_local = tzlocal.get_localzone()
 
 
 class Dates:
-    "A class for date related functions in EOD2"
+    """A class for date related functions in EOD2"""
 
     def __init__(self, lastUpdate: str):
         today = datetime.now(tz_IN)
@@ -30,8 +32,8 @@ class Dates:
 
     def nextDate(self):
         """Set the next trading date and return True.
-        If its a future date, return False"""
-
+        If its a future date, return False
+        """
         curTime = datetime.now(tz_IN)
         self.dt = self.dt + timedelta(1)
 

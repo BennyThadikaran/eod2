@@ -1,7 +1,8 @@
 from argparse import ArgumentParser
-from ta.momentum import RSIIndicator
+
 from mplfinance import make_addplot
 from pandas import Series
+from ta.momentum import RSIIndicator
 
 # To be added to src/defs/user.json
 # "PLOT_PLUGINS": {
@@ -15,9 +16,7 @@ from pandas import Series
 
 
 def load(parser: ArgumentParser):
-    parser.add_argument(
-        "--rsi", action="store_true", help="Relative strength index"
-    )
+    parser.add_argument("--rsi", action="store_true", help="Relative strength index")
 
 
 def main(df, plot_args, args, config):
@@ -26,7 +25,7 @@ def main(df, plot_args, args, config):
 
         df["RSI"] = RSIIndicator(close=df["Close"]).rsi()
 
-        if not "addplot" in plot_args:
+        if "addplot" not in plot_args:
             plot_args["addplot"] = []
 
         OB_LINE = Series(data=opts["overbought"], index=df.index)

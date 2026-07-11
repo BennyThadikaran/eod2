@@ -1,10 +1,12 @@
 from argparse import ArgumentParser
-from defs.config import config
-from defs.utils import writeJson, loadJson
+from os import system
 from pathlib import Path
 from sys import platform
-from os import system
+
 from pandas import read_csv
+
+from defs.config import config
+from defs.utils import loadJson, writeJson
 
 
 # Shell colors
@@ -133,7 +135,7 @@ if args.watch_add:
     exit(f"Added watchlist '{name}' with value '{fName}'")
 
 if args.watch_rm:
-    if args.watch_rm.upper() not in getattr(config, "WATCH"):
+    if args.watch_rm.upper() not in config.WATCH:
         exit(f"Error: No watchlist named: '{args.watch_rm}'")
 
     if not configPath.is_file():
@@ -216,13 +218,7 @@ else:
         vol = round(volume / avgVol, 2)
         im = f"{c.ORANGE}{'$$' if dq > 1.2 and tq > 1.2 else '-'}{c.ENDC}"
 
-        txt += "{} {} {} {} {}\n".format(
-            c.CYAN + sym[:15].upper().ljust(12),
-            c.num(dq).ljust(21),
-            c.num(tq).ljust(21),
-            c.num(vol).ljust(18),
-            im,
-        )
+        txt += f"{c.CYAN + sym[:15].upper().ljust(12)} {c.num(dq).ljust(21)} {c.num(tq).ljust(21)} {c.num(vol).ljust(18)} {im}\n"
 
     if txt:
         print(heading + txt)

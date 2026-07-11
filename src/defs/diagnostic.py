@@ -1,5 +1,8 @@
-import pandas as pd
+from __future__ import annotations
+
 from pathlib import Path
+
+import pandas as pd
 
 """
 This script checks data integrity of all csv files in eod2_data/daily.

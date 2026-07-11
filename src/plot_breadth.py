@@ -1,7 +1,10 @@
 import argparse
-import pandas as pd
-import matplotlib.pyplot as plt
+import warnings
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import pandas as pd
+
 from defs.utils import getDataFrame
 
 # ---- CONFIG ----
@@ -155,4 +158,10 @@ def main():
 
 
 if __name__ == "__main__":
+    warnings.warn(
+        "plot_breadth.py is deprecated and will be removed in a future version. "
+        "Please use chart.py instead.",
+        FutureWarning,
+        stacklevel=2,
+    )
     main()

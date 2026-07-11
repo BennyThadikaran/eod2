@@ -1,3 +1,5 @@
+from __future__ import annotations
+
 import pickle
 from datetime import timedelta
 from functools import lru_cache
@@ -143,7 +145,7 @@ class Plotter:
         if args.period:
             self.period = args.period
         else:
-            if self.tf == "Weekly":
+            if self.tf == "weekly":
                 self.period = config.PLOT_WEEKS
             else:
                 self.period = config.PLOT_DAYS
@@ -164,10 +166,10 @@ class Plotter:
         }
 
         if args.save:
-            if hasattr(config, "PLOT_SIZE"):
-                self.plot_args["figsize"] = config.PLOT_SIZE
-            else:
+            if config.PLOT_SIZE is None:
                 self.plot_args["figsize"] = (14, 9)
+            else:
+                self.plot_args["figsize"] = config.PLOT_SIZE
 
             self.plot_args["figscale"] = 1
 
@@ -299,7 +301,6 @@ class Plotter:
 
         # Open chart window in fullscreen mode by default
         plt.get_current_fig_manager().full_screen_toggle()
-
         mpl.show(block=True)
 
         if "addplot" in self.plot_args:
@@ -494,7 +495,6 @@ class Plotter:
 
     def _add_hline(self, axes, y, url=None):
         """Draw a horizontal that extends both sides"""
-
         if url is None:
             # increment only if its newly drawn line
             self.lines[self.tf]["length"] += 1
@@ -508,7 +508,6 @@ class Plotter:
 
     def _add_tline(self, axes, coords, url=None):
         """Draw trendlines passing through 2 points"""
-
         if df is None:
             return
 
@@ -531,7 +530,6 @@ class Plotter:
 
     def _add_aline(self, axes, coords, url=None):
         """Draw arbitary lines connecting 2 points"""
-
         if df is None:
             return
 
@@ -846,10 +844,10 @@ class Plotter:
         exit()
 
     def _loadPreset(self, preset):
-        if preset not in getattr(self.config, "PRESET"):
+        if preset not in self.config.PRESET:
             exit(f"Error: No preset named '{preset}'")
 
-        args_dct = getattr(self.config, "PRESET")[preset]
+        args_dct = self.config.PRESET[preset]
 
         if self.args.resume:
             args_dct["resume"] = True
@@ -875,7 +873,7 @@ class Plotter:
         print(f"Preset saved as '{preset}'")
 
     def _removePreset(self, preset):
-        if preset not in getattr(self.config, "PRESET"):
+        if preset not in self.config.PRESET:
             exit(f"Error: No preset named: '{preset}'")
 
         if not self.configPath.is_file():
@@ -917,7 +915,7 @@ class Plotter:
         exit(f"Added watchlist '{name}' with value '{fpath}'")
 
     def _removeWatch(self, name):
-        if name.upper() not in getattr(self.config, "WATCH"):
+        if name.upper() not in self.config.WATCH:
             exit(f"Error: No watchlist named: '{name}'")
 
         if not self.configPath.is_file():
@@ -962,7 +960,6 @@ class Plotter:
 
     def _get_tick_locs(self, tick_mdates, dtix: pd.DatetimeIndex):
         """Return the tick locs to be passed to Locator instance."""
-
         ticks = []
 
         # Convert the matplotlib dates to python datetime and iterate
