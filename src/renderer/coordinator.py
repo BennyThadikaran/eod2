@@ -115,6 +115,8 @@ class PlotCoordinator:
                 self._auto_advance()
                 return
 
+            # prevent cached dataframes from being mutated
+            df = df.copy()
             # Enrich with indicators
             df = self.indicator_pipeline.enrich(title, df, visited)
 
