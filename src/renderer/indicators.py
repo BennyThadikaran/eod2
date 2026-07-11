@@ -164,11 +164,12 @@ class IndicatorPipeline:
         """Set the benchmark index close series for RS calculations."""
         self._index_close = series
 
-    def enrich(self, df: pd.DataFrame) -> pd.DataFrame:
+    def enrich(self, symbol: str, df: pd.DataFrame, visited: bool) -> pd.DataFrame:
         """Add indicator columns to a copy of the DataFrame.
 
         Args:
             df: OHLC DataFrame to enrich
+            visited: suppress warning if True
 
         Returns:
             Enriched DataFrame (copy) with indicator columns added
@@ -193,10 +194,8 @@ class IndicatorPipeline:
                     rs_period = config.PLOT_M_RS_LEN_Q
 
             if df_len < rs_period:
-                print(
-                    f"WARN: Inadequate data to plot Mansfield RS "
-                    f"(need {rs_period}, have {df_len})."
-                )
+                if not visited:
+                    print(f"WARN: {symbol} - Inadequate data to plot Mansfield RS")
             else:
                 df.loc[:, "M_RS"] = _mansfield_relative_strength(
                     df.Close,
@@ -207,17 +206,16 @@ class IndicatorPipeline:
         # SMA
         for period in self.cmd.sma:
             if df_len < period:
-                print(
-                    f"WARN: Inadequate data to plot SMA {period} "
-                    f"(need {period}, have {df_len})."
-                )
+                if not visited:
+                    print(f"WARN: {symbol} - Inadequate data to plot SMA {period}")
                 continue
             df.loc[:, f"SMA_{period}"] = df.Close.rolling(period).mean().round(2)
 
         # EMA
         for period in self.cmd.ema:
             if df_len < period:
-                print(f"WARN: Inadequate data to plot EMA {period}")
+                if not visited:
+                    print(f"WARN: {symbol} - Inadequate data to plot EMA {period}")
                 continue
             alpha = 2 / (period + 1)
             df.loc[:, f"EMA_{period}"] = df.Close.ewm(alpha=alpha).mean().round(2)
@@ -225,7 +223,10 @@ class IndicatorPipeline:
         # Volume SMA
         for period in self.cmd.vol_sma:
             if df_len < period:
-                print(f"WARN: Inadequate data to plot Volume SMA {period}")
+                if not visited:
+                    print(
+                        f"WARN: {symbol} - Inadequate data to plot Volume SMA {period}"
+                    )
                 continue
             df.loc[:, f"VMA_{period}"] = df.Volume.rolling(period).mean().round(2)
 

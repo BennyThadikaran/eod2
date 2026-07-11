@@ -74,6 +74,9 @@ class PlotCoordinator:
         self._all_data: dict[str, pd.DataFrame] = {}
         self.tf_str = TF_MAP[cmd.timeframe]
 
+        # Keep track of symbols visited to suppress repeated warnings
+        self.visited = set()
+
     def run(self) -> None:
         """Start the interactive chart."""
         plt.ion()
@@ -92,6 +95,7 @@ class PlotCoordinator:
                 raise RuntimeError("IndicatorPipeline not set")
 
             symbol, _, meta = symbol.partition(",")
+            visited = symbol in self.visited
 
             title = symbol.upper()
 
@@ -105,12 +109,14 @@ class PlotCoordinator:
             df = self.loader.load(symbol)
 
             if df is None or df.empty:
-                print(f"WARN: No data for {symbol}. Skipping...")
+                if not visited:
+                    print(f"WARN: No data for {symbol}. Skipping...")
+                    self.visited.add(symbol)
                 self._auto_advance()
                 return
 
             # Enrich with indicators
-            df = self.indicator_pipeline.enrich(df)
+            df = self.indicator_pipeline.enrich(title, df, visited)
 
             self._data_len = len(df)
             period = min(self._data_len, self.cmd.period)
@@ -190,6 +196,7 @@ class PlotCoordinator:
             if fig_manager is not None:
                 fig_manager.full_screen_toggle()
 
+        self.visited.add(symbol)
         # mpf.show(block=True)
         plt.show(block=True)
 
