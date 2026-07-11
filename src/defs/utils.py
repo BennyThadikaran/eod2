@@ -259,18 +259,6 @@ def getLevels(
     return alines
 
 
-def isFarFromLevel_v2(
-    level: float,
-    levels: List[Tuple[pd.Timestamp, float]],
-    mean_candle_size: float,
-):
-    """Returns true if difference between the level and any of the price levels
-    is greater than the mean_candle_size."""
-    # Detection of price support and resistance levels in Python -Gianluca Malato
-    # source: https://towardsdatascience.com/detection-of-price-support-and-resistance-levels-in-python-baedc44c34c9
-    return sum([abs(level - x[1]) < mean_candle_size for x in levels]) == 0
-
-
 def getLevels_v2(df: pd.DataFrame, mean_candle_size: float):
 
     levels = []
@@ -305,7 +293,7 @@ def getLevels_v2(df: pd.DataFrame, mean_candle_size: float):
     for i, lv in max_min.items():
         touch_count = max_min.loc[(max_min - lv).abs() < mean_candle_size].count()
 
-        if touch_count > 1 and isFarFromLevel_v2(lv, levels, mean_candle_size):
+        if touch_count > 1 and isFarFromLevel(lv, levels, mean_candle_size):
             levels.append((i, lv))
 
     return [((i, lv), (df.index[-1], lv)) for i, lv in levels]
