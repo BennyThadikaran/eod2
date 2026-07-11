@@ -25,7 +25,7 @@ class TestJsonFunctions(unittest.TestCase):
 
         file_content = filepath.read_text()
 
-        expected_json_string = json.dumps(data, indent=3, cls=utils.DateEncoder)
+        expected_json_string = json.dumps(data, indent=2, cls=utils.DateEncoder)
 
         self.assertEqual(file_content, expected_json_string)
 
@@ -157,8 +157,7 @@ class TestGetLevels(unittest.TestCase):
             "High": (50.0, 55.0, 60.0, 55.0, 50.0, 45.0, 40.0, 45.0, 50.0),
             "Low": (40.0, 45.0, 50.0, 45.0, 40.0, 35.0, 30.0, 35.0, 40.0),
         }
-
-        index = tuple(datetime(2023, 1, i) for i in range(1, 10))
+        index = pd.date_range(start="2023-01-01", periods=9)
 
         self.df = pd.DataFrame(data, index=pd.DatetimeIndex(index))
 
