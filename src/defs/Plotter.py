@@ -143,7 +143,7 @@ class Plotter:
         if args.period:
             self.period = args.period
         else:
-            if self.tf == "Weekly":
+            if self.tf == "weekly":
                 self.period = config.PLOT_WEEKS
             else:
                 self.period = config.PLOT_DAYS
