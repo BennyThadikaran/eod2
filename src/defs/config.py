@@ -86,7 +86,7 @@ class Config:
     PRESET: dict[str, Any] = field(default_factory=dict)
 
     # ---------- INTERNAL ----------
-    VERSION: str = "9.3.0"
+    VERSION: str = "9.4.0"
     EXPECTED_DATA_VERSION: float = 3.3
 
     @classmethod
