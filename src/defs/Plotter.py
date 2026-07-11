@@ -164,10 +164,10 @@ class Plotter:
         }
 
         if args.save:
-            if hasattr(config, "PLOT_SIZE"):
-                self.plot_args["figsize"] = config.PLOT_SIZE
-            else:
+            if config.PLOT_SIZE is None:
                 self.plot_args["figsize"] = (14, 9)
+            else:
+                self.plot_args["figsize"] = config.PLOT_SIZE
 
             self.plot_args["figscale"] = 1
 
@@ -846,10 +846,10 @@ class Plotter:
         exit()
 
     def _loadPreset(self, preset):
-        if preset not in getattr(self.config, "PRESET"):
+        if preset not in self.config.PRESET:
             exit(f"Error: No preset named '{preset}'")
 
-        args_dct = getattr(self.config, "PRESET")[preset]
+        args_dct = self.config.PRESET[preset]
 
         if self.args.resume:
             args_dct["resume"] = True
@@ -875,7 +875,7 @@ class Plotter:
         print(f"Preset saved as '{preset}'")
 
     def _removePreset(self, preset):
-        if preset not in getattr(self.config, "PRESET"):
+        if preset not in self.config.PRESET:
             exit(f"Error: No preset named: '{preset}'")
 
         if not self.configPath.is_file():
@@ -917,7 +917,7 @@ class Plotter:
         exit(f"Added watchlist '{name}' with value '{fpath}'")
 
     def _removeWatch(self, name):
-        if name.upper() not in getattr(self.config, "WATCH"):
+        if name.upper() not in self.config.WATCH:
             exit(f"Error: No watchlist named: '{name}'")
 
         if not self.configPath.is_file():

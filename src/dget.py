@@ -133,7 +133,7 @@ if args.watch_add:
     exit(f"Added watchlist '{name}' with value '{fName}'")
 
 if args.watch_rm:
-    if args.watch_rm.upper() not in getattr(config, "WATCH"):
+    if args.watch_rm.upper() not in config.WATCH:
         exit(f"Error: No watchlist named: '{args.watch_rm}'")
 
     if not configPath.is_file():

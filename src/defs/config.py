@@ -1,7 +1,7 @@
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any
+from typing import Any, Dict, Literal, Optional, Tuple
 
 DIR = Path(__file__).parents[1]
 
@@ -31,17 +31,26 @@ class Config:
     DGET_DAYS: int = 30
 
     # ---------- PLOT ----------
+    CHART_RESUME: dict | None = None
+    PLOT_SIZE: tuple[int, int] | None = None  # (width, height) in inches
     MAGNET_MODE: bool = True
 
     PLOT_PLUGINS: dict[str, dict] = field(default_factory=dict)
+    CHART_PLUGINS: dict[str, dict] = field(default_factory=dict)
 
-    PLOT_DAYS: int = 160
-    PLOT_WEEKS: int = 140
+    PLOT_DAYS: int = 180
+    PLOT_WEEKS: int = 180
+    PLOT_MONTHS: int = 140
+    PLOT_QUARTERS: int = 60
 
     # Mansfield Relative Strength (MRS) and Dorsey Relative Strength (RS)
     PLOT_M_RS_LEN_D: int = 22
     PLOT_M_RS_LEN_W: int = 52
+    PLOT_M_RS_LEN_M: int = 24
+    PLOT_M_RS_LEN_Q: int = 8
     PLOT_RS_INDEX: str = "nifty 50"
+
+    PLOT_SNR_SENSITIVITY: Literal["strict", "balanced", "relaxed"] = "strict"
 
     # One of:
     # binance, binancedark, blueskies, brasil, charles, checkers,
@@ -102,6 +111,11 @@ class Config:
             setattr(cfg, key, value)
 
         return cfg
+
+    def reload(self):
+        fresh = Config.load()
+        self.__dict__.clear()
+        self.__dict__.update(fresh.__dict__)
 
     def to_list(self, filename: str) -> list[str]:
         """Return lines from a file in the data directory."""
