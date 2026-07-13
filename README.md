@@ -84,4 +84,4 @@ I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discu
 
 [BennyThadikaran/RRG-Lite](https://github.com/BennyThadikaran/RRG-Lite) - RRG-Lite is a Python CLI tool for displaying Relative Rotational graph (RRG) charts.
 
-[BennyThadikaran/stock-pattern](https://github.com/BennyThadikaran/stock-pattern) - A python scanner to detect and plot stock chart patterns
+[BennyThadikaran/stock-pattern](https://github.com/BennyThadikaran/stock-pattern) - A python scanner to detect and plot stock chart patterns 
