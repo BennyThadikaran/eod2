@@ -6,10 +6,20 @@ Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for
 
 If you :heart: my work so far, please :star2: this repo.
 
+## Introducing Chart.py | EOD2 v9.4.0 - 12th Jul 2026
+
+The old plot.py and plot_breadth.py scripts have been combined into a single entry point—chart.py—along with a redesigned CLI, new indicator plugins, improved drawing tools, and several quality-of-life improvements.
+
+- See the [full announcement](https://github.com/BennyThadikaran/eod2/discussions/328)
+- Wiki [Using chart.py](https://github.com/BennyThadikaran/eod2/wiki/Using-chart.py)
+- Wiki [Plugins in chart.py](https://github.com/BennyThadikaran/eod2/wiki/Plugins-in-chart.py)
+- Wiki [AI‐Powered Market Indicator Plugin Generation](https://github.com/BennyThadikaran/eod2/wiki/AI%E2%80%90Powered-Market-Indicator-Plugin-Generation)
+- Wiki Article: [Market Breadth Indicators: Reading the Market Beneath the Index](https://github.com/BennyThadikaran/eod2/wiki/Market-Breadth-Indicators:-Reading-the-Market-Beneath-the-Index)
+
 ## 🚀 Market Breadth Indicators - 14th Apr 2026
 
 EOD2 now includes a dedicated market breadth module that helps analyze overall market participation and underlying trend strength beyond individual stocks.
-See [plot_breadth.py ‐ Plot market breadth indicators](https://github.com/BennyThadikaran/eod2/wiki/plot_breadth.py-%E2%80%90-Plot-market-breadth-indicators) for usage.
+See [Using chart.py - Plot market breadth](https://github.com/BennyThadikaran/eod2/wiki/Using-chart.py#plot-market-breadth) for usage.
 
 ### Included Indicators
 
@@ -23,12 +33,9 @@ See [plot_breadth.py ‐ Plot market breadth indicators](https://github.com/Benn
 - `market_breadth_sync.py`
   Syncs breadth indicators on a daily basis
 
-- `plot_breadth.py`
-  Visualizes breadth indicators alongside broader market indices
-
 ### Overview
 
-These indicators provide a clearer picture of market momentum and internal strength, helping identify whether market moves are broad-based or driven by a small set of stocks.
+These indicators measure the participation and strength of the broader market, helping confirm trends, identify divergences, and assess the underlying health of price movements.
 
 ## Notes
 
@@ -53,7 +60,7 @@ I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discu
 - Works cross platform (Linux, Windows, Mac).
 - Robust error handling mechanisms to protect data.
 
-### Plot beautiful charts with plot.py
+### Plot beautiful charts with chart.py
 
 - Add volume, sma, ema and stock Relative strength analysis.
 - Perform analysis on weekly or daily charts.
