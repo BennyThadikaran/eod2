@@ -3,30 +3,35 @@ from typing import Literal
 from matplotlib.axes import Axes
 from matplotlib.text import Text
 
-HELP = """                                           ## HELP ##
+HELP = """
+                    ## Navigation ##
 
-N → Next chart                          R → Reset to original view
+N → Next chart              P → Prev chart
 
-P → Prev chart                           F → Fullscreen
+<Type a number> + J         Jump to chart
 
-Q → Quit and exit app               G → Toggle Major Grids
+                    ## General ##
 
-D → Toggle draw mode             O → Zoom to Rect
+F → Fullscreen              R → Reset to original view
+
+Q → Quit and exit app       G → Toggle Major Grids
+
+D → Toggle draw mode        O → Zoom to Rect
 
 
-                                    ## DRAW MODE ##
+                    ## DRAW MODE ##
 
-Horizontal Line :                    LEFT Click
+Horizontal Line:       LEFT Click
 
-Trend Line:                            Hold SHIFT key + LEFT click on chart
+Trend Line:            Hold SHIFT key + LEFT click
 
-Continous Segments:            Hold CTRL key + LEFT click on chart
+Continous Segments:    Hold CTRL key + LEFT click
 
-Horizontal Segment :            Hold CTRL + SHIFT key + LEFT click on chart
+Horizontal Segment:    Hold CTRL + SHIFT key + LEFT click
 
-Delete Line:                          RIGHT click on line
+Delete Line:           RIGHT click on line
 
-Delete all lines:                     Hold SHIFT key + RIGHT click
+Delete all lines:      Hold SHIFT key + RIGHT click
 """
 
 
@@ -97,6 +102,7 @@ class Notify:
                 va="top",
                 color="darkslategrey",
                 fontweight="bold",
+                font="monospace",
                 bbox=dict(
                     boxstyle="round,pad=1",
                     facecolor="mintcream",
