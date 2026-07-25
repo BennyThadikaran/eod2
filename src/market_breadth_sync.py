@@ -11,6 +11,7 @@ from nse import NSE
 
 from defs.dates import Dates
 from defs.defs import checkForHolidays
+from defs.symbol_tracker import SymbolTracker
 from defs.utils import getDataFrame, writeJson
 
 
@@ -85,7 +86,9 @@ DIR = Path(__file__).parent
 DAILY = DIR / "eod2_data/daily"
 META_FILE = DIR / "eod2_data/meta.json"
 MARKET_TRACKER_FILE = DIR / "eod2_data/market_tracker.csv"
+ISIN_SYMBOL_MAP_FILE = DIR / "eod2_data/isin_symbol_map.json"
 
+tracker = SymbolTracker(ISIN_SYMBOL_MAP_FILE)
 
 meta = json.loads(META_FILE.read_bytes())
 dates = Dates(meta["market_breadth_last_update"])
@@ -177,6 +180,8 @@ while True:
     logger.info("Calculating Indicator values")
 
     for symbol in mcap.index:
+        symbol = tracker.get_last_symbol(symbol, by="symbol")
+
         df = load_symbol(symbol)
 
         if df is None or dt not in df.index:
