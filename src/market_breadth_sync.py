@@ -24,7 +24,7 @@ def load_symbol(sym) -> Optional[pd.DataFrame]:
     file = DAILY / f"{sym.lower()}.csv"
 
     if not file.exists():
-        print(f"{sym} not found")
+        logger.warning(f"{sym} not found")
         return None
 
     df = getDataFrame(file, period=260, columns=["Date", "High", "Low", "Close"])
@@ -95,8 +95,8 @@ eod2_last_updated = datetime.fromisoformat(meta["lastUpdate"])
 # Date guard - don't sync beyond EOD2 last update
 if dates.lastUpdate >= eod2_last_updated:
     if eod2_last_updated.replace(tzinfo=None) < dates.today:
-        print("Make sure EOD2 data is synced, before running.")
-    print("All upto date")
+        logger.info("Make sure EOD2 data is synced, before running.")
+    logger.info("All upto date")
     exit()
 
 try:
