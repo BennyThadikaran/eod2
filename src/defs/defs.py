@@ -71,29 +71,29 @@ def configure_logger():
 
 def is_version_compatible(version: str, major: int, minor: int, patch: int) -> bool:
     """
-    Check whether a version string is compatible with the required version.
+    Check whether a version satisfies the minimum required semantic version.
 
     A version is considered compatible if:
-    - Its major version matches `major`
-    - Its minor version matches `minor`
-    - Its patch version is greater than or equal to `patch`
+    - Its major version matches `major`.
+    - Its `(minor, patch)` version is greater than or equal to
+      `(minor, patch)` according to semantic version ordering.
 
-    The function ignores any pre-release or build metadata (e.g. "1.2.3-alpha").
+    Pre-release metadata is ignored (e.g. "1.2.3-alpha" is treated as
+    "1.2.3").
 
     Args:
         version: A semantic version string (e.g. "1.2.3" or "1.2.3-beta").
         major: Required major version.
-        minor: Required minor version.
-        patch: Minimum required patch version.
+        minor: Required minimum minor version.
+        patch: Required minimum patch version within the required minor
+            version.
 
     Returns:
         True if the version is compatible, otherwise False.
     """
     v_major, v_minor, v_patch = map(int, version.split("-")[0].split("."))
 
-    if v_major == major and v_minor == minor:
-        return v_patch >= patch
-    return False
+    return v_major == major and (v_minor, v_patch) >= (minor, patch)
 
 
 def load_module(module_str: str) -> Union[ModuleType, Type]:

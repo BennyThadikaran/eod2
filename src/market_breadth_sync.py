@@ -11,6 +11,7 @@ from nse import NSE
 
 from defs.dates import Dates
 from defs.defs import checkForHolidays
+from defs.symbol_tracker import SymbolTracker
 from defs.utils import getDataFrame, writeJson
 
 
@@ -24,7 +25,7 @@ def load_symbol(sym) -> Optional[pd.DataFrame]:
     file = DAILY / f"{sym.lower()}.csv"
 
     if not file.exists():
-        print(f"{sym} not found")
+        logger.warning(f"{sym} not found")
         return None
 
     df = getDataFrame(file, period=260, columns=["Date", "High", "Low", "Close"])
@@ -85,7 +86,9 @@ DIR = Path(__file__).parent
 DAILY = DIR / "eod2_data/daily"
 META_FILE = DIR / "eod2_data/meta.json"
 MARKET_TRACKER_FILE = DIR / "eod2_data/market_tracker.csv"
+ISIN_SYMBOL_MAP_FILE = DIR / "eod2_data/isin_symbol_map.json"
 
+tracker = SymbolTracker(ISIN_SYMBOL_MAP_FILE)
 
 meta = json.loads(META_FILE.read_bytes())
 dates = Dates(meta["market_breadth_last_update"])
@@ -95,8 +98,8 @@ eod2_last_updated = datetime.fromisoformat(meta["lastUpdate"])
 # Date guard - don't sync beyond EOD2 last update
 if dates.lastUpdate >= eod2_last_updated:
     if eod2_last_updated.replace(tzinfo=None) < dates.today:
-        print("Make sure EOD2 data is synced, before running.")
-    print("All upto date")
+        logger.info("Make sure EOD2 data is synced, before running.")
+    logger.info("All upto date")
     exit()
 
 try:
@@ -177,6 +180,8 @@ while True:
     logger.info("Calculating Indicator values")
 
     for symbol in mcap.index:
+        symbol = tracker.get_last_symbol(symbol, by="symbol")
+
         df = load_symbol(symbol)
 
         if df is None or dt not in df.index:
