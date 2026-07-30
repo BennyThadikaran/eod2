@@ -6,6 +6,10 @@ Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for
 
 If you :heart: my work so far, please :star2: this repo.
 
+## Prefer a Desktop App?
+
+[BhavDesk](https://github.com/BennyThadikaran/BhavDesk) is the desktop companion to EOD2— it uses EOD2 under the hood, bringing its command-line functionality to a desktop interface.
+
 ## Introducing Chart.py | EOD2 v9.4.0 - 12th Jul 2026
 
 The old plot.py and plot_breadth.py scripts have been combined into a single entry point—chart.py—along with a redesigned CLI, new indicator plugins, improved drawing tools, and several quality-of-life improvements.
@@ -84,4 +88,4 @@ I just opened [GitHub discussions](https://github.com/BennyThadikaran/eod2/discu
 
 [BennyThadikaran/RRG-Lite](https://github.com/BennyThadikaran/RRG-Lite) - RRG-Lite is a Python CLI tool for displaying Relative Rotational graph (RRG) charts.
 
-[BennyThadikaran/stock-pattern](https://github.com/BennyThadikaran/stock-pattern) - A python scanner to detect and plot stock chart patterns 
+[BennyThadikaran/stock-pattern](https://github.com/BennyThadikaran/stock-pattern) - A python scanner to detect and plot stock chart patterns
