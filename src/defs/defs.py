@@ -467,7 +467,13 @@ def updateAmiBrokerRecords(nse: NSE):
         if not bhavFolder.is_dir():
             bhavFolder.mkdir(parents=True)
 
-        bhavFile = bhavFolder / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
+        if dt < udiff_start_date:
+            dt_str = dt.strftime("%d%b%Y").upper()
+            bhavFile = bhavFolder / f"cm{dt_str}bhav.csv"
+            udiff_format = False
+        else:
+            bhavFile = bhavFolder / f"BhavCopy_NSE_CM_0_0_0_{dt:%Y%m%d}_F_0000.csv"
+            udiff_format = True
 
         if not bhavFile.exists():
             try:
@@ -479,7 +485,7 @@ def updateAmiBrokerRecords(nse: NSE):
                 logger.warning(f"{e} - Please try again.")
                 exit(1)
 
-        toAmiBrokerFormat(bhavFile)
+        toAmiBrokerFormat(bhavFile, udiff_format=udiff_format)
 
         daysComplete = totalDays - (lastUpdate - dt).days
         pctComplete = int(daysComplete / totalDays * 100)
@@ -488,21 +494,12 @@ def updateAmiBrokerRecords(nse: NSE):
     logger.info("Amibroker file updated")
 
 
-def toAmiBrokerFormat(file: Path):
+def toAmiBrokerFormat(file: Path, udiff_format: bool = True):
     """Converts and saves bhavcopy into amibroker format"""
-    df = pd.read_csv(file, parse_dates=["TradDt"])
-
-    df = df[
-        (df["SctySrs"] == "EQ")
-        | (df["SctySrs"] == "BE")
-        | (df["SctySrs"] == "BZ")
-        | (df["SctySrs"] == "SM")
-        | (df["SctySrs"] == "ST")
-    ]
-
-    df = df.loc[
-        :,
-        [
+    if udiff_format:
+        date_column = "TradDt"
+        series_column = "SctySrs"
+        columns_to_read = [
             "TckrSymb",
             "TradDt",
             "OpnPric",
@@ -511,19 +508,28 @@ def toAmiBrokerFormat(file: Path):
             "ClsPric",
             "TtlTradgVol",
             "ISIN",
-        ],
-    ]
+        ]
+    else:
+        date_column = "TIMESTAMP"
+        series_column = "SERIES"
+        columns_to_read = [
+            "SYMBOL",
+            "TIMESTAMP",
+            "OPEN",
+            "HIGH",
+            "LOW",
+            "CLOSE",
+            "TOTTRDQTY",
+            "ISIN",
+        ]
 
-    df.columns = [
-        "SYMBOL",
-        "DATE",
-        "OPEN",
-        "HIGH",
-        "LOW",
-        "CLOSE",
-        "VOLUME",
-        "ISIN",
-    ]
+    df = pd.read_csv(file, parse_dates=[date_column])
+
+    df = df[df[series_column].isin(VALID_SERIES)]
+
+    df = df.loc[:, columns_to_read]
+
+    df.columns = AMIBROKER_COLUMNS
 
     df.to_csv(AMIBROKER_FOLDER / file.name, index=False)
 
@@ -1159,10 +1165,25 @@ if __name__ != "__main__":
 
     indexHeaderText = b"Date,Open,High,Low,Close,Volume,P/E,Series,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 
+    VALID_SERIES = ("EQ", "BE", "BZ", "SM", "ST")
+
+    AMIBROKER_COLUMNS = [
+        "SYMBOL",
+        "DATE",
+        "OPEN",
+        "HIGH",
+        "LOW",
+        "CLOSE",
+        "VOLUME",
+        "ISIN",
+    ]
+
     logger = logging.getLogger("EOD")
 
     tz_local = tzlocal.get_localzone()
     tz_IN = ZoneInfo("Asia/Kolkata")
+
+    udiff_start_date = datetime(2024, 7, 7, tzinfo=tz_IN)
 
     if "win" in sys.platform:
         # enable color support in Windows
