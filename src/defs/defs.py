@@ -552,13 +552,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
     # filter the pd.DataFrame for stocks series EQ, BE and BZ
     # https://www.nseindia.com/market-data/legend-of-series
-    df = df.loc[
-        (df["SctySrs"] == "EQ")
-        | (df["SctySrs"] == "BE")
-        | (df["SctySrs"] == "BZ")
-        | (df["SctySrs"] == "SM")
-        | (df["SctySrs"] == "ST")
-    ]
+    df = df[df["SctySrs"].isin(VALID_SERIES)]
 
     if config.AMIBROKER:
         logger.info("Converting to AmiBroker format")
@@ -925,7 +919,7 @@ def adjustNseStocks():
                 ex = act["exDate"]
                 series = act["series"]
 
-                if series not in ("EQ", "BE", "BZ", "SM", "ST"):
+                if series not in VALID_SERIES:
                     continue
 
                 if series in ("SM", "ST"):
