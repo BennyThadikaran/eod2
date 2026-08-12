@@ -319,7 +319,7 @@ class PlotCoordinator:
             self._show_current()
         else:
             print("No valid symbols to display")
-            self._close_all()
+            self.quit()
 
     def navigate_next(self) -> None:
         """Navigate to the next symbol."""
