@@ -94,6 +94,15 @@ class PlotCoordinator:
             if not self.indicator_pipeline:
                 raise RuntimeError("IndicatorPipeline not set")
 
+            if (
+                self.drawing_manager
+                and self.session_store
+                and self.drawing_manager.updated
+            ):
+                drawings_data = self.drawing_manager.to_dict()
+                self.session_store.save_drawings(drawings_data)
+                self.drawing_manager.updated = False
+
             symbol, _, meta = symbol.partition(",")
             visited = symbol in self.visited
 
