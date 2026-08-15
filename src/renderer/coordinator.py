@@ -94,6 +94,15 @@ class PlotCoordinator:
             if not self.indicator_pipeline:
                 raise RuntimeError("IndicatorPipeline not set")
 
+            if (
+                self.drawing_manager
+                and self.session_store
+                and self.drawing_manager.updated
+            ):
+                drawings_data = self.drawing_manager.to_dict()
+                self.session_store.save_drawings(drawings_data)
+                self.drawing_manager.updated = False
+
             symbol, _, meta = symbol.partition(",")
             visited = symbol in self.visited
 
@@ -165,7 +174,9 @@ class PlotCoordinator:
             if self.drawing_manager and self.session_store:
                 index = cast(pd.DatetimeIndex, df.index)
                 self.drawing_manager.set_index(index)
-                self.drawing_manager.from_dict(self.session_store.load_drawings())
+
+                if not self.drawing_manager.drawings_loaded:
+                    self.drawing_manager.from_dict(self.session_store.load_drawings())
         else:
             df = self.loader.load_breadth_indicators()
 
@@ -319,7 +330,7 @@ class PlotCoordinator:
             self._show_current()
         else:
             print("No valid symbols to display")
-            self._close_all()
+            self.quit()
 
     def navigate_next(self) -> None:
         """Navigate to the next symbol."""

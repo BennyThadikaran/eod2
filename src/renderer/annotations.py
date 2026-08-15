@@ -364,6 +364,8 @@ class DrawingManager:
         self._ax: Axes | None = None
         self._drawings: dict[str, dict[str, Drawing]] = {}
         self._artists: dict[str, dict[str, Artist]] = {}  # Track matplotlib artists
+        self.updated = False
+        self.drawings_loaded = False
 
         self.line_args = dict(
             linewidth=1,
@@ -424,6 +426,7 @@ class DrawingManager:
 
         url = drawing.url
         self._drawings[symbol][url] = drawing
+        self.updated = True
 
         # Immediately draw on the axes if available
         if self._ax is not None:
@@ -449,6 +452,11 @@ class DrawingManager:
 
         self._drawings[symbol].pop(url)
 
+        if not self._drawings[symbol]:
+            self._drawings.pop(symbol)
+
+        self.updated = True
+
         if self._ax is not None:
             self._ax.figure.canvas.draw_idle()
 
@@ -466,6 +474,8 @@ class DrawingManager:
         del self._artists[symbol]
 
         del self._drawings[symbol]
+
+        self.updated = True
 
         if self._ax is not None:
             self._ax.figure.canvas.draw_idle()
@@ -584,3 +594,5 @@ class DrawingManager:
                     color=d["color"],
                     url=d["url"],
                 )
+
+        self.drawings_loaded = True
