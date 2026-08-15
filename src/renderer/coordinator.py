@@ -174,7 +174,9 @@ class PlotCoordinator:
             if self.drawing_manager and self.session_store:
                 index = cast(pd.DatetimeIndex, df.index)
                 self.drawing_manager.set_index(index)
-                self.drawing_manager.from_dict(self.session_store.load_drawings())
+
+                if not self.drawing_manager.drawings_loaded:
+                    self.drawing_manager.from_dict(self.session_store.load_drawings())
         else:
             df = self.loader.load_breadth_indicators()
 

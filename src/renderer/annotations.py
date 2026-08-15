@@ -365,6 +365,7 @@ class DrawingManager:
         self._drawings: dict[str, dict[str, Drawing]] = {}
         self._artists: dict[str, dict[str, Artist]] = {}  # Track matplotlib artists
         self.updated = False
+        self.drawings_loaded = False
 
         self.line_args = dict(
             linewidth=1,
@@ -593,3 +594,5 @@ class DrawingManager:
                     color=d["color"],
                     url=d["url"],
                 )
+
+        self.drawings_loaded = True
