@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from enum import Enum, auto
 from typing import cast
 
 import matplotlib.pyplot as plt
@@ -19,6 +20,11 @@ from .dtypes import TF_MAP, Modifier, RenderContext
 from .navigation import NavigationList
 from .notify import Notify
 from .shortcuts import ShortcutHandler
+
+
+class Direction(Enum):
+    FORWARD = auto()
+    REVERSE = auto()
 
 
 class PlotCoordinator:
@@ -82,7 +88,7 @@ class PlotCoordinator:
         plt.ion()
         self._show_current()
 
-    def _show_current(self) -> None:
+    def _show_current(self, direction: Direction = Direction.FORWARD) -> None:
         """Load and display the current symbol."""
         symbol = self.nav.current()
         self._current_symbol = symbol
@@ -121,7 +127,8 @@ class PlotCoordinator:
                 if not visited:
                     print(f"WARN: No data for {symbol}. Skipping...")
                     self.visited.add(symbol)
-                self._auto_advance()
+
+                self._auto_advance(direction)
                 return
 
             # prevent cached dataframes from being mutated
@@ -323,14 +330,22 @@ class PlotCoordinator:
 
             self.drawing_manager.remove(self._current_symbol, artist)
 
-    def _auto_advance(self) -> None:
+    def _auto_advance(self, direction: Direction) -> None:
         """Automatically advance to next symbol if current one fails."""
-        if self.nav.can_go_next():
-            self.nav.next()
-            self._show_current()
+        if direction == Direction.FORWARD:
+            can_move = self.nav.can_go_next
+            move = self.nav.next
         else:
-            print("No valid symbols to display")
-            self.quit()
+            can_move = self.nav.can_go_previous
+            move = self.nav.previous
+
+        if can_move():
+            move()
+            self._show_current(direction)
+            return
+
+        print("No valid symbols to display")
+        self.quit()
 
     def navigate_next(self) -> None:
         """Navigate to the next symbol."""
@@ -341,7 +356,7 @@ class PlotCoordinator:
         if self._fig:
             self._notify.remove()
             plt.close(self._fig)
-        self._show_current()
+        self._show_current(direction=Direction.FORWARD)
 
     def navigate_previous(self) -> None:
         """Navigate to the previous symbol."""
@@ -352,14 +367,21 @@ class PlotCoordinator:
         if self._fig:
             self._notify.remove()
             plt.close(self._fig)
-        self._show_current()
+        self._show_current(direction=Direction.REVERSE)
 
     def jump_to(self, index: int) -> None:
+        current_idx = self.nav.current_index
+
         if self.nav.jump_to(index):
             if self._fig:
                 self._notify.remove()
                 plt.close(self._fig)
-            self._show_current()
+
+            if index > current_idx:
+                self._show_current(Direction.FORWARD)
+            else:
+                self._show_current(Direction.REVERSE)
+
             return
         else:
             if index > 0:
