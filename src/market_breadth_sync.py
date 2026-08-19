@@ -59,7 +59,9 @@ def extract_pr_zip(zip_file) -> Optional[pd.DataFrame]:
                 mcap = pd.read_csv(
                     f,
                     index_col="Symbol",
-                    usecols=pd.Index(["Symbol", "Series", "Category"]),
+                    usecols=pd.Index(
+                        ["Symbol", "Series", "Category", "Last Trade Date"]
+                    ),
                 )
 
                 mcap.columns = mcap.columns.str.strip()
@@ -95,13 +97,6 @@ dates = Dates(meta["market_breadth_last_update"])
 
 eod2_last_updated = datetime.fromisoformat(meta["lastUpdate"])
 
-# Date guard - don't sync beyond EOD2 last update
-if dates.lastUpdate >= eod2_last_updated:
-    if eod2_last_updated.replace(tzinfo=None) < dates.today:
-        logger.info("Make sure EOD2 data is synced, before running.")
-    logger.info("All upto date")
-    exit()
-
 try:
     nse = NSE(DIR, server=True)
 except (TimeoutError, ConnectionError, ConnectError) as e:
@@ -131,6 +126,12 @@ while True:
 
         if modified:
             mb_df.to_csv(MARKET_TRACKER_FILE)
+        exit()
+
+    # Date guard - don't sync beyond EOD2 last update
+    if dates.dt > eod2_last_updated:
+        logger.info("Make sure EOD2 data is synced, before running.")
+        logger.info("All upto date")
         exit()
 
     if checkForHolidays(nse, dates):
@@ -180,7 +181,13 @@ while True:
     logger.info("Calculating Indicator values")
 
     for symbol in mcap.index:
+        symbol_original = symbol
         symbol = tracker.get_last_symbol(symbol, by="symbol")
+
+        if symbol is None:
+            last_trade_date = mcap.at[symbol_original, "Last Trade Date"]
+            logger.warning(f"Unable to track {symbol_original} - {last_trade_date}")
+            continue
 
         df = load_symbol(symbol)
 
