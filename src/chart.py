@@ -65,6 +65,10 @@ def run_chart(cmd, paths: AppPaths) -> int:
     cli.validate_file(paths.breadth_file)
     sym_list = cli.resolve_symbols(cmd)
 
+    if not sym_list:
+        print("WARN: Watch file is empty. No symbols to display")
+        return 1
+
     if cmd.source.mode == "stock":
         context = build_stock_context(cmd, paths)
     else:

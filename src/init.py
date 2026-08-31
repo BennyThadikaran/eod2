@@ -14,8 +14,8 @@ logger = logging.getLogger(__name__)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
 
-if not defs.is_version_compatible(NSE.__version__, major=3, minor=1, patch=2):
-    logger.warning("Require NSE version 3.1.*. Run `pip install 'nse[server]==3.1.2'`")
+if not defs.is_version_compatible(NSE.__version__, major=4, minor=0, patch=1):
+    logger.warning("Require NSE version 4.0.*. Run `pip install 'nse[server]==4.0.1'`")
     exit(1)
 
 data_version = defs.meta.get("data-version", None)
