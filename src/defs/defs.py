@@ -575,6 +575,10 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
         dlvDf = dlvDf[dlvDf.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
+
+        dlvDf["DELIV_QTY"] = pd.to_numeric(
+            dlvDf["DELIV_QTY"].str.strip().replace("-", 0)
+        )
     else:
         dlvDf = None
 
@@ -590,7 +594,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
-                dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else int(dq)
+                dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else dq
             else:
                 trdCnt = dq = np.nan
         else:
