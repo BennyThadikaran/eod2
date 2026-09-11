@@ -569,15 +569,16 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
         dlvDf.to_csv(DLV_FOLDER / deliveryFile.name)
 
+        dlvDf.columns = dlvDf.columns.str.strip()
+        dlvDf.SERIES = dlvDf.SERIES.str.strip()
+
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
-        dlvDf = dlvDf[
-            (dlvDf[" SERIES"] == " EQ")
-            | (dlvDf[" SERIES"] == " BE")
-            | (dlvDf[" SERIES"] == " BZ")
-            | (dlvDf[" SERIES"] == " SM")
-            | (dlvDf[" SERIES"] == " ST")
-        ]
+        dlvDf = dlvDf[dlvDf.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
+
+        dlvDf["DELIV_QTY"] = pd.to_numeric(
+            dlvDf["DELIV_QTY"].str.strip().replace("-", 0)
+        )
     else:
         dlvDf = None
 
@@ -589,11 +590,11 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
         if dlvDf is not None:
             if t.TckrSymb in dlvDf.index:
-                trdCnt, dq = dlvDf.loc[t.TckrSymb, [" NO_OF_TRADES", " DELIV_QTY"]]
+                trdCnt, dq = dlvDf.loc[t.TckrSymb, ["NO_OF_TRADES", "DELIV_QTY"]]
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
-                dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else int(dq)
+                dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else dq
             else:
                 trdCnt = dq = np.nan
         else:
