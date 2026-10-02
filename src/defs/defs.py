@@ -1084,7 +1084,7 @@ def deleteLastLineByDate(file: Path, date_str: str) -> bool:
                 break
 
         if f.read().startswith(date_bytes):
-            f.truncate(cur_pos)
+            f.truncate(cur_pos + 1)
             return True
         return False
 
