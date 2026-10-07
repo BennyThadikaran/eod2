@@ -10,7 +10,7 @@ import sys
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
-from typing import Dict, List, Optional, Tuple, Type, Union
+from typing import Dict, List, NamedTuple, Optional, Tuple, Type, TypedDict, Union, cast
 
 import dateutil
 import numpy as np
@@ -34,6 +34,20 @@ except ModuleNotFoundError:
     exit("Please run `pip install 'nse~=5.0.0'`")
 
 
+class PreviousCommit(TypedDict):
+    file: Path
+    df: pd.DataFrame
+
+
+class BhavCopyRow(NamedTuple):
+    Index: str
+    TckrSymb: str
+    SctySrs: str
+    OpnPric: float
+    HghPric: float
+    LwPric: float
+    ClsPric: float
+    TtlTradgVol: float
 
 
 def configure_logger():
@@ -506,6 +520,8 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
 
     # iterate over each row as a tuple
     for t in df.itertuples():
+        t = cast(BhavCopyRow, t)
+
         # ignore rights issue
         if "-RE" in t.TckrSymb:
             continue
@@ -708,7 +724,7 @@ def getBonus(sym, string):
 def makeAdjustment(
     symbol: str,
     adjustmentFactor: float,
-    prev_commit: Optional[Dict[str, Union[pd.DataFrame, Path]]] = None,
+    prev_commit: Optional[PreviousCommit] = None,
 ) -> Optional[Tuple[pd.DataFrame, Path]]:
     """Makes adjustment to stock data prior to ex date,
     returning a tuple of pandas pd.DataFrame and filename
@@ -830,7 +846,7 @@ def adjustNseStocks():
     for actions in ("equityActions", "smeActions", "mfActions"):
         # Store all pd.DataFrames with associated files names to be saved to file
         # if no error occurs
-        df_commits: Dict[str, Dict[str, Union[pd.DataFrame, Path]]] = {}
+        df_commits: Dict[str, PreviousCommit] = {}
         post_commits: List[Tuple[str, float]] = []
         error_context = None
 
@@ -927,6 +943,8 @@ def adjustNseStocks():
 
             if dt in df.index:
                 idx = df.index.get_loc(dt)
+
+                assert isinstance(idx, int)
 
                 close = df.at[df.index[idx], "Close"]
                 prev_close = df.at[df.index[idx - 1], "Close"]
