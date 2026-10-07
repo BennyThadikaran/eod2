@@ -474,7 +474,11 @@ class PlotCoordinator:
                 watch_name = self.cmd.source.watch.name
 
             if watch_name:
-                self.session_store.save_watch_resume(watch_name, self.nav.current_index)
+                self.session_store.save_watch_resume(
+                    watch_name,
+                    self.nav.current_index,
+                    self.nav.length,
+                )
 
         self._close_all()
         exit(0)
