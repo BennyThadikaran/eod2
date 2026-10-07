@@ -83,6 +83,7 @@ def extract_pr_zip(zip_file) -> Optional[pd.DataFrame]:
 logger = logging.getLogger("MKT BREADTH")
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("pyrate_limiter.limiter").setLevel(logging.WARNING)
 
 DIR = Path(__file__).parent
 DAILY = DIR / "eod2_data/daily"
