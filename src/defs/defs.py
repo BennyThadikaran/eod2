@@ -474,8 +474,6 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
     """Update all stocks with latest price data from bhav copy"""
     logger.info("Starting Data Sync")
 
-    isinUpdated = False
-
     df = pd.read_csv(bhavFile, index_col="ISIN")
 
     BHAV_FOLDER = DIR / "nseBhav" / str(dates.dt.year)
@@ -544,23 +542,13 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
                 f"{t.TckrSymb} missing ISIN number. Please retry after few hours."
             )
 
-        # ISIN is a unique identifier for each stock symbol.
-        # When a symbol name changes its ISIN remains the same
-        # This allows for tracking changes in symbol names and
-        # updating file names accordingly
-        if t.Index not in isin.index:
-            isinUpdated = True
-            isin.at[t.Index, "SYMBOL"] = t.TckrSymb
+        # Returns None for untracked new symbols, or symbol name
+        tracked_symbol = tracker.get_last_symbol(t.Index, by="isin")
 
-        # if symbol name does not match the symbol name under its ISIN
-        # we rename the files in daily and delivery folder
-        if t.TckrSymb != isin.at[t.Index, "SYMBOL"]:
-            isinUpdated = True
-            old = isin.at[t.Index, "SYMBOL"].lower()
-
+        # Update file names if name not matching existing symbol name
+        if tracked_symbol is not None and t.TckrSymb != tracked_symbol:
+            old = tracked_symbol.lower()
             new = t.TckrSymb.lower()
-
-            isin.at[t.Index, "SYMBOL"] = t.TckrSymb
 
             SYM_FILE = DAILY_FOLDER / f"{new}{prefix}.csv"
             OLD_FILE = DAILY_FOLDER / f"{old}{prefix}.csv"
@@ -585,9 +573,6 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
             trdCnt,
             dq,
         )
-
-    if isinUpdated:
-        isin.to_csv(ISIN_FILE)
 
     logger.info("EOD sync complete")
 
@@ -1077,7 +1062,6 @@ def cleanOutDated():
 if __name__ != "__main__":
     DIR = Path(__file__).parents[1]
     DAILY_FOLDER = DIR / "eod2_data" / "daily"
-    ISIN_FILE = DIR / "eod2_data" / "isin.csv"
     AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
     META_FILE = DIR / "eod2_data" / "meta.json"
     SPECIAL_SESSIONS_FILE = DIR / "eod2_data/special_sessions.txt"
@@ -1142,8 +1126,6 @@ if __name__ != "__main__":
         if isinstance(hook, Type):
             # hook is a Class
             hook = hook()
-
-    isin = pd.read_csv(ISIN_FILE, index_col="ISIN")
 
     # initiate the dates class from utils.py
     dates = Dates(meta["lastUpdate"])
