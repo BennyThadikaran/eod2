@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import importlib.util
 import itertools
 import json
 import logging
@@ -124,6 +123,8 @@ def load_module(module_str: str) -> Union[ModuleType, Type]:
 
     Returns: ModuleType
     """
+    import importlib.util
+
     class_name = None
     module_path = module_str
 
