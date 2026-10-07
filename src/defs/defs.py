@@ -7,7 +7,6 @@ import logging
 import os
 import re
 import sys
-import time
 from datetime import datetime, timedelta
 from pathlib import Path
 from types import ModuleType
@@ -140,59 +139,6 @@ def log_unhandled_exception(exc_type, exc_value, exc_traceback):
     )
 
 
-def retry(max_retries=10, base_wait=2, max_wait=10):
-    """
-    Decorator that retries a function or method with exponential backoff
-    in case of exceptions.
-
-    :param max_retries: The maximum number of retry attempts.
-    :type max_retries: int
-    :param base_wait: The initial delay in seconds before the first retry.
-    :type base_wait: float
-    :param max_wait: The maximum delay in seconds between retries.
-    :type max_wait: float
-
-    .. code::python
-
-        @retry(max_retries=5, base_wait=2, max_wait=60)
-        def your_function_or_method(*args, **kwargs):
-            # Your function or method logic goes here
-            pass
-
-    """
-
-    def decorator(func):
-        def wrapper(*args, **kwargs):
-            retries = 0
-
-            while retries < max_retries:
-                try:
-                    return func(*args, **kwargs)
-                except (TimeoutError, ConnectionError) as e:
-                    logger.info(f"Attempt {retries + 1} failed: {e}")
-
-                    # Calculate the wait time using exponential backoff
-                    wait = min(base_wait * (2**retries), max_wait)
-
-                    logger.info(f"Retrying in {wait} seconds...")
-                    time.sleep(wait)
-
-                    retries += 1
-                except Exception as e:
-                    logger.exception(f"An error occurred {e}")
-                    exit(1)
-
-            logger.exception(
-                f"Exceeded maximum retry attempts for {func.__name__}. Exiting."
-            )
-            exit(1)
-
-        return wrapper
-
-    return decorator
-
-
-@retry()
 def check_reports_update_status(nse) -> Dict[str, bool]:
     """Check if all daily reports has been updated for NSE."""
     result = {
@@ -231,30 +177,6 @@ def getMuhuratHolidayInfo(holidays: Dict[str, List[dict]]) -> dict:
     return {}
 
 
-@retry()
-def downloadSpecialSessions() -> Tuple[datetime, ...]:
-    base_url = "https://raw.githubusercontent.com/BennyThadikaran/eod2_data"
-
-    err_text = "special_sessions.txt download failed. Please try again later."
-
-    try:
-        res = httpx.get(f"{base_url}/main/special_sessions.txt", timeout=30)
-    except httpx.ConnectTimeout as e:
-        raise TimeoutError(e)
-    except httpx.ConnectError as e:
-        raise ConnectionError(e)
-
-    if not res.status_code == httpx.codes.OK:
-        logger.exception(f"{err_text} {res.status_code}: {res.reason_phrase}")
-        exit(1)
-
-    return tuple(
-        datetime.fromisoformat(x).astimezone(tz_IN)
-        for x in res.text.strip().split("\n")
-    )
-
-
-@retry()
 def getHolidayList(nse: NSE):
     """Makes a request for NSE holiday list for the year.
     Saves and returns the holiday Object
@@ -310,7 +232,6 @@ def checkForHolidays(nse: NSE, dates_cls: Dates):
     return False
 
 
-@retry()
 def validateNseActionsFile(nse: NSE):
     """Check if the NSE Corporate actions() file exists.
     If exists, check if the file is older than 7 days.
@@ -696,7 +617,6 @@ def updateNseSymbol(symFile: Path, series, open, high, low, close, volume, trdCn
         )
 
 
-@retry()
 def check_special_sessions(nse: NSE) -> bool:
     last_update_str = meta.get("special_sessions_last_update")
 
