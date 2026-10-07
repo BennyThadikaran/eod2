@@ -323,13 +323,12 @@ def updatePendingDeliveryData(nse: NSE, date: str):
 
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
-        df = df[
-            (df[" SERIES"] == " EQ")
-            | (df[" SERIES"] == " BE")
-            | (df[" SERIES"] == " BZ")
-            | (df[" SERIES"] == " SM")
-            | (df[" SERIES"] == " ST")
-        ]
+        df = df[df.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
+
+        df.columns = df.columns.str.strip()
+        df.SERIES = df.SERIES.str.strip()
+
+        df["DELIV_QTY"] = pd.to_numeric(df.DELIV_QTY.str.strip().replace("-", 0))
 
         for sym in df.index:
             error_context = f"{sym} - {dt}"
@@ -343,19 +342,19 @@ def updatePendingDeliveryData(nse: NSE, date: str):
             if dt not in dailyDf.index:
                 continue
 
-            vol = dailyDf.loc[dt, "Volume"]
-            series = df.loc[sym, " SERIES"]
+            vol = dailyDf.at[dt, "Volume"]
+            series = df.at[sym, "SERIES"]
 
-            trdCnt, dq = df.loc[sym, [" NO_OF_TRADES", " DELIV_QTY"]]
+            trdCnt, dq = df.loc[sym, ["NO_OF_TRADES", "DELIV_QTY"]]
 
             # BE and BZ series stocks are all delivery trades,
             # so we use the volume
-            dq = vol if series in (" BE", " BZ") else int(dq)
+            dq = vol if series in ("BE", "BZ") else dq
             avgTrdCnt = round(vol / trdCnt, 2)
 
-            dailyDf.loc[dt, "TOTAL_TRADES"] = trdCnt
-            dailyDf.loc[dt, "QTY_PER_TRADE"] = avgTrdCnt
-            dailyDf.loc[dt, "DLV_QTY"] = dq
+            dailyDf.at[dt, "TOTAL_TRADES"] = trdCnt
+            dailyDf.at[dt, "QTY_PER_TRADE"] = avgTrdCnt
+            dailyDf.at[dt, "DLV_QTY"] = dq
             dailyDf.to_csv(DAILY_FILE)
 
         if hook and hasattr(hook, "updatePendingDeliveryData"):
@@ -513,9 +512,7 @@ def updateNseEOD(bhavFile: Path, deliveryFile: Optional[Path]):
         # https://www.nseindia.com/market-data/legend-of-series
         dlvDf = dlvDf[dlvDf.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
 
-        dlvDf["DELIV_QTY"] = pd.to_numeric(
-            dlvDf["DELIV_QTY"].str.strip().replace("-", 0)
-        )
+        dlvDf["DELIV_QTY"] = pd.to_numeric(dlvDf.DELIV_QTY.str.strip().replace("-", 0))
     else:
         dlvDf = None
 
