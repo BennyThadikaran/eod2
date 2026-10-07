@@ -14,6 +14,12 @@ from types import ModuleType
 from typing import Dict, List, Optional, Tuple, Type, Union
 
 import dateutil
+import numpy as np
+import pandas as pd
+import tzlocal
+from nse import NSE, NSEFileUnavailableError
+
+from defs.config import config
 
 from .dates import Dates
 from .symbol_tracker import SymbolTracker
@@ -26,14 +32,9 @@ except ImportError:
 try:
     import httpx
 except ModuleNotFoundError:
-    exit("Please run `pip install 'nse[server]==1.2.9'`")
+    exit("Please run `pip install 'nse~=5.0.0'`")
 
-import numpy as np
-import pandas as pd
-import tzlocal
-from nse import NSE
 
-from defs.config import config
 
 
 def configure_logger():
@@ -362,8 +363,8 @@ def updatePendingDeliveryData(nse: NSE, date: str):
     dt = dt.replace(tzinfo=None)
 
     try:
-        FILE = nse.deliveryBhavcopy(dt)
-    except (RuntimeError, Exception):
+        FILE = nse.delivery_bhavcopy(dt)
+    except (NSEFileUnavailableError, httpx.HTTPError):
         if daysSinceFailure == 5:
             logger.warning(
                 f"Max attempts reached: Aborting Future attempts for report dated {dt}"
@@ -477,9 +478,9 @@ def updateAmiBrokerRecords(nse: NSE):
 
         if not bhavFile.exists():
             try:
-                bhavFile = nse.equityBhavcopy(dt)
+                bhavFile = nse.equity_bhavcopy(dt)
                 bhavFile = bhavFile.rename(bhavFolder / bhavFile.name)
-            except (RuntimeError, FileNotFoundError):
+            except (NSEFileUnavailableError, httpx.HTTPError):
                 continue
             except Exception as e:
                 logger.warning(f"{e} - Please try again.")

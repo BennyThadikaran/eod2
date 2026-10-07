@@ -5,9 +5,9 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import httpx
 import pandas as pd
-from httpx import ConnectError
-from nse import NSE
+from nse import NSE, NSEFileUnavailableError
 
 from defs.dates import Dates
 from defs.defs import checkForHolidays
@@ -98,8 +98,8 @@ dates = Dates(meta["market_breadth_last_update"])
 eod2_last_updated = datetime.fromisoformat(meta["lastUpdate"])
 
 try:
-    nse = NSE(DIR, server=True)
-except (TimeoutError, ConnectionError, ConnectError) as e:
+    nse = NSE(DIR)
+except httpx.HTTPError as e:
     logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
     exit()
 
@@ -151,7 +151,7 @@ while True:
         pr_zip = nse.pr_bhavcopy(dates.dt, folder=PR_ZIP_FOLDER)
         mcap = extract_pr_zip(pr_zip)
         logger.info("PR Bhavcopy downloaded and extracted.")
-    except (RuntimeError, Exception) as e:
+    except (NSEFileUnavailableError, httpx.HTTPError) as e:
         if dates.dt.weekday() == 5:
             if dates.dt != dates.today:
                 logger.info(f"{dates.dt:%a, %d %b %Y}: Market Closed\n{'-' * 52}")
