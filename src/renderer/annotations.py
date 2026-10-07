@@ -127,6 +127,9 @@ class DrawingTool:
         self._cid = None
         self._preview_artist = None
 
+    def reset_drawmode(self) -> None:
+        self._active = False
+
     def set_draw_state(self, key: str) -> None:
         match key:
             case "shift":

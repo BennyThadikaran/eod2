@@ -160,6 +160,7 @@ class PlotCoordinator:
 
             if self.drawing_tool:
                 self.drawing_tool.set_data(df)
+                self.drawing_tool.reset_drawmode()
 
             # Add SNR levels
             if self.cmd.snr and self.is_stock_mode:
