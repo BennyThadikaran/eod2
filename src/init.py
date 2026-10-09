@@ -67,19 +67,19 @@ except httpx.HTTPError as e:
 if defs.check_special_sessions(nse):
     writeJson(defs.META_FILE, defs.meta)
 
-if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
-    defs.updateAmiBrokerRecords(nse)
+if defs.config.AMIBROKER and not defs.is_amibroker_folder_updated():
+    defs.update_amibroker_records(nse)
 
 if "DLV_PENDING_DATES" not in defs.meta:
     defs.meta["DLV_PENDING_DATES"] = []
 
 if len(defs.meta["DLV_PENDING_DATES"]):
-    pendingList = defs.meta["DLV_PENDING_DATES"].copy()
+    pending_list = defs.meta["DLV_PENDING_DATES"].copy()
 
     logger.info("Updating pending delivery reports.")
 
-    for dateStr in pendingList:
-        if defs.updatePendingDeliveryData(nse, dateStr):
+    for date_str in pending_list:
+        if defs.update_pending_delivery_data(nse, date_str):
             writeJson(defs.META_FILE, defs.meta)
 
 while True:
@@ -87,13 +87,13 @@ while True:
         nse.exit()
         exit(0)
 
-    if defs.checkForHolidays(nse, defs.dates):
+    if defs.check_for_holidays(nse, defs.dates):
         defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
         writeJson(defs.META_FILE, defs.meta)
         continue
 
     # Validate NSE actions file
-    defs.validateNseActionsFile(nse)
+    defs.validate_nse_actions_file(nse)
 
     # Download all files and validate for errors
     logger.info("Downloading Files")
@@ -155,10 +155,10 @@ while True:
         defs.meta["DLV_PENDING_DATES"].append(defs.dates.dt.isoformat())
 
     try:
-        defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
+        defs.update_nse_eod(BHAV_FILE, DELIVERY_FILE)
 
         # INDEX sync
-        defs.updateIndexEOD(INDEX_FILE)
+        defs.update_index_eod(INDEX_FILE)
     except Exception as e:
         # rollback
         logger.exception("Error during data sync.", exc_info=e)
@@ -174,7 +174,7 @@ while True:
 
     # Adjust Splits and bonus
     try:
-        defs.adjustNseStocks()
+        defs.adjust_nse_stocks()
     except Exception as e:
         logger.exception(
             "Error while making adjustments.\nAll adjustments have been discarded.",
@@ -195,7 +195,7 @@ while True:
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
     if defs.dates.today == defs.dates.dt:
-        defs.cleanOutDated()
+        defs.clean_outdated()
 
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
     writeJson(defs.META_FILE, defs.meta)

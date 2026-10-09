@@ -10,7 +10,7 @@ import pandas as pd
 from nse import NSE, NSEFileUnavailableError
 
 from defs.dates import Dates
-from defs.defs import checkForHolidays
+from defs.defs import check_for_holidays
 from defs.symbol_tracker import SymbolTracker
 from defs.utils import getDataFrame, writeJson
 
@@ -135,7 +135,7 @@ while True:
         logger.info("All upto date")
         exit()
 
-    if checkForHolidays(nse, dates):
+    if check_for_holidays(nse, dates):
         meta["market_breadth_last_update"] = dates.lastUpdate = dates.dt
         writeJson(META_FILE, meta)
         continue
