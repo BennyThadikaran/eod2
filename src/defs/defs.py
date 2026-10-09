@@ -982,33 +982,50 @@ def deleteLastLineByDate(file: Path, date_str: str) -> bool:
     """
     Truncate the last line if line starts with date_str
     """
+    if not date_str:
+        raise ValueError("date_str must not be empty")
+
     # Get the file size
     file_size = os.path.getsize(file)
 
     if file_size == 0:
         return False
 
-    date_bytes = bytes(date_str, encoding="utf-8")
+    date_bytes = date_str.encode("utf-8")
 
-    # Open the file in read-only mode
     with file.open("r+b") as f:
         # Start searching from the end of the file
         cur_pos = file_size - 2
-        f.seek(cur_pos)
 
         # Search backward till the newline character is found
-        while f.read(1) != b"\n":
-            cur_pos -= 1
+        while cur_pos > 0:
+            f.seek(cur_pos)
 
-            try:
-                f.seek(cur_pos)
-            except OSError:
+            if f.read(1) == b"\n":
                 break
 
-        if f.read().startswith(date_bytes):
-            f.truncate(cur_pos + 1)
-            return True
-        return False
+            cur_pos -= 1
+
+        # Note: cur_pos + 1 preserves the trailing newline.
+        # Fix contributed by @ArunTS96 in #353.
+        last_line_start = cur_pos + 1 if cur_pos > 0 else 0
+
+        if last_line_start == 0:
+            header_prefix = b"Date"
+            f.seek(0)
+
+            if f.read(len(header_prefix)).startswith(header_prefix):
+                return False
+
+            raise ValueError(f"{file.name}: Missing column headers")
+
+        f.seek(last_line_start)
+
+        if not f.read().startswith(date_bytes):
+            return False
+
+        f.truncate(last_line_start)
+        return True
 
 
 def rollback(folder: Path):
