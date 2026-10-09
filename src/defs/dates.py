@@ -3,12 +3,13 @@ from __future__ import annotations
 import logging
 from datetime import datetime, timedelta
 
+import tzlocal
+
 try:
     from zoneinfo import ZoneInfo
 except ImportError:
     from backports.zoneinfo import ZoneInfo
 
-import tzlocal
 
 logger = logging.getLogger(__name__)
 

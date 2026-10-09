@@ -69,7 +69,7 @@ def configure_logger():
             )
         )
     except TypeError:
-        # Python 3.8 and 3.9 - No support for defaults parameter.
+        # Python < 3.10 does not support the `defaults` parameter.
         file_handler.setFormatter(
             logging.Formatter("%(levelname)s: %(asctime)s - %(name)s - %(message)s")
         )
@@ -538,8 +538,8 @@ def update_nse_eod(bhav_file: Path, delivery_file: Optional[Path]):
         else:
             trade_count = dq = ""
 
-        prefix = "_sme" if t.SctySrs in ("SM", "ST") else ""
-        SYM_FILE = DAILY_FOLDER / f"{t.TckrSymb.lower()}{prefix}.csv"
+        suffix = "_sme" if t.SctySrs in ("SM", "ST") else ""
+        SYM_FILE = DAILY_FOLDER / f"{t.TckrSymb.lower()}{suffix}.csv"
 
         if pd.isna(t.Index):
             raise ValueError(
@@ -554,8 +554,8 @@ def update_nse_eod(bhav_file: Path, delivery_file: Optional[Path]):
             old = tracked_symbol.lower()
             new = t.TckrSymb.lower()
 
-            SYM_FILE = DAILY_FOLDER / f"{new}{prefix}.csv"
-            OLD_FILE = DAILY_FOLDER / f"{old}{prefix}.csv"
+            SYM_FILE = DAILY_FOLDER / f"{new}{suffix}.csv"
+            OLD_FILE = DAILY_FOLDER / f"{old}{suffix}.csv"
 
             try:
                 OLD_FILE.rename(SYM_FILE)
