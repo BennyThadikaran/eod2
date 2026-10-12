@@ -196,7 +196,7 @@ def check_reports_update_status(nse) -> ReportStatus:
 def get_muhurat_holiday_info(holidays: Dict[str, List[Dict]]) -> Dict:
     for lst in holidays.values():
         for dct in lst:
-            if "Laxmi Pujan" in dct["description"]:
+            if "laxmi pujan" in dct["description"].lower():
                 return dct
 
     return {}
