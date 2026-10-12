@@ -38,6 +38,16 @@ class PreviousCommit(TypedDict):
     df: pd.DataFrame
 
 
+ReportStatus = TypedDict(
+    "ReportStatus",
+    {
+        "CM-UDIFF-BHAVCOPY-CSV": bool,
+        "CM-BHAVDATA-FULL": bool,
+        "INDEX-SNAPSHOT": bool,
+    },
+)
+
+
 class BhavCopyRow(NamedTuple):
     Index: str
     TckrSymb: str
@@ -154,9 +164,9 @@ def log_unhandled_exception(exc_type, exc_value, exc_traceback):
     )
 
 
-def check_reports_update_status(nse) -> Dict[str, bool]:
+def check_reports_update_status(nse) -> ReportStatus:
     """Check if all daily reports has been updated for NSE."""
-    result = {
+    result: ReportStatus = {
         "CM-UDIFF-BHAVCOPY-CSV": False,
         "CM-BHAVDATA-FULL": False,
         "INDEX-SNAPSHOT": False,
