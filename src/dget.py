@@ -6,7 +6,7 @@ from sys import platform
 from pandas import read_csv
 
 from defs.config import config
-from defs.utils import loadJson, writeJson
+from defs.utils import load_json, write_json
 
 
 # Shell colors
@@ -125,13 +125,13 @@ if "win" in platform:
 if args.watch_add:
     name, fName = args.watch_add
 
-    data = loadJson(configPath) if configPath.is_file() else {}
+    data = load_json(configPath) if configPath.is_file() else {}
 
     if "WATCH" not in data:
         data["WATCH"] = {}
 
     data["WATCH"][name.upper()] = fName
-    writeJson(configPath, data)
+    write_json(configPath, data)
     exit(f"Added watchlist '{name}' with value '{fName}'")
 
 if args.watch_rm:
@@ -141,11 +141,11 @@ if args.watch_rm:
     if not configPath.is_file():
         exit("No config file")
 
-    data = loadJson(configPath)
+    data = load_json(configPath)
 
     del data["WATCH"][args.watch_rm.upper()]
 
-    writeJson(configPath, data)
+    write_json(configPath, data)
     exit(f"Watchlist '{args.watch_rm}' removed.")
 
 if args.ls:

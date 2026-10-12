@@ -12,7 +12,7 @@ from nse import NSE, NSEFileUnavailableError
 from defs.dates import Dates
 from defs.defs import check_for_holidays
 from defs.symbol_tracker import SymbolTracker
-from defs.utils import getDataFrame, writeJson
+from defs.utils import get_dataframe, write_json
 
 
 def ema(price, period, prev_ema):
@@ -28,7 +28,7 @@ def load_symbol(sym) -> Optional[pd.DataFrame]:
         logger.warning(f"{sym} not found")
         return None
 
-    df = getDataFrame(file, period=260, columns=["Date", "High", "Low", "Close"])
+    df = get_dataframe(file, period=260, columns=["Date", "High", "Low", "Close"])
 
     df.loc[:, "MA50"] = df.Close.rolling(50).mean().round(2)
     df.loc[:, "MA200"] = df.Close.rolling(200).mean().round(2)
@@ -137,7 +137,7 @@ while True:
 
     if check_for_holidays(nse, dates):
         meta["market_breadth_last_update"] = dates.lastUpdate = dates.dt
-        writeJson(META_FILE, meta)
+        write_json(META_FILE, meta)
         continue
 
     logger.info(f"Syncing data for {dates.dt:%d %b %Y}")
@@ -270,7 +270,7 @@ while True:
     )
 
     meta["market_breadth_last_update"] = dates.lastUpdate = dates.dt
-    writeJson(META_FILE, meta)
+    write_json(META_FILE, meta)
 
     logger.info(f"{dates.dt:%d %b %Y}: Done\n{'-' * 52}")
     modified = True

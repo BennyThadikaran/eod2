@@ -8,7 +8,7 @@ import httpx
 from nse import NSE, NSEFileUnavailableError
 
 from defs import defs
-from defs.utils import writeJson
+from defs.utils import write_json
 
 logger = logging.getLogger(__name__)
 
@@ -65,7 +65,7 @@ except httpx.HTTPError as e:
     exit(1)
 
 if defs.check_special_sessions(nse):
-    writeJson(defs.META_FILE, defs.meta)
+    write_json(defs.META_FILE, defs.meta)
 
 if defs.config.AMIBROKER and not defs.is_amibroker_folder_updated():
     defs.update_amibroker_records(nse)
@@ -80,7 +80,7 @@ if len(defs.meta["DLV_PENDING_DATES"]):
 
     for date_str in pending_list:
         if defs.update_pending_delivery_data(nse, date_str):
-            writeJson(defs.META_FILE, defs.meta)
+            write_json(defs.META_FILE, defs.meta)
 
 while True:
     if not defs.dates.nextDate():
@@ -89,7 +89,7 @@ while True:
 
     if defs.check_for_holidays(nse, defs.dates):
         defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
-        writeJson(defs.META_FILE, defs.meta)
+        write_json(defs.META_FILE, defs.meta)
         continue
 
     # Validate NSE actions file
@@ -166,7 +166,7 @@ while True:
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
         defs.meta["lastUpdate"] = defs.dates.lastUpdate
-        writeJson(defs.META_FILE, defs.meta)
+        write_json(defs.META_FILE, defs.meta)
         nse.exit()
         exit(1)
 
@@ -185,7 +185,7 @@ while True:
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
         defs.meta["lastUpdate"] = defs.dates.lastUpdate
-        writeJson(defs.META_FILE, defs.meta)
+        write_json(defs.META_FILE, defs.meta)
         nse.exit()
         exit(1)
 
@@ -198,7 +198,7 @@ while True:
         defs.clean_outdated()
 
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
-    writeJson(defs.META_FILE, defs.meta)
+    write_json(defs.META_FILE, defs.meta)
     defs.ISIN_SYMBOL_MAP_FILE.write_text(defs.tracker.to_json())
 
     logger.info(f"{defs.dates.dt:%d %b %Y}: Done\n{'-' * 52}")
