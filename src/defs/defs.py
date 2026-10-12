@@ -340,7 +340,8 @@ def update_pending_delivery_data(nse: NSE, date: str):
         df.columns = df.columns.str.strip()
         df.SERIES = df.SERIES.str.strip()
 
-        df["DELIV_QTY"] = pd.to_numeric(df.DELIV_QTY.str.strip().replace("-", 0))
+        if not pd.api.types.is_numeric_dtype(df.DELIV_QTY):
+            df["DELIV_QTY"] = pd.to_numeric(df.DELIV_QTY.str.strip().replace("-", "0"))
 
         for sym in df.index:
             error_context = f"{sym} - {dt}"
@@ -522,9 +523,10 @@ def update_nse_eod(bhav_file: Path, delivery_file: Optional[Path]):
         # https://www.nseindia.com/market-data/legend-of-series
         dlv_df = dlv_df[dlv_df.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
 
-        dlv_df["DELIV_QTY"] = pd.to_numeric(
-            dlv_df.DELIV_QTY.str.strip().replace("-", 0)
-        )
+        if not pd.api.types.is_numeric_dtype(dlv_df.DELIV_QTY):
+            dlv_df["DELIV_QTY"] = pd.to_numeric(
+                dlv_df.DELIV_QTY.str.strip().replace("-", "0")
+            )
     else:
         dlv_df = None
 
