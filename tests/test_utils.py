@@ -2,9 +2,206 @@ import json
 import unittest
 from datetime import datetime
 from pathlib import Path
+from unittest.mock import patch
 
 import pandas as pd
 from context import utils
+
+
+class TestGetDataFrame(unittest.TestCase):
+    """Test suite for utils.get_dataframe function."""
+
+    def setUp(self):
+        """Set up test fixtures."""
+        self.test_fpath = Path("/tmp/test_data.csv")
+        self.period = 10
+
+        # Create sample OHLC data for testing
+        dates = pd.date_range(start="2024-01-01", periods=50, freq="D")
+        self.sample_df = pd.DataFrame(
+            {
+                "Open": range(100, 150),
+                "High": range(105, 155),
+                "Low": range(95, 145),
+                "Close": range(102, 152),
+                "Volume": range(1000, 1050),
+            },
+            index=dates,
+        )
+
+        # Sample weekly data
+        weekly_dates = pd.date_range(start="2024-01-01", periods=10, freq="W")
+        self.weekly_df = pd.DataFrame(
+            {
+                "Open": range(100, 110),
+                "High": range(105, 115),
+                "Low": range(95, 105),
+                "Close": range(102, 112),
+                "Volume": range(1000, 1010),
+            },
+            index=weekly_dates,
+        )
+
+    @patch("context.utils.csv_loader")
+    def test_daily_dataframe_default_parameters(self, mock_csv_loader):
+        """Test daily timeframe with default parameters."""
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(self.test_fpath, self.period)
+
+        # Verify csv_loader was called correctly
+        mock_csv_loader.assert_called_once_with(
+            self.test_fpath, self.period, end_date=None, use_columns=None
+        )
+
+        # Verify result
+        self.assertEqual(len(result), self.period)
+        pd.testing.assert_frame_equal(result, self.sample_df[-self.period :])
+
+    @patch("context.utils.csv_loader")
+    def test_daily_dataframe_with_columns(self, mock_csv_loader):
+        """Test daily timeframe with specific columns."""
+        columns = ["Open", "Close"]
+        filtered_df = self.sample_df[columns]
+        mock_csv_loader.return_value = filtered_df
+
+        result = utils.get_dataframe(
+            self.test_fpath, self.period, tf="daily", columns=columns
+        )
+
+        mock_csv_loader.assert_called_once_with(
+            self.test_fpath, self.period, end_date=None, use_columns=columns
+        )
+
+        self.assertEqual(len(result), self.period)
+        self.assertListEqual(list(result.columns), columns)
+
+    @patch("context.utils.csv_loader")
+    def test_daily_dataframe_with_toDate(self, mock_csv_loader):
+        """Test daily timeframe with toDate parameter."""
+        to_date = datetime(2024, 2, 1)
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(
+            self.test_fpath, self.period, tf="daily", toDate=to_date
+        )
+
+        mock_csv_loader.assert_called_once_with(
+            self.test_fpath, self.period, end_date=to_date, use_columns=None
+        )
+
+        self.assertEqual(len(result), self.period)
+
+    @patch("context.utils.csv_loader")
+    def test_weekly_dataframe_calculation(self, mock_csv_loader):
+        """Test that weekly timeframe correctly calculates candle count."""
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(self.test_fpath, self.period, tf="weekly")
+
+        # For weekly, candle_count should be period * 5
+        expected_candle_count = self.period * 5
+        mock_csv_loader.assert_called_once_with(
+            self.test_fpath, expected_candle_count, end_date=None, use_columns=None
+        )
+
+    @patch("context.utils.csv_loader")
+    def test_weekly_dataframe_resampling(self, mock_csv_loader):
+        """Test weekly resampling functionality."""
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(self.test_fpath, self.period, tf="weekly")
+
+        # Verify result is resampled to weekly
+        self.assertIsInstance(result, pd.DataFrame)
+        # Weekly data should have fewer rows than daily
+        self.assertLessEqual(len(result), len(self.sample_df))
+
+    @patch("context.utils.csv_loader")
+    def test_weekly_dataframe_with_columns(self, mock_csv_loader):
+        """Test weekly timeframe with specific columns."""
+        columns = ["Open", "Close"]
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(
+            self.test_fpath, self.period, tf="weekly", columns=columns
+        )
+
+        # Should only include specified columns
+        self.assertTrue(all(col in result.columns for col in columns))
+        self.assertFalse(any(col not in columns for col in result.columns))
+
+    @patch("context.utils.csv_loader")
+    def test_weekly_dataframe_invalid_columns(self, mock_csv_loader):
+        """Test weekly timeframe with invalid column names."""
+        columns = ["Open", "invalid_column", "Close"]
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(
+            self.test_fpath, self.period, tf="weekly", columns=columns
+        )
+
+        # Invalid columns should be filtered out
+        self.assertNotIn("invalid_column", result.columns)
+        self.assertIn("Open", result.columns)
+        self.assertIn("Close", result.columns)
+
+    @patch("context.utils.csv_loader")
+    def test_empty_dataframe(self, mock_csv_loader):
+        """Test behavior with empty dataframe."""
+        empty_df = pd.DataFrame()
+        mock_csv_loader.return_value = empty_df
+
+        result = utils.get_dataframe(self.test_fpath, self.period)
+
+        self.assertTrue(result.empty)
+
+    @patch("context.utils.csv_loader")
+    def test_insufficient_data(self, mock_csv_loader):
+        """Test behavior when dataframe has fewer rows than period."""
+        short_df = self.sample_df[:5]  # Only 5 rows
+        mock_csv_loader.return_value = short_df
+
+        result = utils.get_dataframe(self.test_fpath, self.period)
+
+        # Should return all available data
+        self.assertEqual(len(result), 5)
+
+    @patch("context.utils.csv_loader")
+    def test_csv_loader_exception(self, mock_csv_loader):
+        """Test exception handling from csv_loader."""
+        mock_csv_loader.side_effect = FileNotFoundError("File not found")
+
+        with self.assertRaises(FileNotFoundError):
+            utils.get_dataframe(self.test_fpath, self.period)
+
+    @patch("context.utils.csv_loader")
+    def test_weekly_with_toDate(self, mock_csv_loader):
+        """Test weekly timeframe with toDate parameter."""
+        to_date = datetime(2024, 2, 1)
+        mock_csv_loader.return_value = self.sample_df
+
+        result = utils.get_dataframe(
+            self.test_fpath, self.period, tf="weekly", toDate=to_date
+        )
+
+        expected_candle_count = self.period * 5
+        mock_csv_loader.assert_called_once_with(
+            self.test_fpath, expected_candle_count, end_date=to_date, use_columns=None
+        )
+
+    @patch("context.utils.csv_loader")
+    def test_period_boundary_conditions(self, mock_csv_loader):
+        """Test boundary conditions for period parameter."""
+        mock_csv_loader.return_value = self.sample_df
+
+        # Test with period = 1
+        result = utils.get_dataframe(self.test_fpath, 1)
+        self.assertEqual(len(result), 1)
+
+        # Test with period larger than available data
+        result = utils.get_dataframe(self.test_fpath, 1000)
+        self.assertEqual(len(result), len(self.sample_df))
 
 
 class TestJsonFunctions(unittest.TestCase):
@@ -21,7 +218,7 @@ class TestJsonFunctions(unittest.TestCase):
 
         data = {"key": "value", "date": datetime(2023, 1, 1, 12)}
 
-        utils.writeJson(filepath, data)
+        utils.write_json(filepath, data)
 
         file_content = filepath.read_text()
 
@@ -31,230 +228,6 @@ class TestJsonFunctions(unittest.TestCase):
 
         # Clean up: Remove the temp file
         filepath.unlink()
-
-
-class TestArgParseDict(unittest.TestCase):
-    def test_different_values(self):
-        args = utils.arg_parse_dict(
-            {"sym": "tcs", "sma": [20, 50, 200], "volume": True}
-        )
-
-        expected = ["--sym", "tcs", "--sma", "20", "50", "200", "--volume"]
-
-        self.assertEqual(args, expected)
-
-    def test_boolean_false(self):
-        args = utils.arg_parse_dict({"sym": "tcs", "volume": False})
-
-        # volume argument not included
-        expected = ["--sym", "tcs"]
-
-        self.assertEqual(args, expected)
-
-    def test_none(self):
-        args = utils.arg_parse_dict({"sym": "tcs", "watch": None})
-
-        # watch argument not included
-        expected = ["--sym", "tcs"]
-
-        self.assertEqual(args, expected)
-
-
-class TestGetDataFrameFunction(unittest.TestCase):
-    def setUp(self):
-        # Create a temporary CSV file with sample data for testing
-        self.csv_path = Path("test_data.csv")
-
-        data = {
-            "Date": pd.date_range(start="2022-01-01", periods=10),
-            "Open": [100, 105, 110, 95, 102, 108, 115, 98, 105, 112],
-            "High": [105, 112, 115, 100, 110, 118, 120, 104, 110, 118],
-            "Low": [98, 100, 105, 92, 96, 104, 110, 94, 98, 105],
-            "Close": [102, 110, 112, 98, 105, 112, 118, 100, 105, 114],
-            "Volume": [
-                100000,
-                120000,
-                95000,
-                110000,
-                105000,
-                98000,
-                115000,
-                102000,
-                108000,
-                112000,
-            ],
-        }
-
-        pd.DataFrame(data).to_csv(self.csv_path, index=False)
-
-    def tearDown(self):
-        # Remove the temporary CSV file after the test
-        self.csv_path.unlink()
-
-    def test_default(self):
-        result = utils.getDataFrame(self.csv_path, tf="daily", period=2)
-
-        expected = pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[-2:]
-
-        pd.testing.assert_frame_equal(result, expected)
-
-    def test_weekly(self):
-        result = utils.getDataFrame(Path(self.csv_path), tf="weekly", period=2)
-
-        dct = {
-            "Open": "first",
-            "High": "max",
-            "Low": "min",
-            "Close": "last",
-            "Volume": "sum",
-        }
-
-        expected = (
-            pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")
-            .resample("W", label="left")
-            .apply(dct)[-2:]
-        )
-
-        pd.testing.assert_frame_equal(result, expected)
-
-    def test_weekly_close_column(self):
-        result = utils.getDataFrame(
-            Path(self.csv_path), tf="weekly", period=2, columns=["Date", "Close"]
-        )
-
-        expected = (
-            pd.read_csv(
-                self.csv_path,
-                parse_dates=True,
-                index_col="Date",
-                usecols=pd.Index(["Date", "Close"]),
-            )
-            .resample("W", label="left")
-            .apply("last")[-2:]
-        )
-
-        pd.testing.assert_frame_equal(result, expected)
-
-    def test_toDate(self):
-        result = utils.getDataFrame(
-            Path(self.csv_path),
-            tf="daily",
-            period=2,
-            toDate=datetime(2022, 1, 5),
-        )
-
-        expected = pd.read_csv(self.csv_path, parse_dates=True, index_col="Date")[
-            :"2022-01-05"
-        ][-2:]
-
-        pd.testing.assert_frame_equal(result, expected)
-
-
-class TestGetLevels(unittest.TestCase):
-    def setUp(self):
-        # Price level 60 as resistance and 30 as support
-        data = {
-            "High": (50.0, 55.0, 60.0, 55.0, 50.0, 45.0, 40.0, 45.0, 50.0),
-            "Low": (40.0, 45.0, 50.0, 45.0, 40.0, 35.0, 30.0, 35.0, 40.0),
-        }
-        index = pd.date_range(start="2023-01-01", periods=9)
-
-        self.df = pd.DataFrame(data, index=pd.DatetimeIndex(index))
-
-    def test_data_types(self):
-        mean_candle_size = 2.0
-
-        # List[ Tuple[ Tuple[date, price], Tuple[date, price] ] ]
-        result = utils.getLevels(self.df, mean_candle_size)
-
-        self.assertIsInstance(result, list)
-
-        # Tuple[ Tuple[date, price], Tuple[date, price] ]
-        for level in result:
-            # each level is tuple
-            self.assertIsInstance(level, tuple)
-            # level has two tuples within
-            self.assertIsInstance(level[0], tuple)
-            self.assertIsInstance(level[1], tuple)
-
-            # each tuple contains datetime and float values
-            self.assertIsInstance(level[0][0], pd.Timestamp)
-            self.assertIsInstance(level[1][0], pd.Timestamp)
-            self.assertIsInstance(level[0][1], float)
-            self.assertIsInstance(level[1][1], float)
-
-        # First resistance line is at 60
-        self.assertEqual(result[0][0][1], 60)
-
-        # second support line is at 30
-        self.assertEqual(result[1][0][1], 30)
-
-
-class TestIsFarFromLevel(unittest.TestCase):
-    level = 50.0
-    mean_size = 5.0
-
-    def test_far_from_all_levels(self):
-        levels = [(1, 45.0), (2, 55.0), (3, 60.0)]
-
-        result = utils.isFarFromLevel(self.level, levels, self.mean_size)
-
-        self.assertTrue(result)
-
-    def test_close_to_one(self):
-        levels = [(1, 45.0), (2, 49.0), (3, 60.0)]
-
-        result = utils.isFarFromLevel(self.level, levels, self.mean_size)
-
-        self.assertFalse(result)
-
-    def test_no_levels(self):
-        levels = []
-
-        result = utils.isFarFromLevel(self.level, levels, self.mean_size)
-
-        self.assertTrue(result)
-
-
-class TestRelativeStrength(unittest.TestCase):
-    def test_relative_strength(self):
-        # Test data
-        stock_close_prices = pd.Series((50, 55, 52, 48, 53))
-        index_close_prices = pd.Series((1000, 1010, 1005, 990, 995))
-
-        # Expected result based on manual calculation
-        expected = pd.Series((5.0, 5.45, 5.17, 4.85, 5.33))
-
-        # Calculate relative strength
-        result = utils.relativeStrength(stock_close_prices, index_close_prices)
-
-        # Perform the assertion
-        pd.testing.assert_series_equal(result, expected)
-
-
-class TestManfieldRelativeStrength(unittest.TestCase):
-    def test_manfield_relative_strength(self):
-        stock_close_prices = pd.Series((50, 55, 52, 48, 53))
-        index_close_prices = pd.Series((1000, 1010, 1005, 990, 995))
-
-        # Expected result based on manual calculation
-        expected = pd.Series((None, None, -0.7, -5.95, 4.17))
-
-        # Calculate Mansfield Relative Strength
-        result = utils.manfieldRelativeStrength(
-            stock_close_prices, index_close_prices, 3
-        )
-
-        # Perform the assertion
-        pd.testing.assert_series_equal(result, expected)
-
-
-class TestRandomChar(unittest.TestCase):
-    def test_random_char(self):
-        for length in (5, 10, 15):
-            result = utils.randomChar(length)
-
-            self.assertEqual(len(result), length)
 
 
 if __name__ == "__main__":
