@@ -36,13 +36,18 @@ class SessionStore:
         self.selections: set[str] = set()
         self._timeframe: Timeframe = timeframe
 
-    def save_watch_resume(self, watch_name: str, index: int) -> None:
+    def save_watch_resume(self, watch_name: str, index: int, last_index: int) -> None:
         """Save watch resume state.
 
         Args:
             watch_name: Name of the watchlist
             index: Current symbol index
+            last_index: Last symbol index
         """
+        if index == last_index:
+            # Dont save if index at last symbol
+            return
+
         data = load_json(self._user_config_path)
 
         data.setdefault("CHART_RESUME", {})

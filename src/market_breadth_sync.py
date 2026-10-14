@@ -5,14 +5,14 @@ from datetime import datetime
 from pathlib import Path
 from typing import Optional
 
+import httpx
 import pandas as pd
-from httpx import ConnectError
-from nse import NSE
+from nse import NSE, NSEFileUnavailableError
 
 from defs.dates import Dates
-from defs.defs import checkForHolidays
+from defs.defs import check_for_holidays
 from defs.symbol_tracker import SymbolTracker
-from defs.utils import getDataFrame, writeJson
+from defs.utils import get_dataframe, write_json
 
 
 def ema(price, period, prev_ema):
@@ -28,7 +28,7 @@ def load_symbol(sym) -> Optional[pd.DataFrame]:
         logger.warning(f"{sym} not found")
         return None
 
-    df = getDataFrame(file, period=260, columns=["Date", "High", "Low", "Close"])
+    df = get_dataframe(file, period=260, columns=["Date", "High", "Low", "Close"])
 
     df.loc[:, "MA50"] = df.Close.rolling(50).mean().round(2)
     df.loc[:, "MA200"] = df.Close.rolling(200).mean().round(2)
@@ -83,6 +83,7 @@ def extract_pr_zip(zip_file) -> Optional[pd.DataFrame]:
 logger = logging.getLogger("MKT BREADTH")
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("pyrate_limiter.limiter").setLevel(logging.WARNING)
 
 DIR = Path(__file__).parent
 DAILY = DIR / "eod2_data/daily"
@@ -98,8 +99,8 @@ dates = Dates(meta["market_breadth_last_update"])
 eod2_last_updated = datetime.fromisoformat(meta["lastUpdate"])
 
 try:
-    nse = NSE(DIR, server=True)
-except (TimeoutError, ConnectionError, ConnectError) as e:
+    nse = NSE(DIR)
+except httpx.HTTPError as e:
     logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
     exit()
 
@@ -134,9 +135,9 @@ while True:
         logger.info("All upto date")
         exit()
 
-    if checkForHolidays(nse, dates):
+    if check_for_holidays(nse, dates):
         meta["market_breadth_last_update"] = dates.lastUpdate = dates.dt
-        writeJson(META_FILE, meta)
+        write_json(META_FILE, meta)
         continue
 
     logger.info(f"Syncing data for {dates.dt:%d %b %Y}")
@@ -151,7 +152,7 @@ while True:
         pr_zip = nse.pr_bhavcopy(dates.dt, folder=PR_ZIP_FOLDER)
         mcap = extract_pr_zip(pr_zip)
         logger.info("PR Bhavcopy downloaded and extracted.")
-    except (RuntimeError, Exception) as e:
+    except (NSEFileUnavailableError, httpx.HTTPError) as e:
         if dates.dt.weekday() == 5:
             if dates.dt != dates.today:
                 logger.info(f"{dates.dt:%a, %d %b %Y}: Market Closed\n{'-' * 52}")
@@ -269,7 +270,7 @@ while True:
     )
 
     meta["market_breadth_last_update"] = dates.lastUpdate = dates.dt
-    writeJson(META_FILE, meta)
+    write_json(META_FILE, meta)
 
     logger.info(f"{dates.dt:%d %b %Y}: Done\n{'-' * 52}")
     modified = True

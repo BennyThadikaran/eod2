@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from dataclasses import dataclass, field
 from pathlib import Path
-from typing import Any, Literal
+from typing import Any, Dict, List, Literal, Optional, Tuple
 
 DIR = Path(__file__).parents[1]
 
@@ -33,12 +33,12 @@ class Config:
     DGET_DAYS: int = 30
 
     # ---------- PLOT ----------
-    CHART_RESUME: dict | None = None
-    PLOT_SIZE: tuple[int, int] | None = None  # (width, height) in inches
+    CHART_RESUME: Optional[Dict] = None
+    PLOT_SIZE: Tuple[int, int] | None = None  # (width, height) in inches
     MAGNET_MODE: bool = True
 
-    PLOT_PLUGINS: dict[str, dict] = field(default_factory=dict)
-    CHART_PLUGINS: dict[str, dict] = field(default_factory=dict)
+    PLOT_PLUGINS: Dict[str, Dict] = field(default_factory=dict)
+    CHART_PLUGINS: Dict[str, Dict] = field(default_factory=dict)
 
     PLOT_DAYS: int = 180
     PLOT_WEEKS: int = 180
@@ -79,15 +79,15 @@ class Config:
     PLOT_TLINE_COLOR: str = "darkturquoise"
     PLOT_ALINE_COLOR: str = "mediumseagreen"
 
-    WATCH: dict[str, Path] = field(
+    WATCH: Dict[str, Path] = field(
         default_factory=lambda: {"SECTORS": (DIR / "data" / "sectors.csv").resolve()}
     )
 
-    PRESET: dict[str, Any] = field(default_factory=dict)
+    PRESET: Dict[str, Any] = field(default_factory=dict)
 
     # ---------- INTERNAL ----------
-    VERSION: str = "9.5.1"
-    EXPECTED_DATA_VERSION: float = 3.4
+    VERSION: str = "9.6.0"
+    EXPECTED_DATA_VERSION: float = 3.5
 
     @classmethod
     def load(cls) -> Config:
@@ -119,7 +119,7 @@ class Config:
         self.__dict__.clear()
         self.__dict__.update(fresh.__dict__)
 
-    def to_list(self, filename: str) -> list[str]:
+    def to_list(self, filename: str) -> List[str]:
         """Return lines from a file in the data directory."""
         return (DIR / "data" / filename).read_text().splitlines()
 

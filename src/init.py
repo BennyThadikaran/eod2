@@ -4,18 +4,19 @@ import logging
 import sys
 from argparse import ArgumentParser
 
-from httpx import ConnectError
-from nse import NSE
+import httpx
+from nse import NSE, NSEFileUnavailableError
 
 from defs import defs
-from defs.utils import writeJson
+from defs.utils import write_json
 
 logger = logging.getLogger(__name__)
 
 logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("pyrate_limiter.limiter").setLevel(logging.WARNING)
 
-if not defs.is_version_compatible(NSE.__version__, major=4, minor=0, patch=1):
-    logger.warning("Require NSE version 4.0.*. Run `pip install 'nse[server]==4.0.1'`")
+if not defs.is_version_compatible(NSE.__version__, major=5, minor=1, patch=0):
+    logger.warning("Require NSE version 5.x.x. Run `pip install 'nse~=5.1.0'`")
     exit(1)
 
 data_version = defs.meta.get("data-version", None)
@@ -58,41 +59,41 @@ if args.config:
     exit(0)
 
 try:
-    nse = NSE(defs.DIR, server=True)
-except (TimeoutError, ConnectionError, ConnectError) as e:
+    nse = NSE(defs.DIR)
+except httpx.HTTPError as e:
     logger.warning(f"Network error connecting to NSE - Please try again later. - {e!r}")
     exit(1)
 
 if defs.check_special_sessions(nse):
-    writeJson(defs.META_FILE, defs.meta)
+    write_json(defs.META_FILE, defs.meta)
 
-if defs.config.AMIBROKER and not defs.isAmiBrokerFolderUpdated():
-    defs.updateAmiBrokerRecords(nse)
+if defs.config.AMIBROKER and not defs.is_amibroker_folder_updated():
+    defs.update_amibroker_records(nse)
 
 if "DLV_PENDING_DATES" not in defs.meta:
     defs.meta["DLV_PENDING_DATES"] = []
 
 if len(defs.meta["DLV_PENDING_DATES"]):
-    pendingList = defs.meta["DLV_PENDING_DATES"].copy()
+    pending_list = defs.meta["DLV_PENDING_DATES"].copy()
 
     logger.info("Updating pending delivery reports.")
 
-    for dateStr in pendingList:
-        if defs.updatePendingDeliveryData(nse, dateStr):
-            writeJson(defs.META_FILE, defs.meta)
+    for date_str in pending_list:
+        if defs.update_pending_delivery_data(nse, date_str):
+            write_json(defs.META_FILE, defs.meta)
 
 while True:
     if not defs.dates.nextDate():
         nse.exit()
         exit(0)
 
-    if defs.checkForHolidays(nse, defs.dates):
+    if defs.check_for_holidays(nse, defs.dates):
         defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
-        writeJson(defs.META_FILE, defs.meta)
+        write_json(defs.META_FILE, defs.meta)
         continue
 
     # Validate NSE actions file
-    defs.validateNseActionsFile(nse)
+    defs.validate_nse_actions_file(nse)
 
     # Download all files and validate for errors
     logger.info("Downloading Files")
@@ -118,11 +119,11 @@ while True:
 
     try:
         # NSE bhav copy
-        BHAV_FILE = nse.equityBhavcopy(defs.dates.dt)
+        BHAV_FILE = nse.equity_bhavcopy(defs.dates.dt)
 
         # Index file
-        INDEX_FILE = nse.indicesBhavcopy(defs.dates.dt)
-    except (RuntimeError, Exception) as e:
+        INDEX_FILE = nse.indices_bhavcopy(defs.dates.dt)
+    except (NSEFileUnavailableError, httpx.HTTPError) as e:
         if defs.dates.dt.weekday() == 5:
             if defs.dates.dt != defs.dates.today:
                 logger.info(f"{defs.dates.dt:%a, %d %b %Y}: Market Closed\n{'-' * 52}")
@@ -143,8 +144,8 @@ while True:
     if report_status is None or report_status["CM-BHAVDATA-FULL"]:
         try:
             # NSE delivery
-            DELIVERY_FILE = nse.deliveryBhavcopy(defs.dates.dt)
-        except (RuntimeError, Exception):
+            DELIVERY_FILE = nse.delivery_bhavcopy(defs.dates.dt)
+        except (NSEFileUnavailableError, httpx.HTTPError):
             defs.meta["DLV_PENDING_DATES"].append(defs.dates.dt.isoformat())
             DELIVERY_FILE = None
             logger.warning("Delivery Report Unavailable. Will retry in subsequent sync")
@@ -154,10 +155,10 @@ while True:
         defs.meta["DLV_PENDING_DATES"].append(defs.dates.dt.isoformat())
 
     try:
-        defs.updateNseEOD(BHAV_FILE, DELIVERY_FILE)
+        defs.update_nse_eod(BHAV_FILE, DELIVERY_FILE)
 
         # INDEX sync
-        defs.updateIndexEOD(INDEX_FILE)
+        defs.update_index_eod(INDEX_FILE)
     except Exception as e:
         # rollback
         logger.exception("Error during data sync.", exc_info=e)
@@ -165,7 +166,7 @@ while True:
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
         defs.meta["lastUpdate"] = defs.dates.lastUpdate
-        writeJson(defs.META_FILE, defs.meta)
+        write_json(defs.META_FILE, defs.meta)
         nse.exit()
         exit(1)
 
@@ -173,7 +174,7 @@ while True:
 
     # Adjust Splits and bonus
     try:
-        defs.adjustNseStocks()
+        defs.adjust_nse_stocks()
     except Exception as e:
         logger.exception(
             "Error while making adjustments.\nAll adjustments have been discarded.",
@@ -184,7 +185,7 @@ while True:
         defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
         defs.meta["lastUpdate"] = defs.dates.lastUpdate
-        writeJson(defs.META_FILE, defs.meta)
+        write_json(defs.META_FILE, defs.meta)
         nse.exit()
         exit(1)
 
@@ -194,10 +195,10 @@ while True:
     defs.cleanup((BHAV_FILE, DELIVERY_FILE, INDEX_FILE))
 
     if defs.dates.today == defs.dates.dt:
-        defs.cleanOutDated()
+        defs.clean_outdated()
 
     defs.meta["lastUpdate"] = defs.dates.lastUpdate = defs.dates.dt
-    writeJson(defs.META_FILE, defs.meta)
+    write_json(defs.META_FILE, defs.meta)
     defs.ISIN_SYMBOL_MAP_FILE.write_text(defs.tracker.to_json())
 
     logger.info(f"{defs.dates.dt:%d %b %Y}: Done\n{'-' * 52}")
