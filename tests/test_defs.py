@@ -10,7 +10,11 @@ from unittest.mock import MagicMock, patch
 import pandas as pd
 from context import defs
 from nse import NSEFileUnavailableError
-from zoneinfo import ZoneInfo
+
+try:
+    from zoneinfo import ZoneInfo
+except ModuleNotFoundError:
+    from backports.zoneinfo import ZoneInfo
 
 logger = logging.getLogger("EOD")
 
