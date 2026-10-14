@@ -1103,7 +1103,6 @@ if __name__ != "__main__":
     DAILY_FOLDER = DIR / "eod2_data" / "daily"
     AMIBROKER_FOLDER = DIR / "eod2_data" / "amibroker"
     META_FILE = DIR / "eod2_data" / "meta.json"
-    SPECIAL_SESSIONS_FILE = DIR / "eod2_data/special_sessions.txt"
     ISIN_SYMBOL_MAP_FILE = DIR / "eod2_data/isin_symbol_map.json"
 
     has_latest_holidays = False
