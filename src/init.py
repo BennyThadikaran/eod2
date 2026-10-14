@@ -15,8 +15,8 @@ logger = logging.getLogger(__name__)
 logging.getLogger("httpx").setLevel(logging.WARNING)
 logging.getLogger("pyrate_limiter.limiter").setLevel(logging.WARNING)
 
-if not defs.is_version_compatible(NSE.__version__, major=5, minor=0, patch=0):
-    logger.warning("Require NSE version 5.x.x. Run `pip install 'nse~=5.0.0'`")
+if not defs.is_version_compatible(NSE.__version__, major=5, minor=1, patch=0):
+    logger.warning("Require NSE version 5.x.x. Run `pip install 'nse~=5.1.0'`")
     exit(1)
 
 data_version = defs.meta.get("data-version", None)
