@@ -335,7 +335,7 @@ def update_pending_delivery_data(nse: NSE, date: str):
 
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
-        df = df[df.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
+        df = df[df.SERIES.isin(VALID_SERIES)]
 
         df.columns = df.columns.str.strip()
         df.SERIES = df.SERIES.str.strip()
@@ -362,7 +362,7 @@ def update_pending_delivery_data(nse: NSE, date: str):
 
             # BE and BZ series stocks are all delivery trades,
             # so we use the volume
-            dq = vol if series in ("BE", "BZ") else dq
+            dq = vol if series in EQ_T2T_SERIES else dq
             avg_trade_count = round(vol / trade_count, 2)
 
             daily_df.at[dt, "TOTAL_TRADES"] = trade_count
@@ -521,7 +521,7 @@ def update_nse_eod(bhav_file: Path, delivery_file: Optional[Path]):
 
         # filter the pd.DataFrame for stocks series EQ, BE and BZ
         # https://www.nseindia.com/market-data/legend-of-series
-        dlv_df = dlv_df[dlv_df.SERIES.isin(["EQ", "BE", "BZ", "SM", "ST"])]
+        dlv_df = dlv_df[dlv_df.SERIES.isin(VALID_SERIES)]
 
         if not pd.api.types.is_numeric_dtype(dlv_df.DELIV_QTY):
             dlv_df["DELIV_QTY"] = pd.to_numeric(
@@ -544,13 +544,13 @@ def update_nse_eod(bhav_file: Path, delivery_file: Optional[Path]):
 
                 # BE and BZ series stocks are all delivery trades,
                 # so we use the volume
-                dq = t.TtlTradgVol if t.SctySrs in ("BE", "BZ") else dq
+                dq = t.TtlTradgVol if t.SctySrs in EQ_T2T_SERIES else dq
             else:
                 trade_count = dq = np.nan
         else:
             trade_count = dq = ""
 
-        suffix = "_sme" if t.SctySrs in ("SM", "ST") else ""
+        suffix = "_sme" if t.SctySrs in SME_SERIES else ""
         SYM_FILE = DAILY_FOLDER / f"{t.TckrSymb.lower()}{suffix}.csv"
 
         if pd.isna(t.Index):
@@ -861,7 +861,7 @@ def adjust_nse_stocks():
                 if series not in VALID_SERIES:
                     continue
 
-                if series in ("SM", "ST"):
+                if series in SME_SERIES:
                     sym += "_sme"
 
                 if (
@@ -1120,7 +1120,9 @@ if __name__ != "__main__":
 
     index_header_text = b"Date,Open,High,Low,Close,Volume,P/E,Series,TOTAL_TRADES,QTY_PER_TRADE,DLV_QTY\n"
 
-    VALID_SERIES = ("EQ", "BE", "BZ", "SM", "ST")
+    EQ_T2T_SERIES = ("BE", "BZ")
+    SME_SERIES = ("SM", "ST", "SZ")
+    VALID_SERIES = ("EQ",) + EQ_T2T_SERIES + SME_SERIES
 
     AMIBROKER_COLUMNS = [
         "SYMBOL",
