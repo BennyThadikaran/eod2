@@ -1161,6 +1161,13 @@ if __name__ != "__main__":
     hook = None  # INIT_HOOK
 
     if config.INIT_HOOK:
+        import warnings
+
+        warnings.warn(
+            "INIT_HOOK is deprecated and will be removed in a future release.",
+            FutureWarning,
+            stacklevel=2,
+        )
         hook = load_module(config.INIT_HOOK)
 
         if isinstance(hook, type):
