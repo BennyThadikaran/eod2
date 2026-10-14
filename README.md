@@ -2,7 +2,7 @@
 
 An automated Python script to download and update NSE stocks, indices, and delivery data.
 
-Stock Data is stored as CSV files and adjusted for splits and bonuses. Ideal for use in backtesting.
+Stock Data is stored as CSV files and adjusted for splits and bonuses.
 
 If you :heart: my work so far, please :star2: this repo.
 
@@ -12,7 +12,7 @@ If you :heart: my work so far, please :star2: this repo.
 
 ## Introducing Chart.py | EOD2 v9.4.0 - 12th Jul 2026
 
-The old plot.py and plot_breadth.py scripts have been combined into a single entry point—chart.py—along with a redesigned CLI, new indicator plugins, improved drawing tools, and several quality-of-life improvements.
+Chart.py comes with a redesigned CLI, new indicator plugins, improved drawing tools, and several quality-of-life improvements.
 
 - See the [full announcement](https://github.com/BennyThadikaran/eod2/discussions/328)
 - Wiki [Using chart.py](https://github.com/BennyThadikaran/eod2/wiki/Using-chart.py)
