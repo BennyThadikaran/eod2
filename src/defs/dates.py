@@ -31,7 +31,7 @@ class Dates:
 
         self.pandas_dt = self.dt.strftime("%Y-%m-%d")
 
-    def nextDate(self):
+    def next_date(self):
         """Set the next trading date and return True.
         If its a future date, return False
         """

@@ -83,7 +83,7 @@ if len(defs.meta["DLV_PENDING_DATES"]):
             write_json(defs.META_FILE, defs.meta)
 
 while True:
-    if not defs.dates.nextDate():
+    if not defs.dates.next_date():
         nse.exit()
         exit(0)
 

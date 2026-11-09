@@ -40,11 +40,11 @@ def get_dataframe(
     period: int,
     tf: Literal["daily", "weekly"] = "daily",
     columns: Optional[List[str]] = None,
-    toDate: Optional[datetime] = None,
+    to_date: Optional[datetime] = None,
 ) -> pd.DataFrame:
     candle_count = period * 5 if tf == "weekly" else period
 
-    df = csv_loader(fpath, candle_count, end_date=toDate, use_columns=columns)
+    df = csv_loader(fpath, candle_count, end_date=to_date, use_columns=columns)
 
     if tf == "weekly":
         if columns:

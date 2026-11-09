@@ -122,7 +122,7 @@ fast_ema = slow_ema = osc = None
 modified = False
 
 while True:
-    if not dates.nextDate():
+    if not dates.next_date():
         nse.exit()
 
         if modified:
