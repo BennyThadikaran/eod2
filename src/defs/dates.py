@@ -31,7 +31,7 @@ class Dates:
 
         self.pandas_dt = self.dt.strftime("%Y-%m-%d")
 
-    def nextDate(self):
+    def next_date(self):
         """Set the next trading date and return True.
         If its a future date, return False
         """
@@ -42,7 +42,7 @@ class Dates:
             logger.info("All Up To Date")
             return False
 
-        if self.dt.day == cur_time.day and cur_time.hour < 16:
+        if self.dt.date() == cur_time.date() and cur_time.hour < 16:
             # Display the users local time
             local_time = cur_time.replace(hour=19, minute=0).astimezone(TZ_LOCAL)
 

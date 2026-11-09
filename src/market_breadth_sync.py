@@ -21,14 +21,22 @@ def ema(price, period, prev_ema):
     return alpha * price + (1 - alpha) * prev_ema
 
 
-def load_symbol(sym) -> Optional[pd.DataFrame]:
+def load_symbol(sym, to_date=None) -> Optional[pd.DataFrame]:
     file = DAILY / f"{sym.lower()}.csv"
 
     if not file.exists():
         logger.warning(f"{sym} not found")
         return None
 
-    df = get_dataframe(file, period=260, columns=["Date", "High", "Low", "Close"])
+    try:
+        df = get_dataframe(
+            file,
+            period=260,
+            columns=["Date", "High", "Low", "Close"],
+            to_date=to_date,
+        )
+    except IndexError:
+        return None
 
     df.loc[:, "MA50"] = df.Close.rolling(50).mean().round(2)
     df.loc[:, "MA200"] = df.Close.rolling(200).mean().round(2)
@@ -122,7 +130,7 @@ fast_ema = slow_ema = osc = None
 modified = False
 
 while True:
-    if not dates.nextDate():
+    if not dates.next_date():
         nse.exit()
 
         if modified:
@@ -190,7 +198,7 @@ while True:
             logger.warning(f"Unable to track {symbol_original} - {last_trade_date}")
             continue
 
-        df = load_symbol(symbol)
+        df = load_symbol(symbol, to_date=dt)
 
         if df is None or dt not in df.index:
             continue

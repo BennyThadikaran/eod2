@@ -77,13 +77,13 @@ class TestGetDataFrame(unittest.TestCase):
         self.assertListEqual(list(result.columns), columns)
 
     @patch("context.utils.csv_loader")
-    def test_daily_dataframe_with_toDate(self, mock_csv_loader):
-        """Test daily timeframe with toDate parameter."""
+    def test_daily_dataframe_with_to_date(self, mock_csv_loader):
+        """Test daily timeframe with to_date parameter."""
         to_date = datetime(2024, 2, 1)
         mock_csv_loader.return_value = self.sample_df
 
         result = utils.get_dataframe(
-            self.test_fpath, self.period, tf="daily", toDate=to_date
+            self.test_fpath, self.period, tf="daily", to_date=to_date
         )
 
         mock_csv_loader.assert_called_once_with(
@@ -176,13 +176,13 @@ class TestGetDataFrame(unittest.TestCase):
             utils.get_dataframe(self.test_fpath, self.period)
 
     @patch("context.utils.csv_loader")
-    def test_weekly_with_toDate(self, mock_csv_loader):
-        """Test weekly timeframe with toDate parameter."""
+    def test_weekly_with_to_date(self, mock_csv_loader):
+        """Test weekly timeframe with to_date parameter."""
         to_date = datetime(2024, 2, 1)
         mock_csv_loader.return_value = self.sample_df
 
         result = utils.get_dataframe(
-            self.test_fpath, self.period, tf="weekly", toDate=to_date
+            self.test_fpath, self.period, tf="weekly", to_date=to_date
         )
 
         expected_candle_count = self.period * 5
