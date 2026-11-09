@@ -1,0 +1,25 @@
+[tool.ruff]
+target-version = "py38"
+format.indent-style = "space"
+format.quote-style = "double"
+format.line-ending = "auto"
+format.skip-magic-trailing-comma = false
+lint.select = [
+  "B",   # flake8-bugbear (likely bugs)
+  "D",   # pydocstyle (PEP 257)
+  "E",   # pycodestyle errors (PEP 8)
+  "F",   # pyflakes (unused imports, undefined names)
+  "I",   # isort (import sorting)
+  "N",   # pep8-naming (snake_case, PascalCase)
+  "SIM", # flake8-simplify
+  "UP",  # pyupgrade (modern Python)
+  "W",   # pycodestyle warnings
+]
+lint.ignore = [
+  "D100", # missing docstring in public module
+  "D104", # missing docstring in public package
+  "D203", # incompatible with D211
+  "D213", # incompatible with D212
+]
+lint.pydocstyle.convention = "pep257"
+per-file-target-version = { "chart.py" = "py310", "renderer/**/*.py" = "py310" }
