@@ -67,7 +67,7 @@ class TestDatesInit(unittest.TestCase):
 
 
 class TestDatesNextDate(unittest.TestCase):
-    """Tests for Dates.nextDate."""
+    """Tests for Dates.next_date."""
 
     def _build(self, last_update: str, now: datetime) -> defs.Dates:
         with patch("defs.dates.datetime") as mock_datetime:
@@ -85,21 +85,21 @@ class TestDatesNextDate(unittest.TestCase):
 
         with patch("defs.dates.datetime") as mock_datetime:
             mock_datetime.now.return_value = now
-            result = d.nextDate()
+            result = d.next_date()
 
         self.assertFalse(result)
         mock_logger.info.assert_called()
 
     @patch("defs.dates.logger")
     def test_advances_to_next_day(self, mock_logger):
-        """On a normal day, nextDate should advance the internal dt."""
+        """On a normal day, next_date should advance the internal dt."""
         now = datetime(2024, 1, 15, 20, 0, tzinfo=TZ_IN)
         d = self._build("2024-01-13T00:00:00+05:30", now)
         previous = d.dt
 
         with patch("defs.dates.datetime") as mock_datetime:
             mock_datetime.now.return_value = now
-            result = d.nextDate()
+            result = d.next_date()
 
         self.assertTrue(result)
         self.assertEqual(d.dt, previous + timedelta(1))
@@ -113,7 +113,7 @@ class TestDatesNextDate(unittest.TestCase):
 
         with patch("defs.dates.datetime") as mock_datetime:
             mock_datetime.now.return_value = now
-            result = d.nextDate()
+            result = d.next_date()
 
         self.assertFalse(result)
         # Check that "Check again after" message was logged
@@ -128,7 +128,7 @@ class TestDatesNextDate(unittest.TestCase):
 
         with patch("defs.dates.datetime") as mock_datetime:
             mock_datetime.now.return_value = now
-            result = d.nextDate()
+            result = d.next_date()
 
         self.assertTrue(result)
 
@@ -140,10 +140,10 @@ class TestDatesNextDate(unittest.TestCase):
 
         with patch("defs.dates.datetime") as mock_datetime:
             mock_datetime.now.return_value = now
-            d.nextDate()
+            d.next_date()
             first = d.dt
 
-            d.nextDate()
+            d.next_date()
             second = d.dt
 
         self.assertEqual(second - first, timedelta(1))
