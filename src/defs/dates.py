@@ -42,7 +42,7 @@ class Dates:
             logger.info("All Up To Date")
             return False
 
-        if self.dt.day == cur_time.day and cur_time.hour < 16:
+        if self.dt.date() == cur_time.date() and cur_time.hour < 16:
             # Display the users local time
             local_time = cur_time.replace(hour=19, minute=0).astimezone(TZ_LOCAL)
 
