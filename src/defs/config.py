@@ -86,8 +86,8 @@ class Config:
     PRESET: Dict[str, Any] = field(default_factory=dict)
 
     # ---------- INTERNAL ----------
-    VERSION: str = "9.6.1"
-    EXPECTED_DATA_VERSION: float = 3.5
+    VERSION: str = "9.6.2"
+    EXPECTED_DATA_VERSION: float = 3.6
 
     @classmethod
     def load(cls) -> Config:
