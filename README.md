@@ -4,6 +4,17 @@ An automated Python script to download and update NSE stocks, indices, and deliv
 
 Stock Data is stored as CSV files and adjusted for splits and bonuses.
 
+## Important Notice
+
+> [!WARNING]
+> NSE domain update — v9.6.2
+>
+> NSE has changed its website domain from `nseindia.com` to `nseindia.in`.
+> Upgrade NSE package to `v5.1.3 or later` to maintain compatibility with NSE APIs.
+>
+> Run `pip install -U 'nse~=5.1.3'` to update the package.
+> Delete any stale `cookies.txt` file before running.
+
 If you :heart: my work so far, please :star2: this repo.
 
 ## Prefer a Desktop App?
